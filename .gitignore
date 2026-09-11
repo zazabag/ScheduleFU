@@ -8,3 +8,6 @@ dist/
 .next/
 *.db
 *.sqlite3
+/schedulefu
+/collector
+/api
