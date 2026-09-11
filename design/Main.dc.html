@@ -1,0 +1,233 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Space Grotesk', system-ui, sans-serif; }
+    a { color: #c8fa5f; } a:hover { color: #a8d84a; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #0f1115; color: #e8eaed; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="padding: 22px 18px 12px; display: flex; flex-direction: column; gap: 14px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div style="display: flex; flex-direction: column; gap: 3px;">
+        <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em;">Свободно сейчас</div>
+        <div style="font-size: 12px; color: #7a8290;">{{campusLabel}} · {{freeCount}} из {{totalCount}}</div>
+      </div>
+      <div style="padding: 6px 10px; background: #1a1e26; border-radius: 6px; font-size: 13px; font-weight: 600; color: #c8fa5f;">{{clock}}</div>
+    </div>
+
+    <div style="display: flex; gap: 6px;">
+      <sc-for list="{{campuses}}" as="c" hint-placeholder-count="3">
+        <div onClick="{{c.pick}}" style="{{c.style}}">{{c.label}}</div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; gap: 6px; align-items: center;">
+      <div style="font-size: 11px; color: #5b6371;">этаж</div>
+      <sc-for list="{{floors}}" as="f" hint-placeholder-count="5">
+        <div onClick="{{f.pick}}" style="{{f.style}}">{{f.label}}</div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; overflow: hidden; padding: 4px 18px 0; display: flex; flex-direction: column; gap: 8px;">
+    <sc-for list="{{rooms}}" as="r" hint-placeholder-count="4">
+      <div onClick="{{r.toggle}}" style="{{r.cardStyle}}">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: baseline; gap: 9px;">
+            <div style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">{{r.room}}</div>
+            <div style="font-size: 11px; color: #7a8290;">{{r.meta}}</div>
+          </div>
+          <div style="{{r.untilStyle}}">{{r.until}}</div>
+        </div>
+
+        <div style="display: flex; gap: 3px; height: 22px;">
+          <sc-for list="{{r.slots}}" as="s" hint-placeholder-count="6">
+            <div style="{{s.style}}"></div>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{r.open}}" hint-placeholder-val="{{true}}">
+          <div style="display: flex; flex-direction: column; gap: 7px; padding-top: 4px; border-top: 1px solid #222833;">
+            <sc-for list="{{r.lessons}}" as="l" hint-placeholder-count="2">
+              <div style="display: flex; gap: 10px; align-items: baseline;">
+                <div style="font-size: 11px; color: #c8fa5f; font-weight: 600; width: 82px;">{{l.time}}</div>
+                <div style="font-size: 11px; color: #9aa3b0; flex-grow: 1;">{{l.what}}</div>
+              </div>
+            </sc-for>
+            <sc-if value="{{r.empty}}" hint-placeholder-val="{{false}}">
+              <div style="font-size: 11px; color: #5b6371;">Сегодня пар нет</div>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="padding: 10px 18px 6px; display: flex; gap: 14px; align-items: center;">
+    <div style="display: flex; align-items: center; gap: 5px;">
+      <div style="width: 9px; height: 9px; background: #c8fa5f; border-radius: 2px;"></div>
+      <div style="font-size: 10px; color: #7a8290;">свободна</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 5px;">
+      <div style="width: 9px; height: 9px; background: #3a2f24; border-radius: 2px;"></div>
+      <div style="font-size: 10px; color: #7a8290;">пара</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 5px;">
+      <div style="width: 9px; height: 9px; background: #2a3038; border-radius: 2px;"></div>
+      <div style="font-size: 10px; color: #7a8290;">прошло</div>
+    </div>
+  </div>
+
+  <div style="padding: 0 18px 10px;">
+    <div style="font-size: 10px; line-height: 1.4; color: #5b6371;">Брони вне расписания вуз не публикует — аудитория может быть занята.</div>
+  </div>
+
+  <div style="display: flex; border-top: 1px solid #1a1e26;">
+    <div style="flex-grow: 1; padding: 13px 0 18px; text-align: center; font-size: 11px; font-weight: 600; color: #c8fa5f;">Аудитории</div>
+    <div style="flex-grow: 1; padding: 13px 0 18px; text-align: center; font-size: 11px; color: #5b6371;">Расписание</div>
+    <div style="flex-grow: 1; padding: 13px 0 18px; text-align: center; font-size: 11px; color: #5b6371;">Преподаватели</div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"clock":{"editor":"text","default":"14:07"},"accent":{"editor":"color","default":"#c8fa5f","options":["#c8fa5f","#5fd0fa","#fa9a5f","#d78ffa"]}}'>
+// Данные — реальная выгрузка из базы проекта за субботу 12.09.2026.
+// Слоты: 8:30, 10:10, 11:50, 14:00, 15:40, 17:20. Текущий момент — 14:07,
+// то есть первые три слота уже прошли.
+const CURRENT_SLOT = 3;
+
+const DATA = {
+  leningradsky: {
+    label: 'Ленинградский', free: 37, total: 103,
+    rooms: [
+      { room: '313', meta: '49/2 · 3 эт · 54 места', floor: 3,
+        busy: [], lessons: [] },
+      { room: '321', meta: '49/2 · 3 эт · 84 места', floor: 3,
+        busy: [4, 5], lessons: [{ time: '15:40—17:10', what: 'Микроэкономика · Лаптев А.В.' }] },
+      { room: '0236', meta: '51 · 2 эт · 120 мест', floor: 2,
+        busy: [0], lessons: [{ time: '08:30—10:00', what: 'Высшая математика · Орлова М.С.' }] },
+      { room: '425', meta: '49/2 · 4 эт · 18 мест', floor: 4,
+        busy: [], lessons: [] },
+    ],
+  },
+  veshnyakovsky: {
+    label: 'Вешняковский', free: 24, total: 79,
+    rooms: [
+      { room: '1002', meta: 'Вешняковский · 120 мест', floor: null,
+        busy: [1, 2], lessons: [{ time: '10:10—13:20', what: 'Бухгалтерский учёт · Носова Л.П.' }] },
+      { room: '1104', meta: 'Вешняковский · 32 места', floor: null,
+        busy: [], lessons: [] },
+    ],
+  },
+  shcherbakovskaya: {
+    label: 'Щербаковская', free: 19, total: 51,
+    rooms: [
+      { room: '704', meta: 'Щербаковская · 28 мест', floor: null,
+        busy: [1, 2, 3, 4], lessons: [
+          { time: '10:10—13:20', what: 'Налоговое право · Титов А.С.' },
+          { time: '14:00—17:10', what: 'Гражданское право ч.2 · Ларина Т.В.' },
+        ] },
+      { room: '612', meta: 'Щербаковская · 40 мест', floor: null,
+        busy: [5], lessons: [{ time: '17:20—18:50', what: 'Теория государства и права · Юсупов Р.М.' }] },
+    ],
+  },
+};
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { campus: 'leningradsky', floor: null, open: null };
+  }
+
+  chip(active, accent) {
+    // Активный чип заливается акцентом, остальные — тихая рамка.
+    return active
+      ? `padding: 7px 12px; background: ${accent}; color: #0f1115; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;`
+      : 'padding: 7px 12px; background: #1a1e26; color: #7a8290; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;';
+  }
+
+  smallChip(active, accent) {
+    return active
+      ? `padding: 4px 9px; background: ${accent}; color: #0f1115; border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer;`
+      : 'padding: 4px 9px; background: #1a1e26; color: #7a8290; border-radius: 999px; font-size: 11px; cursor: pointer;';
+  }
+
+  renderVals() {
+    const accent = this.props.accent ?? '#c8fa5f';
+    const current = DATA[this.state.campus];
+
+    const campuses = Object.keys(DATA).map((key) => ({
+      label: DATA[key].label,
+      style: this.chip(key === this.state.campus, accent),
+      // Смена кампуса сбрасывает этаж: у корпусов нумерация разная,
+      // и «3 этаж» на Ленинградском ничего не значит на Вешняковском.
+      pick: () => this.setState({ campus: key, floor: null, open: null }),
+    }));
+
+    const present = [];
+    current.rooms.forEach((r) => {
+      if (r.floor !== null && present.indexOf(r.floor) === -1) present.push(r.floor);
+    });
+    present.sort();
+    const floors = [{
+      label: 'все',
+      style: this.smallChip(this.state.floor === null, accent),
+      pick: () => this.setState({ floor: null, open: null }),
+    }].concat(present.map((f) => ({
+      label: String(f),
+      style: this.smallChip(this.state.floor === f, accent),
+      pick: () => this.setState({ floor: f, open: null }),
+    })));
+
+    const shown = current.rooms.filter(
+      (r) => this.state.floor === null || r.floor === this.state.floor);
+
+    const rooms = shown.map((r) => {
+      const open = this.state.open === r.room;
+      const nextBusy = r.busy.filter((s) => s >= CURRENT_SLOT).sort()[0];
+      const SLOT_LABELS = ['08:30', '10:10', '11:50', '14:00', '15:40', '17:20'];
+      return {
+        room: r.room,
+        meta: r.meta,
+        open,
+        empty: r.lessons.length === 0,
+        lessons: r.lessons,
+        until: nextBusy === undefined ? 'до 19:00' : 'до ' + SLOT_LABELS[nextBusy],
+        untilStyle: nextBusy === undefined
+          ? `font-size: 11px; font-weight: 600; color: ${accent};`
+          : 'font-size: 11px; font-weight: 600; color: #ffa94d;',
+        cardStyle: open
+          ? 'background: #161a21; border: 1px solid #2a3038; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 11px; cursor: pointer;'
+          : 'background: #161a21; border: 1px solid #161a21; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 11px; cursor: pointer;',
+        slots: SLOT_LABELS.map((_, i) => {
+          let bg = '#2a3038';                      // прошедшее время
+          if (r.busy.indexOf(i) !== -1) bg = '#3a2f24';   // пара
+          else if (i >= CURRENT_SLOT) bg = accent;         // ещё свободна
+          return { style: `flex-grow: 1; background: ${bg}; border-radius: 3px;` };
+        }),
+        toggle: () => this.setState({ open: open ? null : r.room }),
+      };
+    });
+
+    return {
+      clock: this.props.clock ?? '14:07',
+      campusLabel: current.label,
+      freeCount: current.free,
+      totalCount: current.total,
+      campuses, floors, rooms,
+    };
+  }
+}
+</script>
+</body>
+</html>

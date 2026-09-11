@@ -1,0 +1,229 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Space Grotesk', system-ui, sans-serif; }
+    a { color: #c8fa5f; } a:hover { color: #a8d84a; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #0f1115; color: #e8eaed; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="padding: 20px 18px 12px; display: flex; flex-direction: column; gap: 14px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: baseline; gap: 8px;">
+        <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em;">{{group}}</div>
+        <div style="font-size: 11px; color: #5b6371;">3 курс</div>
+      </div>
+      <div style="padding: 6px 10px; background: #1a1e26; border-radius: 6px; font-size: 11px; color: #7a8290;">сентябрь</div>
+    </div>
+
+    <div style="display: flex; gap: 4px;">
+      <sc-for list="{{days}}" as="d" hint-placeholder-count="6">
+        <div onClick="{{d.pick}}" style="{{d.style}}">
+          <div style="font-size: 10px; opacity: 0.7;">{{d.dow}}</div>
+          <div style="font-size: 15px; font-weight: 700;">{{d.num}}</div>
+          <div style="{{d.dotStyle}}"></div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <sc-if value="{{hasChanges}}" hint-placeholder-val="{{true}}">
+    <div style="margin: 0 18px 10px; padding: 11px 13px; background: #2a2416; border: 1px solid #4a3f1f; border-radius: 9px; display: flex; gap: 10px; align-items: flex-start;">
+      <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="#ffa94d" stroke-width="1.7" style="flex-shrink: 0; margin-top: 1px;">
+        <path d="M10 6v5" stroke-linecap="round"></path>
+        <circle cx="10" cy="14" r="0.9" fill="#ffa94d" stroke="none"></circle>
+        <circle cx="10" cy="10" r="7.5"></circle>
+      </svg>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-size: 12px; font-weight: 600; color: #ffa94d;">{{changeTitle}}</div>
+        <div style="font-size: 11px; color: #b09562; line-height: 1.35;">{{changeText}}</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="flex-grow: 1; overflow: hidden; padding: 0 18px; display: flex; flex-direction: column; gap: 8px;">
+    <sc-for list="{{lessons}}" as="l" hint-placeholder-count="4">
+      <div style="{{l.cardStyle}}">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; width: 46px; flex-shrink: 0;">
+          <div style="font-size: 13px; font-weight: 700; color: {{l.timeColor}};">{{l.from}}</div>
+          <div style="font-size: 10px; color: #5b6371;">{{l.to}}</div>
+        </div>
+
+        <div style="width: 2px; align-self: stretch; background: {{l.railColor}}; border-radius: 999px; flex-shrink: 0;"></div>
+
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 5px;">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+            <div style="font-size: 13px; font-weight: 600; line-height: 1.3;">{{l.discipline}}</div>
+            <sc-if value="{{l.changed}}" hint-placeholder-val="{{false}}">
+              <div style="padding: 3px 7px; background: #4a3f1f; color: #ffa94d; border-radius: 999px; font-size: 9px; font-weight: 700; flex-shrink: 0;">изменено</div>
+            </sc-if>
+          </div>
+          <div style="font-size: 11px; color: #7a8290;">{{l.kind}} · {{l.lecturer}}</div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="font-size: 12px; font-weight: 600; color: {{l.roomColor}};">{{l.room}}</div>
+            <div style="font-size: 10px; color: #5b6371;">{{l.where}}</div>
+          </div>
+          <sc-if value="{{l.changed}}" hint-placeholder-val="{{false}}">
+            <div style="font-size: 10px; color: #b09562;">{{l.changeNote}}</div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 40px 0; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+        <div style="font-size: 15px; font-weight: 600; color: #5b6371;">Пар нет</div>
+        <div style="font-size: 12px; color: #3f4650;">Выходной</div>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="padding: 10px 18px;">
+    <div style="font-size: 10px; color: #5b6371;">Обновлено 4 минуты назад · источник: расписание вуза</div>
+  </div>
+
+  <div style="display: flex; border-top: 1px solid #1a1e26;">
+    <div style="flex-grow: 1; padding: 13px 0 18px; text-align: center; font-size: 11px; color: #5b6371;">Аудитории</div>
+    <div style="flex-grow: 1; padding: 13px 0 18px; text-align: center; font-size: 11px; font-weight: 600; color: #c8fa5f;">Расписание</div>
+    <div style="flex-grow: 1; padding: 13px 0 18px; text-align: center; font-size: 11px; color: #5b6371;">Преподаватели</div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#c8fa5f","options":["#c8fa5f","#5fd0fa","#fa9a5f","#d78ffa"]}}'>
+// Реальная выгрузка из базы проекта: группа Ю24-5, неделя 14—19.09.2026.
+// Метка «изменено» на паре в среду — единственное подставленное значение:
+// сборщик сделал пока один проход, сравнивать ещё не с чем. Так эта пара
+// будет выглядеть, когда вуз внесёт правку.
+const WEEK = [
+  {
+    dow: 'пн', num: '14',
+    lessons: [
+      { from: '08:30', to: '10:00', discipline: 'Основы военной подготовки', kind: 'Лекция',
+        lecturer: 'Лопухов А.А.', room: '809', where: 'Щербаковская 38' },
+      { from: '10:10', to: '11:40', discipline: 'Криминалистика', kind: 'Семинар',
+        lecturer: 'Козырева Ю.Н.', room: 'ауд.303', where: 'Щербаковская 38 · криминалистика' },
+      { from: '11:50', to: '13:20', discipline: 'Основы военной подготовки', kind: 'Семинар',
+        lecturer: 'Лопухов А.А.', room: '708', where: 'Щербаковская 38' },
+      { from: '14:00', to: '15:30', discipline: 'Гражданский процесс', kind: 'Семинар',
+        lecturer: 'Юнусова К.В.', room: '611', where: 'Щербаковская 38' },
+    ],
+  },
+  {
+    dow: 'вт', num: '15',
+    lessons: [
+      { from: '08:30', to: '10:00', discipline: 'Криминалистика', kind: 'Лекция',
+        lecturer: 'Козырева Ю.Н.', room: '810', where: 'Щербаковская 38' },
+      { from: '10:10', to: '11:40', discipline: 'Гражданское право ч.2', kind: 'Семинар',
+        lecturer: 'Ларина Т.В.', room: '703', where: 'Щербаковская 38' },
+      { from: '11:50', to: '13:20', discipline: 'Арбитражный процесс', kind: 'Семинар',
+        lecturer: 'Минасян Г.М.', room: '605', where: 'Щербаковская 38' },
+    ],
+  },
+  {
+    dow: 'ср', num: '16',
+    change: { title: 'Аудитория изменена', text: 'Первая пара военной подготовки переехала. Вуз внёс правку вчера в 18:42.' },
+    lessons: [
+      { from: '08:30', to: '10:00', discipline: 'Военная подготовка', kind: 'Военная подготовка',
+        lecturer: 'Преподаватели ВУЦ', room: 'Зал ВП', where: 'Касаткина 15',
+        changed: true, changeNote: 'было: Касаткина 17 · зал № 2' },
+      { from: '10:10', to: '11:40', discipline: 'Военная подготовка', kind: 'Военная подготовка',
+        lecturer: 'Преподаватели ВУЦ', room: 'Зал ВП', where: 'Касаткина 15' },
+      { from: '11:50', to: '13:20', discipline: 'Военная подготовка', kind: 'Военная подготовка',
+        lecturer: 'Преподаватели ВУЦ', room: 'Зал ВП', where: 'Касаткина 15' },
+      { from: '14:00', to: '15:30', discipline: 'Военная подготовка', kind: 'Военная подготовка',
+        lecturer: 'Преподаватели ВУЦ', room: 'Зал ВП', where: 'Касаткина 15' },
+    ],
+  },
+  {
+    dow: 'чт', num: '17',
+    lessons: [
+      { from: '10:10', to: '11:40', discipline: 'Гражданский процесс', kind: 'Лекция',
+        lecturer: 'Юнусова К.В.', room: '809', where: 'Щербаковская 38' },
+      { from: '11:50', to: '13:20', discipline: 'Арбитражный процесс', kind: 'Лекция',
+        lecturer: 'Минасян Г.М.', room: '602', where: 'Щербаковская 38' },
+      { from: '14:00', to: '15:30', discipline: 'Гражданское право ч.2', kind: 'Лекция',
+        lecturer: 'Ларина Т.В.', room: '602', where: 'Щербаковская 38' },
+      { from: '15:40', to: '17:10', discipline: 'Криминология', kind: 'Лекция',
+        lecturer: 'Красненкова Е.В.', room: '602', where: 'Щербаковская 38' },
+    ],
+  },
+  {
+    dow: 'пт', num: '18',
+    lessons: [
+      { from: '10:10', to: '11:40', discipline: 'Предпринимательское право', kind: 'Лекция',
+        lecturer: 'ставка вакантна', room: '810', where: 'Щербаковская 38' },
+      { from: '11:50', to: '13:20', discipline: 'Предпринимательское право', kind: 'Лекция',
+        lecturer: 'ставка вакантна', room: '809', where: 'Щербаковская 38' },
+      { from: '14:00', to: '15:30', discipline: 'Предпринимательское право', kind: 'Семинар',
+        lecturer: 'Ручкина М.О.', room: '710', where: 'Щербаковская 38' },
+      { from: '15:40', to: '17:10', discipline: 'Предпринимательское право', kind: 'Семинар',
+        lecturer: 'Ручкина М.О.', room: '710', where: 'Щербаковская 38' },
+    ],
+  },
+  { dow: 'сб', num: '19', lessons: [] },
+];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { day: 2 };
+  }
+
+  renderVals() {
+    const accent = this.props.accent ?? '#c8fa5f';
+    const d = WEEK[this.state.day];
+
+    const days = WEEK.map((w, i) => {
+      const active = i === this.state.day;
+      const has = w.lessons.length > 0;
+      return {
+        dow: w.dow, num: w.num,
+        style: active
+          ? `flex-grow: 1; padding: 9px 0; background: ${accent}; color: #0f1115; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer;`
+          : 'flex-grow: 1; padding: 9px 0; background: #161a21; color: #7a8290; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer;',
+        // Точка под числом показывает, есть ли в этот день пары —
+        // видно до того, как откроешь день.
+        dotStyle: has
+          ? (active
+              ? 'width: 4px; height: 4px; border-radius: 999px; background: #0f1115;'
+              : `width: 4px; height: 4px; border-radius: 999px; background: ${accent};`)
+          : 'width: 4px; height: 4px; border-radius: 999px; background: transparent;',
+        pick: () => this.setState({ day: i }),
+      };
+    });
+
+    const lessons = d.lessons.map((l) => ({
+      from: l.from, to: l.to,
+      discipline: l.discipline, kind: l.kind, lecturer: l.lecturer,
+      room: l.room, where: l.where,
+      changed: l.changed === true,
+      changeNote: l.changeNote ?? '',
+      timeColor: l.changed ? '#ffa94d' : accent,
+      railColor: l.changed ? '#4a3f1f' : '#222833',
+      roomColor: l.changed ? '#ffa94d' : '#e8eaed',
+      cardStyle: 'display: flex; gap: 11px; padding: 13px; background: #161a21; border-radius: 10px;',
+    }));
+
+    return {
+      group: 'Ю24-5',
+      days, lessons,
+      empty: lessons.length === 0,
+      hasChanges: d.change !== undefined,
+      changeTitle: d.change ? d.change.title : '',
+      changeText: d.change ? d.change.text : '',
+    };
+  }
+}
+</script>
+</body>
+</html>

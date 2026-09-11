@@ -1,0 +1,201 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Space Grotesk', system-ui, sans-serif; }
+    a { color: #c8fa5f; } a:hover { color: #a8d84a; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #0f1115; color: #e8eaed; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="padding: 22px 18px 14px; display: flex; flex-direction: column; gap: 15px;">
+    <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em;">Преподаватели</div>
+
+    <div style="display: flex; align-items: center; gap: 9px; background: #161a21; border: 1px solid {{searchBorder}}; border-radius: 8px; padding: 12px 13px;">
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#5b6371" stroke-width="1.6">
+        <circle cx="9" cy="9" r="6"></circle>
+        <path d="M13.5 13.5L17 17" stroke-linecap="round"></path>
+      </svg>
+      <div style="{{queryStyle}}">{{queryText}}</div>
+    </div>
+
+    <div style="display: flex; gap: 6px;">
+      <sc-for list="{{people}}" as="p" hint-placeholder-count="3">
+        <div onClick="{{p.pick}}" style="{{p.style}}">{{p.short}}</div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; overflow: hidden; padding: 0 18px; display: flex; flex-direction: column; gap: 12px;">
+
+    <div style="{{nowCardStyle}}">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div style="display: flex; flex-direction: column; gap: 3px;">
+          <div style="font-size: 16px; font-weight: 700;">{{name}}</div>
+          <div style="font-size: 11px; color: #7a8290;">{{department}}</div>
+        </div>
+        <div style="{{badgeStyle}}">{{badge}}</div>
+      </div>
+
+      <sc-if value="{{inClass}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; align-items: center; gap: 14px; padding-top: 12px; border-top: 1px solid #222833;">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: {{accentValue}};">{{room}}</div>
+            <div style="font-size: 11px; color: #7a8290;">{{building}}</div>
+          </div>
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px;">
+            <div style="font-size: 12px; font-weight: 600;">{{nowTime}}</div>
+            <div style="font-size: 11px; color: #9aa3b0; line-height: 1.35;">{{nowWhat}}</div>
+            <div style="font-size: 11px; color: #5b6371;">{{nowGroups}}</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{free}}" hint-placeholder-val="{{false}}">
+        <div style="padding-top: 12px; border-top: 1px solid #222833;">
+          <div style="font-size: 12px; color: #7a8290;">{{freeText}}</div>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 11px; color: #5b6371;">Сегодня</div>
+      <sc-for list="{{day}}" as="d" hint-placeholder-count="4">
+        <div style="{{d.style}}">
+          <div style="font-size: 11px; font-weight: 600; color: {{d.timeColor}}; width: 88px;">{{d.time}}</div>
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;">
+            <div style="font-size: 12px;">{{d.what}}</div>
+            <div style="font-size: 10px; color: #5b6371;">{{d.where}}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="padding: 10px 18px;">
+    <div style="font-size: 10px; line-height: 1.4; color: #5b6371;">Данные из открытого расписания вуза. Показывает пары, а не человека: вне пар местонахождение неизвестно.</div>
+  </div>
+
+  <div style="display: flex; border-top: 1px solid #1a1e26;">
+    <div style="flex-grow: 1; padding: 13px 0 18px; text-align: center; font-size: 11px; color: #5b6371;">Аудитории</div>
+    <div style="flex-grow: 1; padding: 13px 0 18px; text-align: center; font-size: 11px; color: #5b6371;">Расписание</div>
+    <div style="flex-grow: 1; padding: 13px 0 18px; text-align: center; font-size: 11px; font-weight: 600; color: #c8fa5f;">Преподаватели</div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"clock":{"editor":"text","default":"12:00"},"accent":{"editor":"color","default":"#c8fa5f","options":["#c8fa5f","#5fd0fa","#fa9a5f","#d78ffa"]}}'>
+// Реальная выгрузка из базы проекта: суббота 12.09.2026.
+const SLOTS = [
+  { from: '10:10', to: '11:40' }, { from: '11:50', to: '13:20' },
+  { from: '15:40', to: '17:10' }, { from: '17:20', to: '18:50' },
+];
+
+const PEOPLE = [
+  {
+    short: 'Митрахович',
+    name: 'Митрахович С.П.',
+    department: 'Департамент политологии',
+    day: [
+      { time: '10:10—11:40', what: 'Политический анализ и прогнозирование', where: 'ЛП49/2/517 · МПол25-1' },
+      { time: '11:50—13:20', what: 'Политический анализ и прогнозирование', where: 'ЛП49/2/517 · МПол25-1' },
+      { time: '15:40—17:10', what: 'Политический анализ и прогнозирование', where: 'ЛП49/2/517 · МПол25-2' },
+      { time: '17:20—18:50', what: 'Политический анализ и прогнозирование', where: 'ЛП49/2/517 · МПол25-2' },
+    ],
+    nowIndex: 1,
+    room: '517', building: 'Ленинградский 49/2 · 5 этаж',
+  },
+  {
+    short: 'Титов',
+    name: 'Титов А.С.',
+    department: 'Департамент правового регулирования',
+    day: [
+      { time: '10:10—11:40', what: 'Налоговое право', where: 'Щ38/704 · Ю24-5' },
+      { time: '11:50—13:20', what: 'Налоговое право', where: 'Щ38/704 · Ю24-5' },
+    ],
+    nowIndex: 1,
+    room: '704', building: 'Щербаковская 38',
+  },
+  {
+    short: 'Ларина',
+    name: 'Ларина Т.В.',
+    department: 'Департамент правового регулирования',
+    day: [
+      { time: '14:00—15:30', what: 'Гражданское право ч.2', where: 'Щ38/704 · Ю24-5' },
+      { time: '15:40—17:10', what: 'Гражданское право ч.2', where: 'Щ38/704 · Ю24-5' },
+    ],
+    // В 12:00 пары нет — «вне пар местонахождение неизвестно» и есть
+    // честный ответ, а не пустой экран.
+    nowIndex: null,
+    room: null, building: null,
+  },
+];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { picked: 0, query: 'Митрахович' };
+  }
+
+  renderVals() {
+    const accent = this.props.accent ?? '#c8fa5f';
+    const p = PEOPLE[this.state.picked];
+    const inClass = p.nowIndex !== null;
+
+    const people = PEOPLE.map((x, i) => ({
+      short: x.short,
+      style: i === this.state.picked
+        ? `padding: 7px 12px; background: ${accent}; color: #0f1115; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;`
+        : 'padding: 7px 12px; background: #1a1e26; color: #7a8290; border-radius: 6px; font-size: 12px; cursor: pointer;',
+      pick: () => this.setState({ picked: i, query: x.short }),
+    }));
+
+    const day = p.day.map((d, i) => {
+      const now = i === p.nowIndex;
+      return {
+        time: d.time, what: d.what, where: d.where,
+        timeColor: now ? accent : '#7a8290',
+        style: now
+          ? `display: flex; gap: 10px; padding: 11px 13px; background: #161a21; border-left: 2px solid ${accent}; border-radius: 0 8px 8px 0;`
+          : 'display: flex; gap: 10px; padding: 11px 13px; background: #131720; border-radius: 8px;',
+      };
+    });
+
+    return {
+      accentValue: accent,
+      queryText: p.short,
+      queryStyle: 'font-size: 14px; color: #e8eaed; flex-grow: 1;',
+      searchBorder: accent,
+      people,
+      name: p.name,
+      department: p.department,
+      inClass,
+      free: !inClass,
+      freeText: 'Сейчас пары нет. Ближайшая — ' + (p.day.length > 0 ? p.day[0].time.split('—')[0] : 'сегодня не будет') + '.',
+      badge: inClass ? 'на паре' : 'вне пар',
+      badgeStyle: inClass
+        ? `padding: 5px 10px; background: ${accent}; color: #0f1115; border-radius: 999px; font-size: 10px; font-weight: 700;`
+        : 'padding: 5px 10px; background: #1a1e26; color: #7a8290; border-radius: 999px; font-size: 10px; font-weight: 600;',
+      nowCardStyle: inClass
+        ? 'background: #161a21; border: 1px solid #2a3038; border-radius: 12px; padding: 16px; display: flex; flex-direction: column;'
+        : 'background: #131720; border: 1px solid #1a1e26; border-radius: 12px; padding: 16px; display: flex; flex-direction: column;',
+      room: p.room,
+      building: p.building,
+      nowTime: inClass ? p.day[p.nowIndex].time : '',
+      nowWhat: inClass ? p.day[p.nowIndex].what : '',
+      nowGroups: inClass ? p.day[p.nowIndex].where.split(' · ')[1] : '',
+      day,
+    };
+  }
+}
+</script>
+</body>
+</html>

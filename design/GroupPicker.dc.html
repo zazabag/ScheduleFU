@@ -1,0 +1,176 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Space Grotesk', system-ui, sans-serif; }
+    a { color: #c8fa5f; } a:hover { color: #a8d84a; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #0f1115; color: #e8eaed; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="padding: 22px 18px 14px; display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em;">Ваша группа</div>
+      <div style="font-size: 12px; color: #7a8290;">Запомним в браузере. Без логина и пароля.</div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 9px; background: #161a21; border: 1px solid {{searchBorder}}; border-radius: 8px; padding: 12px 13px;">
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#5b6371" stroke-width="1.6">
+        <circle cx="9" cy="9" r="6"></circle>
+        <path d="M13.5 13.5L17 17" stroke-linecap="round"></path>
+      </svg>
+      <div style="{{queryStyle}}">{{queryText}}</div>
+    </div>
+
+    <div style="display: flex; gap: 6px; align-items: center;">
+      <div style="font-size: 11px; color: #5b6371;">курс</div>
+      <sc-for list="{{courses}}" as="c" hint-placeholder-count="5">
+        <div onClick="{{c.pick}}" style="{{c.style}}">{{c.label}}</div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; overflow: hidden; padding: 0 18px; display: flex; flex-direction: column; gap: 7px;">
+    <div style="font-size: 11px; color: #5b6371; padding-bottom: 2px;">{{resultLabel}}</div>
+
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="6">
+      <div onClick="{{g.pick}}" style="{{g.style}}">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-size: 15px; font-weight: 600;">{{g.name}}</div>
+          <div style="font-size: 11px; color: #7a8290;">{{g.meta}}</div>
+        </div>
+        <sc-if value="{{g.chosen}}" hint-placeholder-val="{{false}}">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#c8fa5f" stroke-width="2">
+            <path d="M4 10.5L8 14.5L16 6" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{hasChoice}}" hint-placeholder-val="{{true}}">
+    <div style="padding: 12px 18px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #1a1e26;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-size: 11px; color: #7a8290;">Закреплена</div>
+          <div style="font-size: 15px; font-weight: 700; color: #c8fa5f;">{{chosenName}}</div>
+        </div>
+        <div onClick="{{clear}}" style="padding: 7px 12px; background: #1a1e26; color: #7a8290; border-radius: 6px; font-size: 11px; cursor: pointer;">Сменить</div>
+      </div>
+      <div onClick="{{toggleNotify}}" style="display: flex; align-items: center; gap: 10px; padding: 11px 13px; background: #161a21; border-radius: 8px; cursor: pointer;">
+        <div style="{{switchStyle}}">
+          <div style="{{knobStyle}}"></div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+          <div style="font-size: 12px; font-weight: 600;">Сообщать об изменениях</div>
+          <div style="font-size: 10px; color: #7a8290;">Вуз правит расписание задним числом и молча</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="display: flex; border-top: 1px solid #1a1e26;">
+    <div style="flex-grow: 1; padding: 13px 0 18px; text-align: center; font-size: 11px; color: #5b6371;">Аудитории</div>
+    <div style="flex-grow: 1; padding: 13px 0 18px; text-align: center; font-size: 11px; font-weight: 600; color: #c8fa5f;">Расписание</div>
+    <div style="flex-grow: 1; padding: 13px 0 18px; text-align: center; font-size: 11px; color: #5b6371;">Преподаватели</div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#c8fa5f","options":["#c8fa5f","#5fd0fa","#fa9a5f","#d78ffa"]}}'>
+// Реальные группы из справочника проекта (479 штук, 10 факультетов).
+// Названия факультетов источник не отдаёт — только числовой oid, поэтому
+// в интерфейсе фильтр по факультету не выставлен: он был бы «факультет 6».
+// Курс считается из года набора в названии группы.
+const GROUPS = [
+  { name: 'ПИ24-1', year: 2024, kind: 'Прикладная информатика' },
+  { name: 'ПИ24-2', year: 2024, kind: 'Прикладная информатика' },
+  { name: 'ПИ24-3', year: 2024, kind: 'Прикладная информатика' },
+  { name: 'ПИ25-1', year: 2025, kind: 'Прикладная информатика' },
+  { name: 'ПИ26-1', year: 2026, kind: 'Прикладная информатика' },
+  { name: 'Ю24-5',  year: 2024, kind: 'Юриспруденция' },
+  { name: 'Ю24-6',  year: 2024, kind: 'Юриспруденция' },
+  { name: 'ИБ24-1', year: 2024, kind: 'Информационная безопасность' },
+  { name: 'МЕН25-2', year: 2025, kind: 'Менеджмент' },
+  { name: 'ГМУ26-1', year: 2026, kind: 'Государственное управление' },
+];
+const ACADEMIC_YEAR = 2026;
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { query: 'ПИ24', course: null, chosen: 'ПИ24-1', notify: true };
+  }
+
+  chip(active, accent) {
+    return active
+      ? `padding: 4px 10px; background: ${accent}; color: #0f1115; border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer;`
+      : 'padding: 4px 10px; background: #1a1e26; color: #7a8290; border-radius: 999px; font-size: 11px; cursor: pointer;';
+  }
+
+  renderVals() {
+    const accent = this.props.accent ?? '#c8fa5f';
+    const q = this.state.query.toLowerCase();
+
+    const courses = [{ label: 'все', value: null }, { label: '1', value: 1 },
+      { label: '2', value: 2 }, { label: '3', value: 3 }, { label: '4', value: 4 }]
+      .map((c) => ({
+        label: c.label,
+        style: this.chip(this.state.course === c.value, accent),
+        pick: () => this.setState({ course: c.value }),
+      }));
+
+    const matched = GROUPS.filter((g) => {
+      const byQuery = q === '' || g.name.toLowerCase().indexOf(q) !== -1;
+      const course = ACADEMIC_YEAR - g.year + 1;
+      const byCourse = this.state.course === null || course === this.state.course;
+      return byQuery && byCourse;
+    });
+
+    const groups = matched.map((g) => {
+      const chosen = this.state.chosen === g.name;
+      const course = ACADEMIC_YEAR - g.year + 1;
+      return {
+        name: g.name,
+        meta: course + ' курс · ' + g.kind,
+        chosen,
+        style: chosen
+          ? `display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #161a21; border: 1px solid ${accent}; border-radius: 9px; cursor: pointer;`
+          : 'display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #161a21; border: 1px solid #161a21; border-radius: 9px; cursor: pointer;',
+        pick: () => this.setState({ chosen: g.name }),
+      };
+    });
+
+    const on = this.state.notify;
+    return {
+      queryText: this.state.query === '' ? 'Например, ПИ24-1' : this.state.query,
+      queryStyle: this.state.query === ''
+        ? 'font-size: 14px; color: #5b6371; flex-grow: 1;'
+        : 'font-size: 14px; color: #e8eaed; flex-grow: 1;',
+      searchBorder: this.state.query === '' ? '#222833' : accent,
+      resultLabel: matched.length + ' из 479 групп',
+      courses, groups,
+      hasChoice: this.state.chosen !== null,
+      chosenName: this.state.chosen,
+      clear: () => this.setState({ chosen: null }),
+      toggleNotify: () => this.setState({ notify: !on }),
+      switchStyle: on
+        ? `width: 34px; height: 20px; border-radius: 999px; background: ${accent}; display: flex; align-items: center; justify-content: flex-end; padding: 2px; box-sizing: border-box;`
+        : 'width: 34px; height: 20px; border-radius: 999px; background: #2a3038; display: flex; align-items: center; justify-content: flex-start; padding: 2px; box-sizing: border-box;',
+      knobStyle: on
+        ? 'width: 16px; height: 16px; border-radius: 999px; background: #0f1115;'
+        : 'width: 16px; height: 16px; border-radius: 999px; background: #5b6371;',
+    };
+  }
+}
+</script>
+</body>
+</html>
