@@ -20,6 +20,10 @@ var templateFS embed.FS
 //go:embed static/*
 var staticFS embed.FS
 
+// StaticFS отдаёт встроенные статические файлы: тем же стилем
+// пользуется генератор версии для GitHub Pages.
+func StaticFS() embed.FS { return staticFS }
+
 // Server — веб-интерфейс.
 type Server struct {
 	store *store.Store
@@ -194,7 +198,7 @@ func (s *Server) handleRooms(w http.ResponseWriter, r *http.Request) {
 	tabs := make([]tabView, 0, len(campuses))
 	for _, c := range campuses {
 		tabs = append(tabs, tabView{
-			Label: shortCampus(c.Building), Value: c.Campus, On: c.Campus == campus,
+			Label: ShortCampus(c.Building), Value: c.Campus, On: c.Campus == campus,
 		})
 	}
 
@@ -208,7 +212,7 @@ func (s *Server) handleRooms(w http.ResponseWriter, r *http.Request) {
 }
 
 func roomMeta(a store.Auditorium) string {
-	parts := []string{shortBuilding(a.Building)}
+	parts := []string{ShortBuilding(a.Building)}
 	if a.Floor != nil {
 		parts = append(parts, strconv.Itoa(*a.Floor)+" эт")
 	}
@@ -221,7 +225,7 @@ func roomMeta(a store.Auditorium) string {
 // shortBuilding сокращает адрес до узнаваемого куска: полная строка
 // «Ленинградский проспект, 51, корп. 1» в строке аудитории не помещается,
 // а различать корпуса необходимо — номера в них похожи (313 и 0314).
-func shortBuilding(b string) string {
+func ShortBuilding(b string) string {
 	switch {
 	case strings.Contains(b, "49"):
 		return "49/2"
@@ -248,7 +252,7 @@ func shortBuilding(b string) string {
 // Полные адреса источника («4-й Вешняковский проезд, 4») в переключателе
 // не помещаются: их тринадцать, и лентой они занимали весь экран, оставляя
 // сами аудитории за краем.
-func shortCampus(b string) string {
+func ShortCampus(b string) string {
 	switch {
 	case strings.Contains(b, "Ленинградский"):
 		return "Ленинградский"

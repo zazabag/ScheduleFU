@@ -138,7 +138,7 @@ func roomShort(name string) string {
 }
 
 func placeOf(l store.LessonView) string {
-	place := shortBuilding(l.Building)
+	place := ShortBuilding(l.Building)
 	if l.Floor != nil {
 		place += " · " + strconv.Itoa(*l.Floor) + " эт"
 	}
