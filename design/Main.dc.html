@@ -105,9 +105,13 @@
 
 <script data-dc-script data-props='{"clock":{"editor":"text","default":"14:07"},"accent":{"editor":"color","default":"#c8fa5f","options":["#c8fa5f","#5fd0fa","#fa9a5f","#d78ffa"]}}'>
 // Данные — реальная выгрузка из базы проекта за субботу 12.09.2026.
-// Слоты: 8:30, 10:10, 11:50, 14:00, 15:40, 17:20. Текущий момент — 14:07,
-// то есть первые три слота уже прошли.
-const CURRENT_SLOT = 3;
+//
+// Сетка снята с данных источника, а не придумана: восемь пар с 08:30 до
+// 22:00. Вечерние 18:55 и 20:30 обязательны — на них приходится больше
+// двух тысяч занятий в неделю (вечерники и заочники), и без них день
+// выглядел бы обрезанным. Все восемь помещаются даже на экране 320 px,
+// поэтому полосу не нужно листать: день виден целиком.
+const CURRENT_SLOT = 3; // 14:07 — первые три пары уже прошли
 
 const DATA = {
   leningradsky: {
@@ -126,9 +130,12 @@ const DATA = {
       { room: '419', meta: '49/2 · 4 эт · 32 места', floor: 4,
         busy: [], lessons: [] },
       { room: '428', meta: '49/2 · 4 эт · 36 мест', floor: 4,
-        busy: [5], lessons: [{ time: '17:20—18:50', what: 'Эконометрика · Белов Д.Н.' }] },
+        busy: [5, 6], lessons: [
+          { time: '17:20—18:50', what: 'Эконометрика · Белов Д.Н.' },
+          { time: '18:55—20:25', what: 'Финансовый анализ · вечерняя группа' },
+        ] },
       { room: '510', meta: '49/2 · 5 эт · 36 мест', floor: 5,
-        busy: [], lessons: [] },
+        busy: [7], lessons: [{ time: '20:30—22:00', what: 'Корпоративные финансы · заочники' }] },
     ],
   },
   veshnyakovsky: {
@@ -206,14 +213,15 @@ class Component extends DCLogic {
     const rooms = shown.map((r) => {
       const open = this.state.open === r.room;
       const nextBusy = r.busy.filter((s) => s >= CURRENT_SLOT).sort()[0];
-      const SLOT_LABELS = ['08:30', '10:10', '11:50', '14:00', '15:40', '17:20'];
+      const SLOT_LABELS = ['08:30', '10:10', '11:50', '14:00',
+                           '15:40', '17:20', '18:55', '20:30'];
       return {
         room: r.room,
         meta: r.meta,
         open,
         empty: r.lessons.length === 0,
         lessons: r.lessons,
-        until: nextBusy === undefined ? 'до 19:00' : 'до ' + SLOT_LABELS[nextBusy],
+        until: nextBusy === undefined ? 'до конца дня' : 'до ' + SLOT_LABELS[nextBusy],
         untilStyle: nextBusy === undefined
           ? `font-size: 11px; font-weight: 600; color: ${accent};`
           : 'font-size: 11px; font-weight: 600; color: #ffa94d;',
@@ -232,7 +240,7 @@ class Component extends DCLogic {
           // чтобы взгляд цеплялся за то, что ещё впереди.
           return {
             style: `height: 22px; background: ${bg}; border-radius: 3px;`,
-            label,
+            label: label.replace(/^0/, ''),
             labelStyle: past
               ? 'font-size: 9px; color: #3f4650; text-align: center; letter-spacing: -0.02em;'
               : (busy
