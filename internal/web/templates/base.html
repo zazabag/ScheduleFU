@@ -1,0 +1,23 @@
+{{define "base"}}<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<title>{{.Title}} — ScheduleFU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="shell">
+{{template "content" .}}
+</div>
+<nav class="nav">
+  <a href="/" class="{{if eq .Tab "rooms"}}on{{end}}">Аудитории</a>
+  <a href="/schedule" class="{{if eq .Tab "schedule"}}on{{end}}">Расписание</a>
+  <a href="/lecturers" class="{{if eq .Tab "lecturers"}}on{{end}}">Преподаватели</a>
+</nav>
+</body>
+</html>{{end}}

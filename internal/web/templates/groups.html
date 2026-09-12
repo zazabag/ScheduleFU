@@ -1,0 +1,40 @@
+{{define "content"}}
+<div class="head">
+  <div class="head-row">
+    <div>
+      <h1 class="title">Ваша группа</h1>
+      <p class="subtitle">Запомним в браузере. Без логина и пароля.</p>
+    </div>
+  </div>
+
+  <form class="search" method="get" action="/groups">
+    <input type="search" name="q" value="{{.Query}}" placeholder="Например, ПИ24-1" autocomplete="off" autofocus>
+    <button type="submit">Найти</button>
+  </form>
+
+  <div class="chips">
+    <span class="chips-label">курс</span>
+    {{range .Courses}}
+    <a class="chip {{if .On}}on{{end}}" href="{{.Href}}">{{.Label}}</a>
+    {{end}}
+  </div>
+</div>
+
+<div class="list">
+  <div class="note" style="padding-left: 0;">{{.ResultLabel}}</div>
+  {{range .Groups}}
+  <a class="pick {{if .On}}on{{end}}" href="/schedule?group={{.NameEscaped}}">
+    <span>
+      <span class="pick-name">{{.Name}}</span><br>
+      <span class="pick-meta">{{.Meta}}</span>
+    </span>
+    {{if .On}}<span style="color: var(--accent);">✓</span>{{end}}
+  </a>
+  {{else}}
+  <div class="empty">
+    <div class="empty-title">Ничего не нашлось</div>
+    <div class="empty-sub">Проверьте написание — например, ПИ24-1</div>
+  </div>
+  {{end}}
+</div>
+{{end}}

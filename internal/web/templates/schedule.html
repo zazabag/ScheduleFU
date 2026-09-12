@@ -1,0 +1,57 @@
+{{define "content"}}
+<div class="head">
+  <div class="head-row">
+    <div>
+      <h1 class="title">{{if .Group}}{{.Group}}{{else}}Расписание{{end}}</h1>
+      <p class="subtitle">{{.Subtitle}}</p>
+    </div>
+    {{if .Group}}<a class="tab" href="/groups">Сменить</a>{{end}}
+  </div>
+
+  {{if .Group}}
+  <div class="days">
+    {{range .Days}}
+    <a class="day {{if .On}}on{{end}} {{if .Has}}has{{end}}" href="{{.Href}}">
+      <span class="day-dow">{{.Dow}}</span>
+      <span class="day-num">{{.Num}}</span>
+      <span class="day-dot"></span>
+    </a>
+    {{end}}
+  </div>
+  {{end}}
+</div>
+
+<div class="list">
+  {{if not .Group}}
+    <div class="empty">
+      <div class="empty-title">Группа не выбрана</div>
+      <div class="empty-sub"><a href="/groups">Выбрать группу</a></div>
+    </div>
+  {{else}}
+    {{range .Lessons}}
+    <div class="lesson">
+      <div class="lesson-time">
+        <span class="lesson-from">{{.BeginsAt}}</span>
+        <span class="lesson-to">{{.EndsAt}}</span>
+      </div>
+      <div class="lesson-rail"></div>
+      <div class="lesson-body">
+        <div class="lesson-discipline">{{.Discipline}}</div>
+        <div class="lesson-kind">{{.KindOfWork}}{{if .LecturerName}} · {{.LecturerName}}{{end}}</div>
+        <div class="lesson-where">
+          <span class="lesson-room">{{.Room}}</span>
+          <span class="lesson-place">{{.Place}}</span>
+        </div>
+      </div>
+    </div>
+    {{else}}
+    <div class="empty">
+      <div class="empty-title">Пар нет</div>
+      <div class="empty-sub">Свободный день</div>
+    </div>
+    {{end}}
+  {{end}}
+</div>
+
+<div class="note">{{if .Freshness}}Обновлено {{.Freshness}} · и{{else}}И{{end}}сточник: расписание вуза</div>
+{{end}}

@@ -1,0 +1,78 @@
+{{define "content"}}
+<div class="head">
+  <div class="head-row">
+    <div>
+      <h1 class="title">Преподаватели</h1>
+      <p class="subtitle">{{.Subtitle}}</p>
+    </div>
+    <div class="clock">{{.Clock}}</div>
+  </div>
+
+  <form class="search" method="get" action="/lecturers">
+    <input type="search" name="q" value="{{.Query}}" placeholder="Фамилия" autocomplete="off">
+    <button type="submit">Найти</button>
+  </form>
+</div>
+
+<div class="list">
+  {{if .Selected}}
+  <div class="now-card {{if not .InClass}}idle{{end}}">
+    <div class="head-row">
+      <div>
+        <div class="pick-name">{{.Selected.Name}}</div>
+        <div class="pick-meta">{{.Today}}</div>
+      </div>
+      <span class="badge {{if not .InClass}}idle{{end}}">{{if .InClass}}на паре{{else}}вне пар{{end}}</span>
+    </div>
+    {{if .InClass}}
+    <div class="now-where">
+      <div>
+        <div class="now-room">{{.NowRoom}}</div>
+        <div class="pick-meta">{{.NowPlace}}</div>
+      </div>
+      <div>
+        <div class="lesson-kind" style="color: var(--text);">{{.NowTime}}</div>
+        <div class="room-lesson-what">{{.NowWhat}}</div>
+        <div class="pick-meta">{{.NowGroups}}</div>
+      </div>
+    </div>
+    {{else}}
+    <div class="now-where"><span class="lesson-kind">{{.IdleText}}</span></div>
+    {{end}}
+  </div>
+
+  {{range .Lessons}}
+  <div class="lesson">
+    <div class="lesson-time">
+      <span class="lesson-from">{{.BeginsAt}}</span>
+      <span class="lesson-to">{{.EndsAt}}</span>
+    </div>
+    <div class="lesson-rail"></div>
+    <div class="lesson-body">
+      <div class="lesson-discipline">{{.Discipline}}</div>
+      <div class="lesson-where">
+        <span class="lesson-room">{{.Room}}</span>
+        <span class="lesson-place">{{.Place}}</span>
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  {{else}}
+    {{range .Found}}
+    <a class="pick" href="/lecturers?q={{$.Query}}&oid={{.Oid}}">
+      <span class="pick-name">{{.Name}}</span>
+    </a>
+    {{else}}
+    <div class="empty">
+      <div class="empty-title">{{if .Query}}Никого не нашлось{{else}}Найдите преподавателя{{end}}</div>
+      <div class="empty-sub">{{if .Query}}Проверьте написание фамилии{{else}}Введите фамилию в поиск{{end}}</div>
+    </div>
+    {{end}}
+  {{end}}
+</div>
+
+<div class="note">
+  Данные из открытого расписания вуза. Показывает пары, а не человека: вне пар местонахождение неизвестно.
+</div>
+{{end}}

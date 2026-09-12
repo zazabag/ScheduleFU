@@ -14,6 +14,7 @@ import (
 
 	"github.com/zazabag/schedulefu/internal/httpapi"
 	"github.com/zazabag/schedulefu/internal/store"
+	"github.com/zazabag/schedulefu/internal/web"
 )
 
 func main() {
@@ -40,9 +41,20 @@ func main() {
 		loc = time.FixedZone("MSK", 3*60*60)
 	}
 
+	// JSON-API и веб-интерфейс живут в одном процессе: API нужен боту и
+	// экспорту в календарь, страницы — людям.
+	site, err := web.New(st, loc)
+	if err != nil {
+		log.Error("не удалось собрать интерфейс", "ошибка", err)
+		os.Exit(1)
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/api/", httpapi.New(st, loc).Routes())
+	mux.Handle("/", site.Routes())
+
 	srv := &http.Server{
 		Addr:              *addr,
-		Handler:           httpapi.New(st, loc).Routes(),
+		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 		WriteTimeout:      30 * time.Second,
 	}
