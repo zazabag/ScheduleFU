@@ -50,9 +50,12 @@
           <div style="{{r.untilStyle}}">{{r.until}}</div>
         </div>
 
-        <div style="display: flex; gap: 3px; height: 22px;">
+        <div style="display: flex; gap: 3px;">
           <sc-for list="{{r.slots}}" as="s" hint-placeholder-count="6">
-            <div style="{{s.style}}"></div>
+            <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+              <div style="{{s.style}}"></div>
+              <div style="{{s.labelStyle}}">{{s.label}}</div>
+            </div>
           </sc-for>
         </div>
 
@@ -217,11 +220,25 @@ class Component extends DCLogic {
         cardStyle: open
           ? 'background: #161a21; border: 1px solid #2a3038; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 11px; cursor: pointer;'
           : 'background: #161a21; border: 1px solid #161a21; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 11px; cursor: pointer;',
-        slots: SLOT_LABELS.map((_, i) => {
+        slots: SLOT_LABELS.map((label, i) => {
+          const busy = r.busy.indexOf(i) !== -1;
+          const past = i < CURRENT_SLOT && !busy;
           let bg = '#2a3038';                      // прошедшее время
-          if (r.busy.indexOf(i) !== -1) bg = '#3a2f24';   // пара
-          else if (i >= CURRENT_SLOT) bg = accent;         // ещё свободна
-          return { style: `flex-grow: 1; background: ${bg}; border-radius: 3px;` };
+          if (busy) bg = '#3a2f24';                // пара
+          else if (i >= CURRENT_SLOT) bg = accent; // ещё свободна
+          // Без подписи полосу приходится расшифровывать в уме: видно, что
+          // слот свободен, но не видно, во сколько он начинается. Время
+          // начала пары подписано под каждым кубиком; прошедшее приглушено,
+          // чтобы взгляд цеплялся за то, что ещё впереди.
+          return {
+            style: `height: 22px; background: ${bg}; border-radius: 3px;`,
+            label,
+            labelStyle: past
+              ? 'font-size: 9px; color: #3f4650; text-align: center; letter-spacing: -0.02em;'
+              : (busy
+                  ? 'font-size: 9px; color: #8a7552; text-align: center; letter-spacing: -0.02em;'
+                  : 'font-size: 9px; color: #9aa3b0; text-align: center; letter-spacing: -0.02em; font-weight: 600;'),
+          };
         }),
         toggle: () => this.setState({ open: open ? null : r.room }),
       };
