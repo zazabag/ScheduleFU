@@ -43,6 +43,10 @@ func writeAssets(out string) error {
 		return err
 	}
 
+	if err := writeIcons(out); err != nil {
+		return fmt.Errorf("иконки: %w", err)
+	}
+
 	// .nojekyll обязателен: без него Pages прогоняет сайт через Jekyll и
 	// выкидывает файлы и папки, начинающиеся с подчёркивания.
 	return os.WriteFile(filepath.Join(out, ".nojekyll"), nil, 0o644)

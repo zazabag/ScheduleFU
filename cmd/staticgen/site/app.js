@@ -489,3 +489,49 @@ loadJSON('data/meta.json')
       '<div class="empty"><div class="empty-title">Не удалось загрузить данные</div>' +
       '<div class="empty-sub">' + esc(err.message) + '</div></div>';
   });
+
+
+// ——— установка на устройство и уведомления ———
+
+// Service worker регистрируется после загрузки страницы: во время первого
+// показа он не нужен, а конкуренция за сеть замедлила бы открытие.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function (e) {
+      // Регистрация падает при открытии по file:// и в приватном режиме.
+      // Это не мешает приложению работать, поэтому только пишем в консоль.
+      console.warn('офлайн-режим недоступен:', e && e.message);
+    });
+  });
+}
+
+// Предложение установить приложение показываем не сразу: браузер сам
+// решает, когда посетитель «свой», и до этого кнопка была бы шумом.
+var installPrompt = null;
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  installPrompt = e;
+  var bar = document.getElementById('install-bar');
+  if (bar) bar.hidden = false;
+});
+
+function askInstall() {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  installPrompt.userChoice.then(function () {
+    installPrompt = null;
+    var bar = document.getElementById('install-bar');
+    if (bar) bar.hidden = true;
+  });
+}
+
+// Разрешение на уведомления спрашивается только по явному действию:
+// запрос при загрузке страницы браузеры справедливо считают спамом и
+// показывают его всё менее заметно.
+function askNotifications() {
+  if (!('Notification' in window)) return Promise.resolve('unsupported');
+  if (Notification.permission === 'granted') return Promise.resolve('granted');
+  return Notification.requestPermission();
+}
+
+window.ScheduleFU = { askInstall: askInstall, askNotifications: askNotifications };
