@@ -9,8 +9,12 @@ import "github.com/zazabag/schedulefu/internal/ruz"
 // хранилища.
 func parseForStore(name, building string) Auditorium {
 	a := ruz.ParseAuditorium(name, building)
+	site := ruz.SiteOf(a.Building)
 	return Auditorium{
 		Oid:          a.Oid,
+		Site:         site.Slug,
+		SiteLabel:    site.Label,
+		SiteOrder:    site.Order,
 		Name:         a.Name,
 		Prefix:       a.Prefix,
 		Room:         a.Room,

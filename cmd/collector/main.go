@@ -120,9 +120,11 @@ func seedDirectories(ctx context.Context, st *store.Store, dir string, log *slog
 	for _, r := range audDump.Auditoriums {
 		p := ruz.ParseAuditorium(r.Name, r.Building)
 		p.Oid, p.Kind, p.Capacity = r.Oid, r.Kind, 0
+		site := ruz.SiteOf(p.Building)
 		a := store.Auditorium{
 			Oid: r.Oid, Name: p.Name, Prefix: p.Prefix, Room: p.Room,
 			Building: p.Building, Campus: string(p.Campus), Kind: r.Kind,
+			Site: site.Slug, SiteLabel: site.Label, SiteOrder: site.Order,
 			Floor: p.Floor, Capacity: r.Capacity,
 			IsStudySpace: p.IsStudySpace(),
 		}

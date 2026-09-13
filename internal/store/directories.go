@@ -38,17 +38,23 @@ func (s *Store) UpsertAuditoriumsFromLessons(ctx context.Context, lessons []Less
 			// известен из пары и проставляется здесь.
 			a.Oid = r.oid
 			_, err := tx.Exec(ctx, `
-				INSERT INTO auditoriums (oid, name, prefix, room, building, campus, floor, is_study_space, last_seen_at)
-				VALUES ($1,$2,$3,$4,$5,$6,$7,$8, now())
+				INSERT INTO auditoriums (oid, name, prefix, room, building, campus,
+				                         site, site_label, site_order,
+				                         floor, is_study_space, last_seen_at)
+				VALUES ($1,$2,$3,$4,$5,$6,$9,$10,$11,$7,$8, now())
 				ON CONFLICT (oid) DO UPDATE SET
 					name = EXCLUDED.name,
 					prefix = EXCLUDED.prefix,
 					room = EXCLUDED.room,
 					building = EXCLUDED.building,
 					campus = EXCLUDED.campus,
+					site = EXCLUDED.site,
+					site_label = EXCLUDED.site_label,
+					site_order = EXCLUDED.site_order,
 					floor = EXCLUDED.floor,
 					last_seen_at = now()`,
-				a.Oid, a.Name, a.Prefix, a.Room, a.Building, a.Campus, a.Floor, a.IsStudySpace)
+				a.Oid, a.Name, a.Prefix, a.Room, a.Building, a.Campus, a.Floor,
+				a.IsStudySpace, a.Site, a.SiteLabel, a.SiteOrder)
 			if err != nil {
 				return fmt.Errorf("сохранение аудитории %d: %w", r.oid, err)
 			}
@@ -87,18 +93,22 @@ func (s *Store) UpsertAuditoriums(ctx context.Context, auds []Auditorium) error 
 	return s.inTx(ctx, func(tx pgx.Tx) error {
 		for _, a := range auds {
 			_, err := tx.Exec(ctx, `
-				INSERT INTO auditoriums (oid, name, prefix, room, building, campus, kind, floor, capacity, is_study_space, last_seen_at)
-				VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, now())
+				INSERT INTO auditoriums (oid, name, prefix, room, building, campus,
+				                         site, site_label, site_order,
+				                         kind, floor, capacity, is_study_space, last_seen_at)
+				VALUES ($1,$2,$3,$4,$5,$6,$11,$12,$13,$7,$8,$9,$10, now())
 				ON CONFLICT (oid) DO UPDATE SET
 					name = EXCLUDED.name, prefix = EXCLUDED.prefix, room = EXCLUDED.room,
 					building = EXCLUDED.building, campus = EXCLUDED.campus,
+					site = EXCLUDED.site, site_label = EXCLUDED.site_label,
+					site_order = EXCLUDED.site_order,
 					kind = EXCLUDED.kind, floor = EXCLUDED.floor,
 					-- Вместимость известна не всегда; уже известную не затираем.
 					capacity = COALESCE(EXCLUDED.capacity, auditoriums.capacity),
 					is_study_space = EXCLUDED.is_study_space,
 					last_seen_at = now()`,
 				a.Oid, a.Name, a.Prefix, a.Room, a.Building, a.Campus, a.Kind,
-				a.Floor, a.Capacity, a.IsStudySpace)
+				a.Floor, a.Capacity, a.IsStudySpace, a.Site, a.SiteLabel, a.SiteOrder)
 			if err != nil {
 				return fmt.Errorf("сохранение аудитории %d: %w", a.Oid, err)
 			}

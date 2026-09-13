@@ -66,12 +66,18 @@ func (l Lesson) Fingerprint() string {
 
 // Auditorium — аудитория в справочнике.
 type Auditorium struct {
-	Oid          int64
-	Name         string
-	Prefix       string
-	Room         string
-	Building     string
-	Campus       string
+	Oid      int64
+	Name     string
+	Prefix   string
+	Room     string
+	Building string
+	Campus   string
+	// Site — уникальный ключ площадки, по нему идёт фильтрация.
+	// Campus остался признаком «Ленинградский или нет» и один на все
+	// прочие адреса, поэтому фильтровать по нему нельзя.
+	Site         string
+	SiteLabel    string
+	SiteOrder    int
 	Kind         string
 	Floor        *int
 	Capacity     *int

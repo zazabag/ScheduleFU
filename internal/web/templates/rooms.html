@@ -3,14 +3,14 @@
   <div class="head-row">
     <div>
       <h1 class="title">Свободно сейчас</h1>
-      <p class="subtitle">{{.CampusLabel}} · {{.FreeCount}} из {{.TotalCount}}</p>
+      <p class="subtitle">{{.SiteLabel}} · {{.FreeCount}} из {{.TotalCount}}</p>
     </div>
     <div class="clock">{{.Clock}}</div>
   </div>
 
   <div class="tabs">
-    {{range .Campuses}}
-    <a class="tab {{if .On}}on{{end}}" href="/?campus={{.Value}}">{{.Label}}</a>
+    {{range .Sites}}
+    <a class="tab {{if .On}}on{{end}}" href="/?site={{.Value}}">{{.Label}}</a>
     {{end}}
   </div>
 

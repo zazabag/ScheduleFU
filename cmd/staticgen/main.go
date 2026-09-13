@@ -18,7 +18,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"time"
 
 	"github.com/zazabag/schedulefu/internal/store"
@@ -49,13 +48,13 @@ type jsonAuditorium struct {
 	Oid      int64  `json:"o"`
 	Room     string `json:"r"`
 	Building string `json:"b"`
-	Campus   string `json:"c"`
+	Site     string `json:"s"`
 	Floor    *int   `json:"f,omitempty"`
 	Capacity *int   `json:"cap,omitempty"`
 	Kind     string `json:"k,omitempty"`
 }
 
-type jsonCampus struct {
+type jsonSite struct {
 	Value string `json:"v"`
 	Label string `json:"l"`
 	Rooms int    `json:"n"`
@@ -74,7 +73,7 @@ type jsonGroup struct {
 type jsonMeta struct {
 	GeneratedAt string           `json:"generated_at"`
 	Days        []string         `json:"days"`
-	Campuses    []jsonCampus     `json:"campuses"`
+	Sites       []jsonSite       `json:"sites"`
 	Auditoriums []jsonAuditorium `json:"auditoriums"`
 	Groups      []jsonGroup      `json:"groups"`
 	Lecturers   []jsonLecturer   `json:"lecturers"`
@@ -187,28 +186,26 @@ func writeMeta(ctx context.Context, st *store.Store, loc *time.Location, out str
 		Slots:       web.Slots,
 	}
 
-	campuses, err := st.Campuses(ctx)
+	sites, err := st.Sites(ctx)
 	if err != nil {
 		return err
 	}
-	for _, c := range campuses {
-		meta.Campuses = append(meta.Campuses, jsonCampus{
-			Value: c.Campus, Label: web.ShortCampus(c.Building), Rooms: c.Rooms,
-		})
+	for _, c := range sites {
+		meta.Sites = append(meta.Sites, jsonSite{Value: c.Site, Label: c.Label, Rooms: c.Rooms})
 	}
 
 	rooms, err := st.Pool().Query(ctx, `
-		SELECT oid, room, building, campus, floor, capacity, kind
+		SELECT oid, room, building, site, floor, capacity, kind
 		  FROM auditoriums
-		 WHERE is_study_space AND building NOT LIKE 'Филиалы%'
-		 ORDER BY building, floor NULLS LAST, room`)
+		 WHERE is_study_space AND site <> 'branch'
+		 ORDER BY site_order, floor NULLS LAST, room`)
 	if err != nil {
 		return err
 	}
 	for rooms.Next() {
 		var a jsonAuditorium
 		var building string
-		if err := rooms.Scan(&a.Oid, &a.Room, &building, &a.Campus, &a.Floor, &a.Capacity, &a.Kind); err != nil {
+		if err := rooms.Scan(&a.Oid, &a.Room, &building, &a.Site, &a.Floor, &a.Capacity, &a.Kind); err != nil {
 			rooms.Close()
 			return err
 		}
@@ -268,7 +265,6 @@ func writeMeta(ctx context.Context, st *store.Store, loc *time.Location, out str
 	}
 	lrows.Close()
 
-	sort.Slice(meta.Campuses, func(i, j int) bool { return meta.Campuses[i].Rooms > meta.Campuses[j].Rooms })
 	return writeJSON(filepath.Join(out, "data", "meta.json"), meta)
 }
 

@@ -143,11 +143,11 @@ function dowOf(key) {
 
 function renderRooms(app) {
   var now = nowClock();
-  var campus = store('campus') || (state.meta.campuses[0] && state.meta.campuses[0].v) || '';
+  var site = store('site') || (state.meta.sites[0] && state.meta.sites[0].v) || '';
   var floor = store('floor') || '';
   var byRoom = lessonsByRoom(state.day);
 
-  var rooms = state.meta.auditoriums.filter(function (a) { return a.c === campus; });
+  var rooms = state.meta.auditoriums.filter(function (a) { return a.s === site; });
   var floors = [];
   rooms.forEach(function (a) {
     if (a.f != null && floors.indexOf(a.f) === -1) floors.push(a.f);
@@ -164,7 +164,7 @@ function renderRooms(app) {
 
   var total = rooms.length;
   var freeCount = rooms.filter(function (a) { return freeNow(byRoom[a.o] || [], now); }).length;
-  var label = (state.meta.campuses.filter(function (c) { return c.v === campus; })[0] || {}).l || '';
+  var label = (state.meta.sites.filter(function (c) { return c.v === site; })[0] || {}).l || '';
 
   var html = '' +
     '<div class="head">' +
@@ -174,8 +174,8 @@ function renderRooms(app) {
         '<div class="clock">' + now + '</div>' +
       '</div>' +
       '<div class="tabs">' +
-        state.meta.campuses.map(function (c) {
-          return '<a class="tab' + (c.v === campus ? ' on' : '') + '" href="#/rooms" data-campus="' +
+        state.meta.sites.map(function (c) {
+          return '<a class="tab' + (c.v === site ? ' on' : '') + '" href="#/rooms" data-site="' +
             esc(c.v) + '">' + esc(c.l) + '</a>';
         }).join('') +
       '</div>' +
@@ -223,9 +223,9 @@ function renderRooms(app) {
 
   app.innerHTML = html;
 
-  app.querySelectorAll('[data-campus]').forEach(function (a) {
+  app.querySelectorAll('[data-site]').forEach(function (a) {
     a.addEventListener('click', function () {
-      store('campus', a.getAttribute('data-campus'));
+      store('site', a.getAttribute('data-site'));
       store('floor', '');
       render();
     });

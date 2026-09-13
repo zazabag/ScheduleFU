@@ -120,28 +120,28 @@ type roomRow struct {
 }
 
 func (s *Server) handleRooms(w http.ResponseWriter, r *http.Request) {
-	campus := r.URL.Query().Get("campus")
-	if campus == "" {
-		campus = "leningradsky"
+	site := r.URL.Query().Get("site")
+	if site == "" {
+		site = "leningradsky"
 	}
 	floorParam := r.URL.Query().Get("floor")
 
-	campuses, err := s.store.Campuses(r.Context())
+	sites, err := s.store.Sites(r.Context())
 	if err != nil {
 		http.Error(w, "не удалось получить список корпусов", http.StatusInternalServerError)
 		return
 	}
-	days, err := s.store.CampusDay(r.Context(), campus, "", s.now())
+	days, err := s.store.SiteDay(r.Context(), site, s.now())
 	if err != nil {
 		http.Error(w, "не удалось получить занятость", http.StatusInternalServerError)
 		return
 	}
 
 	clock := NowClock(s.loc)
-	label := campus
-	for _, c := range campuses {
-		if c.Campus == campus {
-			label = c.Building
+	label := site
+	for _, c := range sites {
+		if c.Site == site {
+			label = c.Label
 		}
 	}
 
@@ -183,30 +183,28 @@ func (s *Server) handleRooms(w http.ResponseWriter, r *http.Request) {
 
 	chips := []chipView{{
 		Label: "все",
-		Href:  "/?campus=" + url.QueryEscape(campus),
+		Href:  "/?site=" + url.QueryEscape(site),
 		On:    floorParam == "",
 	}}
 	for _, f := range floors {
 		v := strconv.Itoa(f)
 		chips = append(chips, chipView{
 			Label: v,
-			Href:  "/?campus=" + url.QueryEscape(campus) + "&floor=" + v,
+			Href:  "/?site=" + url.QueryEscape(site) + "&floor=" + v,
 			On:    floorParam == v,
 		})
 	}
 
-	tabs := make([]tabView, 0, len(campuses))
-	for _, c := range campuses {
-		tabs = append(tabs, tabView{
-			Label: ShortCampus(c.Building), Value: c.Campus, On: c.Campus == campus,
-		})
+	tabs := make([]tabView, 0, len(sites))
+	for _, c := range sites {
+		tabs = append(tabs, tabView{Label: c.Label, Value: c.Site, On: c.Site == site})
 	}
 
 	s.render(w, "rooms", map[string]any{
 		"Title": "Свободные аудитории", "Tab": "rooms",
-		"Clock": clock, "CampusLabel": label,
+		"Clock": clock, "SiteLabel": label,
 		"FreeCount": free, "TotalCount": len(days),
-		"Campuses": tabs, "Floors": chips, "Rooms": rooms,
+		"Sites": tabs, "Floors": chips, "Rooms": rooms,
 		"Freshness": s.freshness(r),
 	})
 }
