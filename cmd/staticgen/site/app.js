@@ -534,4 +534,65 @@ function askNotifications() {
   return Notification.requestPermission();
 }
 
-window.ScheduleFU = { askInstall: askInstall, askNotifications: askNotifications };
+// ——— подписка на уведомления ———
+//
+// Работает только когда при сборке указан адрес сервера: Pages раздаёт
+// файлы и принять подписку не может. Без адреса кнопки просто нет —
+// обещать уведомления, которых не будет, хуже, чем не обещать.
+
+function apiURL(path) {
+  var base = state.meta && state.meta.api_base;
+  return base ? base + path : '';
+}
+
+function notificationsAvailable() {
+  return !!apiURL('/api/v1/push/key') &&
+    window.isSecureContext &&
+    'serviceWorker' in navigator &&
+    'PushManager' in window;
+}
+
+function subscribeTo(subjectKey) {
+  if (!notificationsAvailable()) return Promise.resolve('unavailable');
+  return fetch(apiURL('/api/v1/push/key'))
+    .then(function (r) { return r.json(); })
+    .then(function (cfg) {
+      if (!cfg.enabled) return 'unavailable';
+      return askNotifications().then(function (permission) {
+        if (permission !== 'granted') return 'denied';
+        return navigator.serviceWorker.ready.then(function (reg) {
+          return reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: decodeVapidKey(cfg.public_key)
+          });
+        }).then(function (sub) {
+          var json = sub.toJSON();
+          return fetch(apiURL('/api/v1/push/subscribe'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              subject_key: subjectKey, endpoint: json.endpoint, keys: json.keys
+            })
+          }).then(function (r) { return r.ok ? 'subscribed' : 'error'; });
+        });
+      });
+    })
+    .catch(function () { return 'error'; });
+}
+
+// Ключ VAPID приходит в base64url, а браузеру нужен массив байтов.
+function decodeVapidKey(base64) {
+  var padded = (base64 + '='.repeat((4 - base64.length % 4) % 4))
+    .replace(/-/g, '+').replace(/_/g, '/');
+  var raw = atob(padded);
+  var out = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+window.ScheduleFU = {
+  askInstall: askInstall,
+  askNotifications: askNotifications,
+  subscribeTo: subscribeTo,
+  notificationsAvailable: notificationsAvailable
+};

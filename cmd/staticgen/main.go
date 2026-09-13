@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/zazabag/schedulefu/internal/store"
@@ -71,7 +72,11 @@ type jsonGroup struct {
 }
 
 type jsonMeta struct {
-	GeneratedAt string           `json:"generated_at"`
+	GeneratedAt string `json:"generated_at"`
+	// APIBase — адрес сервера, который принимает подписки на уведомления.
+	// Pages раздаёт только файлы, подписку принимать некому, поэтому без
+	// этого адреса приложение честно прячет кнопку.
+	APIBase     string           `json:"api_base,omitempty"`
 	Days        []string         `json:"days"`
 	Sites       []jsonSite       `json:"sites"`
 	Auditoriums []jsonAuditorium `json:"auditoriums"`
@@ -82,8 +87,9 @@ type jsonMeta struct {
 
 func main() {
 	var (
-		dsn = flag.String("dsn", env("DATABASE_URL", "postgres://localhost:5432/schedulefu_dev?sslmode=disable"), "адрес базы")
-		out = flag.String("out", "site", "куда писать сайт")
+		dsn     = flag.String("dsn", env("DATABASE_URL", "postgres://localhost:5432/schedulefu_dev?sslmode=disable"), "адрес базы")
+		out     = flag.String("out", "site", "куда писать сайт")
+		apiBase = flag.String("api-base", env("API_BASE", ""), "адрес сервера уведомлений; пусто — уведомления недоступны")
 	)
 	flag.Parse()
 
@@ -111,7 +117,7 @@ func main() {
 		fail("в базе нет расписания — сначала запустите collector")
 	}
 
-	if err := writeMeta(ctx, st, loc, *out, days); err != nil {
+	if err := writeMeta(ctx, st, loc, *out, days, *apiBase); err != nil {
 		fail("выгрузка справочников: %v", err)
 	}
 	if err := writeAssets(*out); err != nil {
@@ -179,9 +185,10 @@ func collectDays(ctx context.Context, st *store.Store, loc *time.Location, out s
 	return keys, nil
 }
 
-func writeMeta(ctx context.Context, st *store.Store, loc *time.Location, out string, days []string) error {
+func writeMeta(ctx context.Context, st *store.Store, loc *time.Location, out string, days []string, apiBase string) error {
 	meta := jsonMeta{
 		GeneratedAt: time.Now().In(loc).Format(time.RFC3339),
+		APIBase:     strings.TrimRight(apiBase, "/"),
 		Days:        days,
 		Slots:       web.Slots,
 	}
