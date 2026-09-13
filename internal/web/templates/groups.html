@@ -23,7 +23,7 @@
 <div class="list">
   <div class="note" style="padding-left: 0;">{{.ResultLabel}}</div>
   {{range .Groups}}
-  <a class="pick {{if .On}}on{{end}}" href="/schedule?group={{.NameEscaped}}">
+  <a class="pick {{if .On}}on{{end}}" href="/schedule?group={{.NameEscaped}}&amp;pin=1">
     <span>
       <span class="pick-name">{{.Name}}</span><br>
       <span class="pick-meta">{{.Meta}}</span>

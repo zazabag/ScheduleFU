@@ -121,3 +121,13 @@ func (s *Store) SiteDay(ctx context.Context, site string, date time.Time) ([]Roo
 	}
 	return out, rows.Err()
 }
+
+// LecturerName возвращает имя преподавателя из справочника.
+func (s *Store) LecturerName(ctx context.Context, oid int64) (string, error) {
+	var name string
+	err := s.pool.QueryRow(ctx, `SELECT name FROM lecturers WHERE oid = $1`, oid).Scan(&name)
+	if err != nil {
+		return "", err
+	}
+	return name, nil
+}

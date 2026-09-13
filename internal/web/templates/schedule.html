@@ -3,9 +3,18 @@
   <div class="head-row">
     <div>
       <h1 class="title">{{if .Group}}{{.Group}}{{else}}Расписание{{end}}</h1>
-      <p class="subtitle">{{.Subtitle}}</p>
+      <p class="subtitle">{{if .IsLecturer}}преподаватель · {{end}}{{.Subtitle}}</p>
     </div>
-    {{if .Group}}<a class="tab" href="/groups">Сменить</a>{{end}}
+    {{if .Group}}
+    <div style="display:flex; gap:6px;">
+      {{if .Pinned}}
+        <a class="tab" href="/schedule?unpin=1" title="Открепить">Закреплено ✓</a>
+      {{else}}
+        <a class="tab on" href="{{.PinHref}}">Закрепить</a>
+      {{end}}
+      <a class="tab" href="{{.ChangeHref}}">Сменить</a>
+    </div>
+    {{end}}
   </div>
 
   {{if .Group}}
@@ -24,8 +33,8 @@
 <div class="list">
   {{if not .Group}}
     <div class="empty">
-      <div class="empty-title">Группа не выбрана</div>
-      <div class="empty-sub"><a href="/groups">Выбрать группу</a></div>
+      <div class="empty-title">Расписание не выбрано</div>
+      <div class="empty-sub"><a href="/groups">Выбрать группу</a> · <a href="/lecturers">выбрать преподавателя</a></div>
     </div>
   {{else}}
     {{range .Lessons}}

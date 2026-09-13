@@ -32,13 +32,36 @@ type lessonRow struct {
 }
 
 func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
-	group := strings.TrimSpace(r.URL.Query().Get("group"))
+	subject, err := SubjectFromQuery(r.URL.Query())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Закрепление: параметр pin сохраняет выбор и уводит на чистый адрес,
+	// чтобы ссылка в истории браузера не повторяла действие при каждом
+	// возврате назад.
+	if !subject.IsZero() && r.URL.Query().Get("pin") == "1" {
+		SetSubjectCookie(w, subject, r.TLS != nil)
+		http.Redirect(w, r, "/schedule?"+subject.Query(), http.StatusSeeOther)
+		return
+	}
+	if r.URL.Query().Get("unpin") == "1" {
+		ClearSubjectCookie(w, r.TLS != nil)
+		http.Redirect(w, r, "/schedule", http.StatusSeeOther)
+		return
+	}
+	// Без параметров показываем закреплённое ранее.
+	if subject.IsZero() {
+		subject = SubjectFromCookie(r)
+	}
+
 	data := map[string]any{
 		"Title": "Расписание", "Tab": "schedule",
-		"Group": group, "Subtitle": "Выберите группу",
+		"Subtitle":  "Выберите группу или преподавателя",
 		"Freshness": s.freshness(r),
 	}
-	if group == "" {
+	if subject.IsZero() {
 		s.render(w, "schedule", data)
 		return
 	}
@@ -58,7 +81,15 @@ func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
 	weekStart := startOfWeek(date)
 	weekEnd := weekStart.AddDate(0, 0, 5) // пн—сб; воскресенье у вуза почти пустое
 
-	lessons, err := s.store.ScheduleForGroup(r.Context(), group, weekStart, weekEnd)
+	var lessons []store.LessonView
+	switch subject.Kind {
+	case SubjectGroup:
+		lessons, err = s.store.ScheduleForGroup(r.Context(), subject.Group, weekStart, weekEnd)
+		subject.Label = subject.Group
+	case SubjectLecturer:
+		lessons, err = s.store.ScheduleForLecturer(r.Context(), subject.LecturerOid, weekStart, weekEnd)
+		subject.Label = s.lecturerName(r, subject.LecturerOid, lessons)
+	}
 	if err != nil {
 		http.Error(w, "не удалось получить расписание", http.StatusInternalServerError)
 		return
@@ -76,7 +107,7 @@ func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
 		days = append(days, dayView{
 			Dow:  WeekdayShortRu(d),
 			Num:  strconv.Itoa(d.Day()),
-			Href: "/schedule?group=" + url.QueryEscape(group) + "&date=" + key,
+			Href: "/schedule?" + subject.Query() + "&date=" + key,
 			On:   key == date.Format("2006-01-02"),
 			Has:  hasLessons[key],
 		})
@@ -87,19 +118,58 @@ func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
 		if l.Date.Format("2006-01-02") != date.Format("2006-01-02") {
 			continue
 		}
-		rows = append(rows, lessonRow{
+		row := lessonRow{
 			BeginsAt: l.BeginsAt, EndsAt: l.EndsAt,
 			Discipline: l.Discipline, KindOfWork: shortKind(l.KindOfWork),
 			LecturerName: l.LecturerName,
 			Room:         roomShort(l.Auditorium),
 			Place:        placeOf(l),
-		})
+		}
+		// У преподавателя в строке пары полезен состав групп, а не его
+		// собственное имя: оно и так в заголовке страницы.
+		if subject.Kind == SubjectLecturer {
+			row.LecturerName = strings.Join(l.Groups, ", ")
+		}
+		rows = append(rows, row)
 	}
 
+	pinned := SubjectFromCookie(r)
+	data["Pinned"] = pinned.Key() == subject.Key()
+	data["PinHref"] = "/schedule?" + subject.Query() + "&pin=1"
+	data["Subject"] = subject
+	data["Group"] = subject.Label
+	data["IsLecturer"] = subject.Kind == SubjectLecturer
+	data["ChangeHref"] = changeHref(subject)
 	data["Subtitle"] = FormatDateRu(date) + " · " + WeekdayRu(date)
 	data["Days"] = days
 	data["Lessons"] = rows
 	s.render(w, "schedule", data)
+}
+
+// changeHref ведёт туда, где меняют закреплённое расписание: студента — к
+// списку групп, преподавателя — к поиску по фамилии.
+func changeHref(s Subject) string {
+	if s.Kind == SubjectLecturer {
+		return "/lecturers"
+	}
+	return "/groups"
+}
+
+// lecturerName определяет, как подписать страницу.
+//
+// Имя берётся из пар, а если их нет — из справочника: у преподавателя
+// может не быть занятий на этой неделе, и страница всё равно должна быть
+// подписана его фамилией, а не номером.
+func (s *Server) lecturerName(r *http.Request, oid int64, lessons []store.LessonView) string {
+	for _, l := range lessons {
+		if l.LecturerName != "" {
+			return l.LecturerName
+		}
+	}
+	if name, err := s.store.LecturerName(r.Context(), oid); err == nil && name != "" {
+		return name
+	}
+	return "Преподаватель"
 }
 
 func startOfWeek(t time.Time) time.Time {

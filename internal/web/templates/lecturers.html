@@ -24,6 +24,10 @@
       </div>
       <span class="badge {{if not .InClass}}idle{{end}}">{{if .InClass}}на паре{{else}}вне пар{{end}}</span>
     </div>
+    <div style="display:flex; gap:8px; padding-top:12px; border-top:1px solid var(--line-2);">
+      <a class="tab" href="/schedule?lecturer={{.Selected.Oid}}">Расписание на неделю</a>
+      <a class="tab on" href="/schedule?lecturer={{.Selected.Oid}}&amp;pin=1">Это моё расписание</a>
+    </div>
     {{if .InClass}}
     <div class="now-where">
       <div>
