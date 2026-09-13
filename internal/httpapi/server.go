@@ -17,6 +17,7 @@ import (
 // Server — обработчики API.
 type Server struct {
 	store *store.Store
+	push  PushConfig
 	// Location — часовой пояс вуза: «сейчас» считается по нему, а не по
 	// поясу сервера.
 	Location *time.Location
@@ -30,6 +31,12 @@ func New(s *store.Store, loc *time.Location) *Server {
 	return &Server{store: s, Location: loc}
 }
 
+// WithPush включает ручки подписки на уведомления.
+func (s *Server) WithPush(cfg PushConfig) *Server {
+	s.push = cfg
+	return s
+}
+
 // Routes собирает маршруты.
 func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
@@ -40,6 +47,9 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /api/v1/lecturer/{oid}/where", s.handleWhereIsLecturer)
 	mux.HandleFunc("GET /api/v1/auditorium/{oid}/occupancy", s.handleOccupancy)
 	mux.HandleFunc("GET /api/v1/changes", s.handleChanges)
+	mux.HandleFunc("GET /api/v1/push/key", s.handlePushKey)
+	mux.HandleFunc("POST /api/v1/push/subscribe", s.handleSubscribe)
+	mux.HandleFunc("POST /api/v1/push/unsubscribe", s.handleUnsubscribe)
 	return mux
 }
 

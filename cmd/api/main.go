@@ -14,6 +14,7 @@ import (
 
 	"github.com/zazabag/schedulefu/internal/httpapi"
 	"github.com/zazabag/schedulefu/internal/httpx"
+	"github.com/zazabag/schedulefu/internal/push"
 	"github.com/zazabag/schedulefu/internal/store"
 	"github.com/zazabag/schedulefu/internal/web"
 )
@@ -25,6 +26,7 @@ func main() {
 		rps        = flag.Float64("rps", 8, "запросов в секунду с одного адреса")
 		burst      = flag.Float64("burst", 30, "разрешённый всплеск запросов")
 		trustProxy = flag.Bool("trust-proxy", false, "доверять X-Forwarded-For (включать только за обратным прокси)")
+		pushSubj   = flag.String("push-subject", env("VAPID_SUBJECT", "mailto:schedulefu@example.org"), "контакт отправителя уведомлений")
 	)
 	flag.Parse()
 
@@ -52,8 +54,25 @@ func main() {
 		log.Error("не удалось собрать интерфейс", "ошибка", err)
 		os.Exit(1)
 	}
+	// Ключи уведомлений живут в окружении: приватный в репозитории делать
+	// нечего, а без него сервис просто работает без уведомлений.
+	keys := push.Keys{
+		Public:  os.Getenv("VAPID_PUBLIC_KEY"),
+		Private: os.Getenv("VAPID_PRIVATE_KEY"),
+		Subject: *pushSubj,
+	}
+	api := httpapi.New(st, loc).WithPush(httpapi.PushConfig{PublicKey: keys.Public})
+
+	if keys.Valid() {
+		sender := push.NewSender(st, keys, log)
+		go sender.Run(ctx, 30*time.Second)
+		log.Info("уведомления включены")
+	} else {
+		log.Info("уведомления выключены: ключи VAPID не заданы")
+	}
+
 	mux := http.NewServeMux()
-	mux.Handle("/api/", httpapi.New(st, loc).Routes())
+	mux.Handle("/api/", api.Routes())
 	mux.Handle("/", site.Routes())
 
 	// Заголовок X-Forwarded-For подделывается тривиально, поэтому доверять

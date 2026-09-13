@@ -11,6 +11,15 @@ import (
 	"github.com/zazabag/schedulefu/internal/store"
 )
 
+// Notifier получает уведомление о том, что проход нашёл изменения.
+//
+// Интерфейс, а не прямая зависимость от пакета push: сборщик должен
+// работать и без уведомлений — например, при первом наполнении базы,
+// когда «изменением» считается всё расписание разом.
+type Notifier interface {
+	PlanSince(ctx context.Context, since time.Time) (int, error)
+}
+
 // Collector собирает расписание обходом аудиторий.
 //
 // Обход идёт именно по аудиториям, а не по группам: в каждой паре уже есть
@@ -25,6 +34,10 @@ type Collector struct {
 	// Workers — сколько аудиторий опрашивается одновременно. Ограничение
 	// частоты живёт в клиенте; здесь ограничивается только параллелизм.
 	Workers int
+
+	// Notifier необязателен: без него сборщик просто копит изменения в
+	// журнале, никого не беспокоя.
+	Notifier Notifier
 }
 
 // New создаёт сборщик.
@@ -82,6 +95,16 @@ func (c *Collector) RunOnce(ctx context.Context, auditoriumOids []int64, from, t
 	if err := c.store.FinishRun(ctx, runID, stats.ok+stats.failed, stats.failed,
 		len(lessons), res.Changes(), nil); err != nil {
 		c.log.Warn("итог прохода не записан", "ошибка", err)
+	}
+
+	if c.Notifier != nil && res.Changes() > 0 {
+		// Момент начала прохода, а не его конца: изменения записаны
+		// где-то посередине, и по концу выборка не нашла бы ничего.
+		if queued, err := c.Notifier.PlanSince(ctx, started); err != nil {
+			c.log.Warn("уведомления не запланированы", "ошибка", err)
+		} else if queued > 0 {
+			c.log.Info("уведомления запланированы", "писем", queued)
+		}
 	}
 
 	c.log.Info("проход завершён",

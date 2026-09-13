@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/zazabag/schedulefu/internal/collector"
+	"github.com/zazabag/schedulefu/internal/push"
 	"github.com/zazabag/schedulefu/internal/ruz"
 	"github.com/zazabag/schedulefu/internal/store"
 )
@@ -34,6 +35,7 @@ func main() {
 		rps      = flag.Float64("rps", 8, "ограничение частоты запросов к источнику")
 		workers  = flag.Int("workers", 6, "сколько аудиторий опрашивать одновременно")
 		all      = flag.Bool("all", false, "опрашивать и неучебные помещения (спортзалы, чужие)")
+		noNotify = flag.Bool("no-notify", false, "не планировать уведомления (для первого наполнения базы)")
 		verbose  = flag.Bool("v", false, "подробный лог")
 	)
 	flag.Parse()
@@ -65,6 +67,16 @@ func main() {
 	client := ruz.New(ruz.Options{RPS: *rps})
 	c := collector.New(client, st, log)
 	c.Workers = *workers
+
+	// Уведомления планируются всегда: письма кладутся в очередь, даже если
+	// отправщик (он живёт в cmd/api) сейчас не запущен.
+	loc, err := time.LoadLocation("Europe/Moscow")
+	if err != nil {
+		loc = time.FixedZone("MSK", 3*60*60)
+	}
+	if !*seed && !*noNotify {
+		c.Notifier = push.NewPlanner(st, loc, log)
+	}
 
 	run := func() {
 		oids, err := st.AuditoriumOids(ctx, !*all)
