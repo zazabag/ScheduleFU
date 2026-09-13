@@ -13,14 +13,18 @@ import (
 	"time"
 
 	"github.com/zazabag/schedulefu/internal/httpapi"
+	"github.com/zazabag/schedulefu/internal/httpx"
 	"github.com/zazabag/schedulefu/internal/store"
 	"github.com/zazabag/schedulefu/internal/web"
 )
 
 func main() {
 	var (
-		addr = flag.String("addr", env("ADDR", ":8080"), "адрес прослушивания")
-		dsn  = flag.String("dsn", env("DATABASE_URL", "postgres://localhost:5432/schedulefu_dev?sslmode=disable"), "адрес базы")
+		addr       = flag.String("addr", env("ADDR", ":8080"), "адрес прослушивания")
+		dsn        = flag.String("dsn", env("DATABASE_URL", "postgres://localhost:5432/schedulefu_dev?sslmode=disable"), "адрес базы")
+		rps        = flag.Float64("rps", 8, "запросов в секунду с одного адреса")
+		burst      = flag.Float64("burst", 30, "разрешённый всплеск запросов")
+		trustProxy = flag.Bool("trust-proxy", false, "доверять X-Forwarded-For (включать только за обратным прокси)")
 	)
 	flag.Parse()
 
@@ -52,9 +56,16 @@ func main() {
 	mux.Handle("/api/", httpapi.New(st, loc).Routes())
 	mux.Handle("/", site.Routes())
 
+	// Заголовок X-Forwarded-For подделывается тривиально, поэтому доверять
+	// ему можно только когда перед сервисом стоит наш обратный прокси.
+	httpx.TrustProxy = *trustProxy
+
+	limiter := httpx.NewRateLimiter(*rps, *burst)
+	limiter.StartCleanup(5*time.Minute, 15*time.Minute, ctx.Done())
+
 	srv := &http.Server{
 		Addr:              *addr,
-		Handler:           mux,
+		Handler:           httpx.SecurityHeaders(limiter.Middleware(mux)),
 		ReadHeaderTimeout: 10 * time.Second,
 		WriteTimeout:      30 * time.Second,
 	}

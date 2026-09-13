@@ -65,7 +65,8 @@ function buildCells(lessons, now) {
     }
     var cls = busy ? 'busy' : (s.Ends <= now ? 'past' : 'free');
     var title = busy ? busy.b + '—' + busy.e + ' · ' + busy.d + (busy.l ? ' · ' + busy.l : '') : '';
-    return { cls: cls, label: s.Begins.replace(/^0/, ''), title: title };
+    // title вставляется через esc() на месте использования.
+    return { cls: cls, label: String(s.Begins).replace(/^0/, ''), title: title };
   });
 }
 
@@ -191,22 +192,22 @@ function renderRooms(app) {
         var cells = buildCells(r.ls, now);
         var until = freeUntil(r.ls, now);
         var meta = [r.a.b];
-        if (r.a.f != null) meta.push(r.a.f + ' эт');
-        if (r.a.cap) meta.push(r.a.cap + ' мест');
+        if (r.a.f != null) meta.push(String(r.a.f) + ' эт');
+        if (r.a.cap) meta.push(String(r.a.cap) + ' мест');
         return '<details class="room"><summary>' +
           '<div class="room-head">' +
             '<div class="room-id"><span class="room-num">' + esc(r.a.r) + '</span>' +
             '<span class="room-meta">' + esc(meta.join(' · ')) + '</span></div>' +
             '<span class="room-until' + (until ? ' warn' : '') + '">' +
-              (until ? 'до ' + until : 'до конца дня') + '</span>' +
+              (until ? 'до ' + esc(until) + '' : 'до конца дня') + '</span>' +
           '</div>' +
           '<div class="rail">' + cells.map(function (c) {
             return '<div class="rail-cell ' + c.cls + '"' + (c.title ? ' title="' + esc(c.title) + '"' : '') +
-              '><div class="rail-box"></div><div class="rail-time">' + c.label + '</div></div>';
+              '><div class="rail-box"></div><div class="rail-time">' + esc(c.label) + '</div></div>';
           }).join('') + '</div>' +
         '</summary><div class="room-lessons">' +
           (r.ls.length ? r.ls.map(function (l) {
-            return '<div class="room-lesson"><span class="room-lesson-time">' + l.b + '—' + l.e +
+            return '<div class="room-lesson"><span class="room-lesson-time">' + esc(l.b) + '—' + esc(l.e) +
               '</span><span class="room-lesson-what">' + esc(l.d) + (l.l ? ' · ' + esc(l.l) : '') + '</span></div>';
           }).join('') : '<div class="room-empty">В этот день пар нет</div>') +
         '</div></details>';
@@ -276,8 +277,8 @@ function renderSchedule(app) {
       (lessons.length ? lessons.map(function (l) {
         var a = roomOf(l.a);
         return '<div class="lesson">' +
-          '<div class="lesson-time"><span class="lesson-from">' + l.b + '</span>' +
-          '<span class="lesson-to">' + l.e + '</span></div>' +
+          '<div class="lesson-time"><span class="lesson-from">' + esc(l.b) + '</span>' +
+          '<span class="lesson-to">' + esc(l.e) + '</span></div>' +
           '<div class="lesson-rail"></div>' +
           '<div class="lesson-body">' +
             '<div class="lesson-discipline">' + esc(l.d) + '</div>' +
@@ -402,18 +403,18 @@ function renderLecturers(app) {
       (current ?
         '<div class="now-where"><div><div class="now-room">' + esc(a ? a.r : '—') + '</div>' +
         '<div class="pick-meta">' + esc(a ? a.b + (a.f != null ? ' · ' + a.f + ' эт' : '') : '') + '</div></div>' +
-        '<div><div class="lesson-kind" style="color:var(--text)">' + current.b + '—' + current.e + '</div>' +
+        '<div><div class="lesson-kind" style="color:var(--text)">' + esc(current.b) + '—' + esc(current.e) + '</div>' +
         '<div class="room-lesson-what">' + esc(current.d) + '</div>' +
         '<div class="pick-meta">' + esc((current.g || []).join(', ')) + '</div></div></div>'
         : '<div class="now-where"><span class="lesson-kind">' +
-          (next ? 'Сейчас пары нет. Ближайшая в ' + next.b + '.'
+          (next ? 'Сейчас пары нет. Ближайшая в ' + esc(next.b) + '.'
                 : (lessons.length ? 'Пары на этот день закончились.' : 'В этот день пар нет.')) +
           '</span></div>') +
     '</div>' +
     lessons.map(function (l) {
       var r = roomOf(l.a);
       return '<div class="lesson"><div class="lesson-time">' +
-        '<span class="lesson-from">' + l.b + '</span><span class="lesson-to">' + l.e + '</span></div>' +
+        '<span class="lesson-from">' + esc(l.b) + '</span><span class="lesson-to">' + esc(l.e) + '</span></div>' +
         '<div class="lesson-rail"></div><div class="lesson-body">' +
         '<div class="lesson-discipline">' + esc(l.d) + '</div>' +
         '<div class="lesson-where"><span class="lesson-room">' + esc(r ? r.r : '—') + '</span>' +
