@@ -24,7 +24,7 @@
       </div>
       <span class="badge {{if not .InClass}}idle{{end}}">{{if .InClass}}на паре{{else}}вне пар{{end}}</span>
     </div>
-    <div style="display:flex; gap:8px; padding-top:12px; border-top:1px solid var(--line-2);">
+    <div class="card-actions">
       <a class="tab" href="/schedule?lecturer={{.Selected.Oid}}">Расписание на неделю</a>
       <a class="tab on" href="/schedule?lecturer={{.Selected.Oid}}&amp;pin=1">Это моё расписание</a>
     </div>
@@ -35,7 +35,7 @@
         <div class="pick-meta">{{.NowPlace}}</div>
       </div>
       <div>
-        <div class="lesson-kind" style="color: var(--text);">{{.NowTime}}</div>
+        <div class="lesson-kind strong">{{.NowTime}}</div>
         <div class="room-lesson-what">{{.NowWhat}}</div>
         <div class="pick-meta">{{.NowGroups}}</div>
       </div>

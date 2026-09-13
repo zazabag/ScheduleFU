@@ -137,6 +137,7 @@ func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
 	data["Pinned"] = pinned.Key() == subject.Key()
 	data["PinHref"] = "/schedule?" + subject.Query() + "&pin=1"
 	data["Subject"] = subject
+	data["SubjectKey"] = subject.Key()
 	data["Group"] = subject.Label
 	data["IsLecturer"] = subject.Kind == SubjectLecturer
 	data["ChangeHref"] = changeHref(subject)

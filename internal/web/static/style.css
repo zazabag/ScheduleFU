@@ -245,3 +245,30 @@ a:hover { color: #a8d84a; }
   .install-bar { bottom: calc(74px + env(safe-area-inset-bottom)); }
   .head { padding-top: calc(22px + env(safe-area-inset-top)); }
 }
+
+
+/* Подписка на уведомления. Блок скрыт до тех пор, пока скрипт не
+   убедится, что браузер умеет уведомления, а сервер настроен их слать. */
+.notify {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 18px 10px; padding: 12px 14px;
+  background: var(--surface); border: 1px solid var(--line-2); border-radius: 9px;
+  font-size: 12px; color: var(--text-2);
+}
+.notify button {
+  margin-left: auto; flex-shrink: 0;
+  background: var(--accent); color: var(--accent-ink); border: none; border-radius: 7px;
+  padding: 8px 13px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.notify button:disabled { background: var(--past); color: var(--text-4); cursor: default; }
+
+
+/* Классы вместо инлайновых стилей: политика безопасности запрещает
+   атрибут style, и это к лучшему — правила видны в одном месте. */
+.note-flush { padding-left: 0; }
+.pick-check { color: var(--accent); }
+.lesson-kind.strong { color: var(--text); }
+.card-actions {
+  display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line-2);
+}
+.head-actions { display: flex; gap: 6px; }

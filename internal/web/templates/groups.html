@@ -21,14 +21,14 @@
 </div>
 
 <div class="list">
-  <div class="note" style="padding-left: 0;">{{.ResultLabel}}</div>
+  <div class="note note-flush">{{.ResultLabel}}</div>
   {{range .Groups}}
   <a class="pick {{if .On}}on{{end}}" href="/schedule?group={{.NameEscaped}}&amp;pin=1">
     <span>
       <span class="pick-name">{{.Name}}</span><br>
       <span class="pick-meta">{{.Meta}}</span>
     </span>
-    {{if .On}}<span style="color: var(--accent);">✓</span>{{end}}
+    {{if .On}}<span class="pick-check">✓</span>{{end}}
   </a>
   {{else}}
   <div class="empty">
