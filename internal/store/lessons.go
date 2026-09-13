@@ -68,63 +68,120 @@ func (s *Store) ApplySnapshot(ctx context.Context, from, to time.Time, lessons [
 		seen := make(map[int64]bool, len(lessons))
 		now := time.Now()
 
-		for _, l := range lessons {
+		// Пары раскладываются по трём корзинам и записываются пачками.
+		// Построчная запись означала бы по одному обращению к базе на
+		// каждую пару: одиннадцать тысяч обращений за проход, из которых
+		// подавляющее большинство — «ничего не изменилось».
+		var (
+			untouched []int64  // только отметить, что пара всё ещё есть
+			upserts   []Lesson // новые и изменившиеся
+			fps       []string
+			changes   []pendingChange
+		)
+
+		for i := range lessons {
+			l := lessons[i]
 			seen[l.LessonOid] = true
 			fp := l.Fingerprint()
 			old, existed := prev[l.LessonOid]
 
 			switch {
 			case !existed:
-				if err := upsertLesson(ctx, tx, l, fp); err != nil {
-					return err
-				}
-				if err := recordChange(ctx, tx, ChangeAdded, l, nil, &l, now); err != nil {
-					return err
-				}
+				upserts = append(upserts, l)
+				fps = append(fps, fp)
+				changes = append(changes, pendingChange{kind: ChangeAdded, addr: l, after: &lessons[i]})
 				res.Added++
 
 			case old.fingerprint != fp:
-				if err := upsertLesson(ctx, tx, l, fp); err != nil {
-					return err
-				}
+				upserts = append(upserts, l)
+				fps = append(fps, fp)
 				before := old.lesson
-				if err := recordChange(ctx, tx, ChangeChanged, l, &before, &l, now); err != nil {
-					return err
-				}
+				changes = append(changes, pendingChange{
+					kind: ChangeChanged, addr: l, before: &before, after: &lessons[i],
+				})
 				res.Changed++
 
 			default:
-				// Ничего не изменилось — отмечаем, что пара всё ещё есть.
-				if _, err := tx.Exec(ctx,
-					`UPDATE lessons SET last_seen_at = $2 WHERE lesson_oid = $1`,
-					l.LessonOid, now); err != nil {
-					return fmt.Errorf("отметка пары %d: %w", l.LessonOid, err)
-				}
+				untouched = append(untouched, l.LessonOid)
+			}
+		}
+
+		if err := upsertLessons(ctx, tx, upserts, fps); err != nil {
+			return err
+		}
+		if len(untouched) > 0 {
+			if _, err := tx.Exec(ctx,
+				`UPDATE lessons SET last_seen_at = $2 WHERE lesson_oid = ANY($1)`,
+				untouched, now); err != nil {
+				return fmt.Errorf("отметка неизменившихся пар: %w", err)
 			}
 		}
 
 		// Пары, пропавшие из источника.
+		var removed []int64
 		for oid, old := range prev {
 			if seen[oid] {
 				continue
 			}
 			before := old.lesson
-			if err := recordChange(ctx, tx, ChangeRemoved, before, &before, nil, now); err != nil {
-				return err
-			}
-			if _, err := tx.Exec(ctx, `DELETE FROM lessons WHERE lesson_oid = $1`, oid); err != nil {
-				return fmt.Errorf("удаление пары %d: %w", oid, err)
-			}
+			changes = append(changes, pendingChange{
+				kind: ChangeRemoved, addr: before, before: &before,
+			})
+			removed = append(removed, oid)
 			res.Removed++
 		}
+		if len(removed) > 0 {
+			if _, err := tx.Exec(ctx,
+				`DELETE FROM lessons WHERE lesson_oid = ANY($1)`, removed); err != nil {
+				return fmt.Errorf("удаление пропавших пар: %w", err)
+			}
+		}
+
+		if err := recordChanges(ctx, tx, changes, now); err != nil {
+			return err
+		}
+
 		return nil
 	})
 
 	return res, err
 }
 
-func upsertLesson(ctx context.Context, tx pgx.Tx, l Lesson, fingerprint string) error {
-	_, err := tx.Exec(ctx, `
+// upsertLessons записывает пары одной пачкой.
+//
+// pgx.Batch отправляет все команды за один обмен с базой: время перестаёт
+// зависеть от задержки соединения, которая на построчной записи и съедала
+// почти всё.
+func upsertLessons(ctx context.Context, tx pgx.Tx, lessons []Lesson, fingerprints []string) error {
+	if len(lessons) == 0 {
+		return nil
+	}
+	const chunk = 500 // пачками, чтобы не держать в памяти всю неделю сразу
+	for start := 0; start < len(lessons); start += chunk {
+		end := start + chunk
+		if end > len(lessons) {
+			end = len(lessons)
+		}
+		batch := &pgx.Batch{}
+		for i := start; i < end; i++ {
+			queueLesson(batch, lessons[i], fingerprints[i])
+		}
+		br := tx.SendBatch(ctx, batch)
+		for i := start; i < end; i++ {
+			if _, err := br.Exec(); err != nil {
+				br.Close()
+				return fmt.Errorf("сохранение пары %d: %w", lessons[i].LessonOid, err)
+			}
+		}
+		if err := br.Close(); err != nil {
+			return fmt.Errorf("запись пачки пар: %w", err)
+		}
+	}
+	return nil
+}
+
+func queueLesson(batch *pgx.Batch, l Lesson, fingerprint string) {
+	batch.Queue(`
 		INSERT INTO lessons (
 			lesson_oid, lesson_date, begins_at, ends_at,
 			auditorium_oid, auditorium, building,
@@ -155,41 +212,74 @@ func upsertLesson(ctx context.Context, tx pgx.Tx, l Lesson, fingerprint string) 
 		l.Discipline, l.KindOfWork, l.LecturerOid, l.LecturerName,
 		l.Stream, l.GroupNames, l.Subgroup, l.Note,
 		fingerprint, l.SourceModifiedAt)
-	if err != nil {
-		return fmt.Errorf("сохранение пары %d: %w", l.LessonOid, err)
+}
+
+// pendingChange — изменение, ожидающее записи в журнал.
+type pendingChange struct {
+	kind   ChangeKind
+	addr   Lesson // откуда берутся адресные поля
+	before *Lesson
+	after  *Lesson
+}
+
+// recordChanges пишет журнал одной пачкой.
+//
+// В первый проход изменений столько же, сколько пар, и построчная запись
+// удваивала бы стоимость всей операции.
+func recordChanges(ctx context.Context, tx pgx.Tx, changes []pendingChange, at time.Time) error {
+	if len(changes) == 0 {
+		return nil
+	}
+	const chunk = 500
+	for start := 0; start < len(changes); start += chunk {
+		end := start + chunk
+		if end > len(changes) {
+			end = len(changes)
+		}
+		batch := &pgx.Batch{}
+		for i := start; i < end; i++ {
+			c := changes[i]
+			beforeJSON, afterJSON, err := marshalStates(c.before, c.after)
+			if err != nil {
+				return err
+			}
+			batch.Queue(`
+				INSERT INTO lesson_changes (
+					lesson_oid, kind, detected_at, lesson_date,
+					group_names, lecturer_oid, auditorium_oid, before, after
+				) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+				c.addr.LessonOid, string(c.kind), at, c.addr.Date,
+				c.addr.GroupNames, c.addr.LecturerOid, c.addr.AuditoriumOid,
+				beforeJSON, afterJSON)
+		}
+		br := tx.SendBatch(ctx, batch)
+		for i := start; i < end; i++ {
+			if _, err := br.Exec(); err != nil {
+				br.Close()
+				return fmt.Errorf("запись изменения пары %d: %w", changes[i].addr.LessonOid, err)
+			}
+		}
+		if err := br.Close(); err != nil {
+			return fmt.Errorf("запись журнала изменений: %w", err)
+		}
 	}
 	return nil
 }
 
-// recordChange пишет строку в журнал изменений.
-//
-// Адресные поля (дата, группы, преподаватель, аудитория) дублируются в
-// журнал, чтобы рассылка уведомлений не зависела от того, существует ли
-// пара сейчас: у удалённой пары брать их уже неоткуда.
-func recordChange(ctx context.Context, tx pgx.Tx, kind ChangeKind, addr Lesson, before, after *Lesson, at time.Time) error {
+func marshalStates(before, after *Lesson) ([]byte, []byte, error) {
 	var beforeJSON, afterJSON []byte
 	var err error
 	if before != nil {
 		if beforeJSON, err = json.Marshal(before); err != nil {
-			return err
+			return nil, nil, err
 		}
 	}
 	if after != nil {
 		if afterJSON, err = json.Marshal(after); err != nil {
-			return err
+			return nil, nil, err
 		}
 	}
-	_, err = tx.Exec(ctx, `
-		INSERT INTO lesson_changes (
-			lesson_oid, kind, detected_at, lesson_date,
-			group_names, lecturer_oid, auditorium_oid, before, after
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-		addr.LessonOid, string(kind), at, addr.Date,
-		addr.GroupNames, addr.LecturerOid, addr.AuditoriumOid, beforeJSON, afterJSON)
-	if err != nil {
-		return fmt.Errorf("запись изменения пары %d: %w", addr.LessonOid, err)
-	}
-	return nil
+	return beforeJSON, afterJSON, nil
 }
 
 func trimSeconds(t string) string {
