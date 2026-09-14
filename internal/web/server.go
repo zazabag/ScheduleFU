@@ -62,6 +62,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /schedule", s.handleSchedule)
 	mux.HandleFunc("GET /groups", s.handleGroups)
 	mux.HandleFunc("GET /lecturers", s.handleLecturers)
+	mux.HandleFunc("GET /calendar.ics", s.handleCalendar)
 	return mux
 }
 
