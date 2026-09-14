@@ -43,10 +43,27 @@ function pickDay(days, wanted) {
 function ensureDay(key) {
   if (state.dayKey === key && state.day) return Promise.resolve(state.day);
   return loadJSON('data/day/' + key + '.json').then(function (d) {
-    state.day = d;
+    state.day = expandDay(d);
     state.dayKey = key;
-    return d;
+    return state.day;
   });
+}
+
+// Дисциплины, преподаватели и виды занятий приходят номерами в словарях:
+// в дне около двух тысяч пар, а названий — сотни, и повторять их целиком
+// значило бы удвоить файл. Разворачиваем один раз при загрузке, чтобы
+// остальной код о словарях не знал.
+function expandDay(day) {
+  var dict = day.dict || { d: [], l: [], k: [] };
+  function look(list, n) {
+    return (typeof n === 'number' && n >= 0 && n < list.length) ? list[n] : '';
+  }
+  day.lessons.forEach(function (l) {
+    l.d = look(dict.d, l.d);
+    l.l = look(dict.l, l.l);
+    l.k = look(dict.k, l.k);
+  });
+  return day;
 }
 
 // ——— занятость ———

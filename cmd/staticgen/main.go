@@ -28,21 +28,60 @@ import (
 // Ключи в JSON короткие: файл дня грузится на телефоне, и каждое
 // повторение имени поля умножается на полторы тысячи пар.
 type jsonLesson struct {
-	Oid        int64    `json:"o"`
-	AudOid     int64    `json:"a,omitempty"`
-	Begins     string   `json:"b"`
-	Ends       string   `json:"e"`
-	Discipline string   `json:"d"`
-	Kind       string   `json:"k,omitempty"`
-	Lecturer   string   `json:"l,omitempty"`
+	Oid    int64  `json:"o"`
+	AudOid int64  `json:"a,omitempty"`
+	Begins string `json:"b"`
+	Ends   string `json:"e"`
+	// Номера в словарях дня; -1 означает «нет значения».
+	Discipline int      `json:"d"`
+	Kind       int      `json:"k"`
+	Lecturer   int      `json:"l"`
 	LecturerID int64    `json:"lo,omitempty"`
 	Groups     []string `json:"g,omitempty"`
 }
 
 type jsonDay struct {
-	Date        string       `json:"date"`
-	GeneratedAt string       `json:"generated_at"`
-	Lessons     []jsonLesson `json:"lessons"`
+	Date        string `json:"date"`
+	GeneratedAt string `json:"generated_at"`
+	// Dict — словари повторяющихся строк.
+	//
+	// В дне около двух тысяч пар, а разных дисциплин четыре сотни и
+	// преподавателей восемь: названия повторяются десятками раз. Замена
+	// их на номера уменьшает файл вдвое до сжатия и на треть после —
+	// а главное, вдвое сокращает работу телефона по разбору JSON.
+	Dict    dayDict      `json:"dict"`
+	Lessons []jsonLesson `json:"lessons"`
+}
+
+type dayDict struct {
+	Disciplines []string `json:"d"`
+	Lecturers   []string `json:"l"`
+	Kinds       []string `json:"k"`
+}
+
+// stringPool раздаёт номера повторяющимся строкам.
+type stringPool struct {
+	values []string
+	index  map[string]int
+}
+
+func newPool() *stringPool {
+	return &stringPool{index: map[string]int{}}
+}
+
+// id возвращает номер строки, добавляя её при первой встрече.
+// Пустая строка получает -1 и в словарь не попадает.
+func (p *stringPool) id(v string) int {
+	if v == "" {
+		return -1
+	}
+	if n, ok := p.index[v]; ok {
+		return n
+	}
+	n := len(p.values)
+	p.values = append(p.values, v)
+	p.index[v] = n
+	return n
 }
 
 type jsonAuditorium struct {
@@ -165,14 +204,26 @@ func collectDays(ctx context.Context, st *store.Store, loc *time.Location, out s
 			return nil, err
 		}
 		day := jsonDay{Date: key, GeneratedAt: now}
+		disciplines, lecturers, kinds := newPool(), newPool(), newPool()
 		for lrows.Next() {
-			var l jsonLesson
+			var (
+				l                              jsonLesson
+				discipline, kindOfWork, person string
+			)
 			if err := lrows.Scan(&l.Oid, &l.AudOid, &l.Begins, &l.Ends,
-				&l.Discipline, &l.Kind, &l.Lecturer, &l.LecturerID, &l.Groups); err != nil {
+				&discipline, &kindOfWork, &person, &l.LecturerID, &l.Groups); err != nil {
 				lrows.Close()
 				return nil, err
 			}
+			l.Discipline = disciplines.id(discipline)
+			l.Kind = kinds.id(kindOfWork)
+			l.Lecturer = lecturers.id(person)
 			day.Lessons = append(day.Lessons, l)
+		}
+		day.Dict = dayDict{
+			Disciplines: disciplines.values,
+			Lecturers:   lecturers.values,
+			Kinds:       kinds.values,
 		}
 		lrows.Close()
 		if err := lrows.Err(); err != nil {
