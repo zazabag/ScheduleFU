@@ -67,7 +67,7 @@
   <span class="notify-text">Сообщать об изменениях расписания</span>
   <button type="button">Включить</button>
 </div>
-<script src="/static/push.js" defer></script>
+<script src="{{asset "push.js"}}" defer></script>
 {{end}}
 
 <div class="note">{{if .Freshness}}Обновлено {{.Freshness}} · и{{else}}И{{end}}сточник: расписание вуза</div>

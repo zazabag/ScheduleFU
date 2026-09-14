@@ -39,9 +39,12 @@ func New(s *store.Store, loc *time.Location) (*Server, error) {
 	if loc == nil {
 		loc = time.UTC
 	}
+	// asset доступен в шаблонах: адреса файлов несут отпечаток содержимого.
+	funcs := template.FuncMap{"asset": AssetURL}
+
 	pages := map[string]*template.Template{}
 	for _, name := range []string{"rooms", "schedule", "groups", "lecturers"} {
-		t, err := template.New("base").ParseFS(templateFS,
+		t, err := template.New("base").Funcs(funcs).ParseFS(templateFS,
 			"templates/base.html", "templates/"+name+".html")
 		if err != nil {
 			return nil, fmt.Errorf("web: шаблон %s: %w", name, err)
@@ -54,7 +57,7 @@ func New(s *store.Store, loc *time.Location) (*Server, error) {
 // Routes отдаёт маршруты интерфейса.
 func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
-	mux.Handle("GET /static/", http.FileServer(http.FS(staticFS)))
+	mux.Handle("GET /static/", staticHandler())
 	mux.HandleFunc("GET /{$}", s.handleRooms)
 	mux.HandleFunc("GET /schedule", s.handleSchedule)
 	mux.HandleFunc("GET /groups", s.handleGroups)
@@ -69,6 +72,7 @@ func (s *Server) render(w http.ResponseWriter, page string, data any) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	noStore(w)
 	if err := t.ExecuteTemplate(w, "base", data); err != nil {
 		// Заголовки уже отправлены — остаётся только не молчать в логах.
 		fmt.Printf("web: отрисовка %s: %v\n", page, err)
