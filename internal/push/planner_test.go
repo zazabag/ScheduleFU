@@ -12,9 +12,12 @@ import (
 
 func testStore(t *testing.T) *store.Store {
 	t.Helper()
-	dsn := os.Getenv("TEST_DATABASE_URL")
+	// Своя база на пакет: go test прогоняет пакеты параллельно, и на общей
+	// базе тесты этого пакета вычищали таблицы под ногами у тестов store —
+	// падало то одно, то другое, причём только в полном прогоне.
+	dsn := os.Getenv("TEST_DATABASE_URL_PUSH")
 	if dsn == "" {
-		dsn = "postgres://localhost:5432/schedulefu_test?sslmode=disable"
+		dsn = "postgres://localhost:5432/schedulefu_test_push?sslmode=disable"
 	}
 	s, err := store.Open(context.Background(), dsn)
 	if err != nil {
@@ -63,10 +66,18 @@ func TestPlanSinceStavitPismaPodpischikam(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Сначала база наполняется: появление расписания у нас — не правка вуза.
+	if _, err := s.ApplySnapshot(ctx, day, day, []store.Lesson{
+		lesson(1, []string{"ПИ24-1"}, 0),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
 	since := time.Now()
 	if _, err := s.ApplySnapshot(ctx, day, day, []store.Lesson{
 		lesson(1, []string{"ПИ24-1"}, 0),
 		lesson(2, []string{"ПИ24-1"}, 0),
+		lesson(3, []string{"ПИ24-1"}, 0),
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -110,8 +121,15 @@ func TestPlanSinceNePishetChuzhim(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if _, err := s.ApplySnapshot(ctx, day, day, []store.Lesson{
+		lesson(9, []string{"Ю24-5"}, 0),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
 	since := time.Now()
 	if _, err := s.ApplySnapshot(ctx, day, day, []store.Lesson{
+		lesson(9, []string{"Ю24-5"}, 0),
 		lesson(10, []string{"Ю24-5"}, 0),
 	}); err != nil {
 		t.Fatal(err)
@@ -142,8 +160,15 @@ func TestPlanSinceDostayotPrepodavatelya(t *testing.T) {
 		}
 	}
 
+	if _, err := s.ApplySnapshot(ctx, day, day, []store.Lesson{
+		lesson(19, []string{"ПИ24-1"}, 46674),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
 	since := time.Now()
 	if _, err := s.ApplySnapshot(ctx, day, day, []store.Lesson{
+		lesson(19, []string{"ПИ24-1"}, 46674),
 		lesson(20, []string{"ПИ24-1"}, 46674),
 	}); err != nil {
 		t.Fatal(err)

@@ -68,6 +68,15 @@ func (s *Store) ApplySnapshot(ctx context.Context, from, to time.Time, lessons [
 		seen := make(map[int64]bool, len(lessons))
 		now := time.Now()
 
+		// Первое наполнение — не изменение расписания.
+		//
+		// Когда за период в базе нет ни одной пары, а источник принёс
+		// тысячи, это означает лишь, что мы узнали расписание, а не что
+		// вуз его переписал. Журналировать такое бессмысленно: история
+		// раздувается на десяток мегабайт, а смотреть в ней нечего.
+		// «Изменение» имеет смысл только относительно того, что мы знали.
+		firstFill := len(prev) == 0 && len(lessons) > 0
+
 		// Пары раскладываются по трём корзинам и записываются пачками.
 		// Построчная запись означала бы по одному обращению к базе на
 		// каждую пару: одиннадцать тысяч обращений за проход, из которых
@@ -89,7 +98,9 @@ func (s *Store) ApplySnapshot(ctx context.Context, from, to time.Time, lessons [
 			case !existed:
 				upserts = append(upserts, l)
 				fps = append(fps, fp)
-				changes = append(changes, pendingChange{kind: ChangeAdded, addr: l, after: &lessons[i]})
+				if !firstFill {
+					changes = append(changes, pendingChange{kind: ChangeAdded, addr: l, after: &lessons[i]})
+				}
 				res.Added++
 
 			case old.fingerprint != fp:
@@ -332,4 +343,21 @@ func (s *Store) ChangesSince(ctx context.Context, since time.Time, limit int) ([
 		out = append(out, c)
 	}
 	return out, rows.Err()
+}
+
+// CleanupChanges убирает записи журнала старше указанного срока.
+//
+// Журнал нужен, чтобы показать «что изменилось» и разослать уведомления;
+// то и другое живёт днями, а не месяцами. Хранить его вечно значит
+// медленно копить мегабайты ради истории, в которую никто не заглянет — и
+// заодно держать у себя архив вузовских данных, чего мы делать не
+// собирались (docs/03-legal-risks.md).
+func (s *Store) CleanupChanges(ctx context.Context, olderThan time.Duration) (int64, error) {
+	tag, err := s.pool.Exec(ctx, `
+		DELETE FROM lesson_changes WHERE detected_at < now() - $1::interval`,
+		fmt.Sprintf("%d seconds", int(olderThan.Seconds())))
+	if err != nil {
+		return 0, fmt.Errorf("чистка журнала изменений: %w", err)
+	}
+	return tag.RowsAffected(), nil
 }

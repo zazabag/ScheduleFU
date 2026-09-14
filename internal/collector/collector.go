@@ -38,6 +38,9 @@ type Collector struct {
 	// Notifier необязателен: без него сборщик просто копит изменения в
 	// журнале, никого не беспокоя.
 	Notifier Notifier
+
+	// KeepChanges — сколько хранить журнал изменений.
+	KeepChanges time.Duration
 }
 
 // New создаёт сборщик.
@@ -45,7 +48,12 @@ func New(c *ruz.Client, s *store.Store, log *slog.Logger) *Collector {
 	if log == nil {
 		log = slog.Default()
 	}
-	return &Collector{client: c, store: s, log: log, Workers: 6}
+	return &Collector{
+		client: c, store: s, log: log, Workers: 6,
+		// Месяц: столько имеет смысл отвечать на вопрос «а что поменялось»,
+		// дальше расписание успевает смениться целиком.
+		KeepChanges: 30 * 24 * time.Hour,
+	}
 }
 
 // RunOnce делает один полный проход по аудиториям за период и применяет
@@ -105,6 +113,15 @@ func (c *Collector) RunOnce(ctx context.Context, auditoriumOids []int64, from, t
 		} else if queued > 0 {
 			c.log.Info("уведомления запланированы", "писем", queued)
 		}
+	}
+
+	// Журнал нужен на дни, а не на месяцы: и уведомления, и экран
+	// «что изменилось» смотрят недавнее. Чистим здесь, потому что здесь
+	// журнал и растёт.
+	if removed, err := c.store.CleanupChanges(ctx, c.KeepChanges); err != nil {
+		c.log.Warn("журнал изменений не подчищен", "ошибка", err)
+	} else if removed > 0 {
+		c.log.Info("журнал подчищен", "удалено", removed)
 	}
 
 	c.log.Info("проход завершён",

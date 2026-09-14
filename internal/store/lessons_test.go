@@ -8,7 +8,9 @@ import (
 )
 
 // testStore поднимает чистую схему в тестовой базе.
-// Адрес берётся из TEST_DATABASE_URL, по умолчанию — локальная schedulefu_test.
+//
+// База своя на пакет: go test прогоняет пакеты параллельно, и общая база
+// означала бы, что соседний пакет чистит таблицы посреди чужого теста.
 func testStore(t *testing.T) *Store {
 	t.Helper()
 	dsn := os.Getenv("TEST_DATABASE_URL")
@@ -195,5 +197,85 @@ func TestApplySnapshotNeTrogaetChuzhoyPeriod(t *testing.T) {
 	}
 	if res.Changes() != 0 {
 		t.Fatalf("слепок соседней недели затронул чужие пары: %+v", res)
+	}
+}
+
+// TestPervoeNapolnenieNePishetVZhurnal: когда база пуста, а источник принёс
+// тысячи пар, это значит, что мы узнали расписание, а не что вуз его
+// переписал. В журнале от такого — десяток мегабайт, в которые никто не
+// заглянет.
+func TestPervoeNapolnenieNePishetVZhurnal(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+
+	res, err := s.ApplySnapshot(ctx, day(7), day(13), []Lesson{
+		para(1, 7, "08:30", 2851, "Философия"),
+		para(2, 8, "11:50", 2851, "История"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Added != 2 {
+		t.Fatalf("пары не добавлены: %+v", res)
+	}
+
+	changes, err := s.ChangesSince(ctx, time.Now().Add(-time.Minute), 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(changes) != 0 {
+		t.Fatalf("первое наполнение записало %d изменений", len(changes))
+	}
+
+	// А вот следующая новая пара — уже настоящее изменение.
+	if _, err := s.ApplySnapshot(ctx, day(7), day(13), []Lesson{
+		para(1, 7, "08:30", 2851, "Философия"),
+		para(2, 8, "11:50", 2851, "История"),
+		para(3, 9, "14:00", 2851, "Экономика"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	changes, err = s.ChangesSince(ctx, time.Now().Add(-time.Minute), 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(changes) != 1 {
+		t.Fatalf("новая пара дала %d записей в журнале, ожидалась одна", len(changes))
+	}
+}
+
+func TestCleanupChanges(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+
+	// Наполняем, потом меняем — чтобы в журнале появилась запись.
+	if _, err := s.ApplySnapshot(ctx, day(7), day(13), []Lesson{
+		para(1, 7, "08:30", 2851, "Философия"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ApplySnapshot(ctx, day(7), day(13), []Lesson{
+		para(1, 7, "08:30", 2851, "Философия"),
+		para(2, 8, "11:50", 2851, "История"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Свежие записи чистка не трогает.
+	removed, err := s.CleanupChanges(ctx, 24*time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removed != 0 {
+		t.Errorf("удалено %d свежих записей", removed)
+	}
+
+	// А всё, что старше нуля, — уже история.
+	removed, err = s.CleanupChanges(ctx, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removed == 0 {
+		t.Error("старые записи не удалены")
 	}
 }

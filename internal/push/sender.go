@@ -146,10 +146,20 @@ func (s *Sender) sendOne(ctx context.Context, item store.OutboxItem) (int, error
 func (s *Sender) Run(ctx context.Context, every time.Duration) {
 	t := time.NewTicker(every)
 	defer t.Stop()
+	cleanup := time.NewTicker(6 * time.Hour)
+	defer cleanup.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-cleanup.C:
+			// Доставленные письма лежат ради истории, но не вечно:
+			// неделя — достаточный срок, чтобы разобраться, дошло ли.
+			if removed, err := s.store.CleanupOutbox(ctx, 7*24*time.Hour); err != nil {
+				s.log.Warn("очередь не подчищена", "ошибка", err)
+			} else if removed > 0 {
+				s.log.Info("очередь подчищена", "удалено", removed)
+			}
 		case <-t.C:
 			res, err := s.Deliver(ctx)
 			if err != nil {
