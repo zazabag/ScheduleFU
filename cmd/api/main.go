@@ -83,8 +83,10 @@ func main() {
 	limiter.StartCleanup(5*time.Minute, 15*time.Minute, ctx.Done())
 
 	srv := &http.Server{
-		Addr:              *addr,
-		Handler:           httpx.SecurityHeaders(limiter.Middleware(mux)),
+		Addr: *addr,
+		// Сжатие снаружи ограничителя: отказ с кодом 429 тоже стоит
+		// отдавать сжатым, он такой же ответ.
+		Handler:           httpx.Compress(httpx.SecurityHeaders(limiter.Middleware(mux))),
 		ReadHeaderTimeout: 10 * time.Second,
 		WriteTimeout:      30 * time.Second,
 	}
