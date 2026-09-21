@@ -71,7 +71,8 @@ ScheduleFU — собственный сервис расписания Фина
 | `internal/modules/export/` | календарь ICS |
 | `internal/platform/` | `config` (YAML + `SCHEDULEFU_*`), `db` (пул, миграции таймстемпами), `clock` (пояс вуза, русские даты), `httpx` |
 | `internal/archtest/` | тест графа зависимостей — держит § 6 канона |
-| `deploy/local/` | установка служб на macOS |
+| `deploy/local/` | установка служб на macOS (для разработки) |
+| `deploy/server/` | боевой сервер: `push.sh` с Мака собирает и выкатывает, `install.sh` ставит всё на Ubuntu |
 | `tools/`, `data/` | разовые скрипты сбора справочников (Python) и их результат |
 | `docs/` | канон, исследование источника, юридические риски |
 

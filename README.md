@@ -50,6 +50,14 @@ go build -o schedulefu ./cmd/schedulefu
 Сборщик в цикле: `./schedulefu collect` (интервал из конфига). Пример
 конфига пишет `deploy/local/install.sh`; на macOS он же ставит службы.
 
+### Сервер
+
+Боевая установка — Ubuntu 24.04, PostgreSQL 16, Caddy с автоматическим
+сертификатом, две службы systemd, суточные копии базы. Всё ставит
+`deploy/server/install.sh`; с Мака выкатывает `deploy/server/push.sh`
+(сборка под Linux, отправка, установка, проверка `/api/v1/health`).
+Первый раз, пока на сервере нет ключа, — `deploy/server/bootstrap.sh`.
+
 ### Уведомления
 
 Ключи создаются один раз; при их смене все подписки перестают работать.

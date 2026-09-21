@@ -120,6 +120,8 @@ fi
 echo "==> Caddy"
 cat > /etc/caddy/Caddyfile <<CADDY
 $DOMAIN {
+    # HSTS ставит прокси, а не приложение: приложение не знает, что снаружи TLS.
+    header Strict-Transport-Security "max-age=31536000"
     encode zstd gzip
     reverse_proxy 127.0.0.1:8090
 }

@@ -131,6 +131,11 @@ func AssetURL(name string) string {
 func staticHandler() http.Handler {
 	files := http.FileServer(http.FS(staticFS))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, ".webmanifest") {
+			// Стандартной библиотеке расширение неизвестно, а без верного типа
+			// браузер не предлагает установить приложение.
+			w.Header().Set("Content-Type", "application/manifest+json")
+		}
 		switch {
 		case path.Base(r.URL.Path) == "sw.js":
 			// Service worker отдаётся свежим всегда, иначе браузер месяцами
