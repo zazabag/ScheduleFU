@@ -212,3 +212,19 @@ body { font-size: 13px; text-transform: none; }
 .lh-teacher.today .lh-teacher-when::before { content: '● '; }
 .lh-teacher-what { text-transform: uppercase; letter-spacing: 0.1em; font-size: 9px; }
 .lh-recent-item { border-radius: 0; background: transparent; border: 1px solid var(--line); text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; }
+
+/* ─── пустой день и стопки ────────────────────────────────────────────── */
+.hero-empty-title { font-family: var(--font-display); font-size: 32px; text-transform: uppercase; }
+.hero-empty-title::after { content: ' · рейсов нет'; font-size: 14px; color: var(--text-3); letter-spacing: 0.1em; }
+.hero-empty-sub { text-transform: uppercase; letter-spacing: 0.15em; font-size: 10px; }
+.hero-empty-next { background: transparent; border: 1px solid var(--accent); border-radius: 0; }
+.hero-empty-next-label { letter-spacing: 0.25em; }
+.hero-empty-next-day { font-family: var(--font-display); text-transform: uppercase; color: var(--accent); }
+.hero-empty-next-meta { letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; }
+.lesson.stack { box-shadow: none; border-bottom: 1px dashed var(--line); }
+.stack-summary { grid-template-columns: 62px 1fr 64px; grid-template-areas: "time body room" "status status status"; padding: 12px 0; text-transform: uppercase; letter-spacing: 0.18em; }
+.stack-badge { border-radius: 0; background: transparent; border: 1px solid var(--accent); color: var(--accent); letter-spacing: 0.15em; }
+.stack-list { padding-left: 74px; }
+.stack-item { border-top-style: dashed; }
+.stack-item-sub { color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-size: 11px; }
+.stack-item-room { color: var(--accent); }

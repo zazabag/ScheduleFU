@@ -170,3 +170,15 @@
 .lh-teacher { background: transparent; border-radius: 0; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .lh-teacher-name { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
 .lh-recent-item { border-radius: 0; background: transparent; border-bottom: 2px solid var(--accent); padding: 4px 0; }
+
+/* ─── пустой день и стопки ────────────────────────────────────────────── */
+.hero[data-state="none"] .hero-num { color: var(--text-3); }
+.hero-empty-title { font-size: 40px; font-weight: 900; letter-spacing: -0.05em; }
+.hero-empty-next { background: transparent; border-radius: 0; border-top: 2px solid var(--text); padding: 12px 0; }
+:root[data-theme="dark"] .hero-empty-next { border-top-color: var(--line); }
+.hero-empty-next-day { font-size: 20px; font-weight: 900; letter-spacing: -0.02em; }
+.lesson.stack { box-shadow: none; border-bottom: 1px solid var(--line); }
+.stack-summary { grid-template-columns: 52px 1fr 52px 76px; grid-template-areas: "time body room status"; padding: 12px 0; }
+.stack-badge { background: transparent; color: var(--accent); padding: 0; border-bottom: 1px solid var(--accent); border-radius: 0; }
+.stack-list { padding-left: 64px; }
+.stack-item-sub { font-weight: 700; }

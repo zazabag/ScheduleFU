@@ -203,3 +203,17 @@
 :root[data-theme="dark"] .lh-teacher { background: var(--surface); }
 .lh-recent-item { background: #fff; box-shadow: var(--shadow); transform: rotate(-1deg); }
 .lh-recent-item:nth-child(2n) { transform: rotate(1.5deg); }
+
+/* ─── пустой день и стопки ────────────────────────────────────────────── */
+.hero[data-state="none"] .hero-stats { display: none; }
+.hero-empty { align-items: flex-start; }
+.hero-empty-title { display: inline-block; background: #fff; color: var(--text); padding: 8px 14px; border-radius: 10px; transform: rotate(-3deg); box-shadow: var(--shadow); font-size: 24px; }
+.hero-empty-title::after { content: ' · свободно!'; font-size: 14px; color: #ff6a00; }
+.hero-empty-sub { color: #fff; font-weight: 600; margin-top: 6px; }
+.hero-empty-next { background: var(--accent-2); color: #fff; transform: rotate(1.5deg); box-shadow: var(--shadow); border-radius: 12px; width: fit-content; min-width: 70%; }
+.hero-empty-next-label, .hero-empty-next-meta { color: rgba(255,255,255,0.85); }
+.hero-empty-none { color: #fff; }
+.lesson.stack { box-shadow: var(--shadow), 4px 6px 0 -1px rgba(255,255,255,0.7); }
+.stack-badge { background: var(--warn); color: var(--text); transform: rotate(-3deg); }
+.lesson.stack[data-status="now"] .stack-badge { background: #fff; }
+.stack-item { border-top-style: dashed; }

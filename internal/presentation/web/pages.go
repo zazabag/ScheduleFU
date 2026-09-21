@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -171,13 +172,18 @@ type lessonRow struct {
 	StatusLabel                                                  string
 	Changed                                                      bool // деканат правил пару недавно
 	LongRoom                                                     bool // название, а не номер: показывать мельче
-	Groups                                                       string
+	Subgroup                                                     string
+	// Variants — пары того же слота: подгруппы английского или несколько
+	// дисциплин на выбор. Карточка одна, раскрывается по касанию.
+	Variants   []lessonRow
+	StackLabel string // «6 подгрупп» · «3 пары в одно время»
+	Groups     string
 }
 
 func (s *Server) lessonRow(l sched.Lesson, subj sched.Subject) lessonRow {
 	row := lessonRow{BeginsAt: l.BeginsAt, EndsAt: l.EndsAt, Discipline: l.Discipline,
 		KindOfWork: shortKind(l.KindOfWork), LecturerName: l.LecturerName, Room: roomShort(l.Auditorium),
-		Groups: strings.Join(l.GroupNames, ", ")}
+		Groups: strings.Join(baseGroups(l.GroupNames), ", "), Subgroup: l.Subgroup}
 	row.Place = s.d.BuildingLabel(l.Building)
 	row.LongRoom = len([]rune(row.Room)) > 6
 	// У преподавателя в строке пары полезен состав групп, а не его имя.
@@ -190,6 +196,124 @@ func (s *Server) lessonRow(l sched.Lesson, subj sched.Subject) lessonRow {
 		row.Changed = true
 	}
 	return row
+}
+
+// baseGroups оставляет в подписи только имена групп: имя языкового потока
+// вроде «006073_2 Иностранный язык (КАЯиПК)-10 СОЦ25-6_7» человеку ни о
+// чём не говорит, а строка с ним не помещается.
+func baseGroups(names []string) []string {
+	var out []string
+	for _, n := range names {
+		if groupNameRe.MatchString(n) {
+			out = append(out, n)
+		}
+	}
+	if len(out) == 0 {
+		return names
+	}
+	return out
+}
+
+// stackSlots склеивает пары одного слота в одну карточку с вариантами.
+// Английский идёт шестью подгруппами в одно время — шесть карточек подряд
+// выглядели бы как шесть пар, а это одна, из которой студенту нужна своя.
+func stackSlots(rows []lessonRow) []lessonRow {
+	var out []lessonRow
+	for _, r := range rows {
+		n := len(out)
+		if n > 0 && out[n-1].BeginsAt == r.BeginsAt && out[n-1].EndsAt == r.EndsAt {
+			head := &out[n-1]
+			if len(head.Variants) == 0 {
+				first := *head
+				first.Variants = nil
+				head.Variants = []lessonRow{first}
+			}
+			head.Variants = append(head.Variants, r)
+			continue
+		}
+		out = append(out, r)
+	}
+	for i := range out {
+		if len(out[i].Variants) < 2 {
+			continue
+		}
+		v := out[i].Variants
+		// Подгруппы по порядку номеров: «подгруппа 10, 11, 12», а не как
+		// пришли из выгрузки по аудиториям.
+		sort.SliceStable(v, func(a, b int) bool {
+			if v[a].Subgroup != v[b].Subgroup {
+				return naturalLess(v[a].Subgroup, v[b].Subgroup)
+			}
+			return v[a].Discipline < v[b].Discipline
+		})
+		sameDiscipline, allSub := true, true
+		for _, x := range v {
+			if x.Discipline != v[0].Discipline {
+				sameDiscipline = false
+			}
+			if x.Subgroup == "" {
+				allSub = false
+			}
+		}
+		switch {
+		case allSub:
+			out[i].StackLabel = pluralN(len(v), "подгруппа", "подгруппы", "подгрупп")
+		case sameDiscipline:
+			out[i].StackLabel = pluralN(len(v), "вариант", "варианта", "вариантов")
+		default:
+			out[i].StackLabel = pluralN(len(v), "пара", "пары", "пар") + " в одно время"
+		}
+		if sameDiscipline {
+			// Общая карточка говорит про дисциплину, а не про первую подгруппу.
+			out[i].LecturerName, out[i].Room, out[i].LongRoom, out[i].Subgroup = "", "", false, ""
+			if len(baseRooms(v)) == 1 {
+				out[i].Room = v[0].Room
+			}
+		}
+	}
+	return out
+}
+
+// naturalLess сравнивает «подгруппа 2» и «подгруппа 10» по числу, а не по
+// строке: иначе десятая шла бы раньше второй.
+func naturalLess(a, b string) bool {
+	num := func(s string) int {
+		n, digits := 0, false
+		for _, r := range s {
+			if r >= '0' && r <= '9' {
+				n, digits = n*10+int(r-'0'), true
+			} else if digits {
+				break
+			}
+		}
+		if !digits {
+			return -1
+		}
+		return n
+	}
+	na, nb := num(a), num(b)
+	if na != nb {
+		return na < nb
+	}
+	return a < b
+}
+
+func baseRooms(v []lessonRow) map[string]bool {
+	m := map[string]bool{}
+	for _, x := range v {
+		m[x.Room] = true
+	}
+	return m
+}
+
+func pluralN(n int, one, few, many string) string {
+	switch {
+	case n%10 == 1 && n%100 != 11:
+		return strconv.Itoa(n) + " " + one
+	case n%10 >= 2 && n%10 <= 4 && (n%100 < 10 || n%100 >= 20):
+		return strconv.Itoa(n) + " " + few
+	}
+	return strconv.Itoa(n) + " " + many
 }
 
 // hero — верхний блок экрана дня: то, что оформления показывают по-разному
@@ -206,6 +330,7 @@ type hero struct {
 	Count      int
 	CountLabel string
 	Stops      string
+	NextDay    *nextDay
 	First      string
 	Last       string
 	RoomCount  int
@@ -296,8 +421,13 @@ func (s *Server) schedule(w http.ResponseWriter, r *http.Request) {
 	if v := r.URL.Query().Get("now"); s.d.Dev && len(v) == 5 {
 		now, todayKey = v, dateKey
 	}
+	rows = stackSlots(rows)
 	markStatuses(rows, dateKey, todayKey, now)
 	h := s.buildHero(rows, dateKey == todayKey, now, subj.Kind == sched.SubjectLecturer)
+	// Пустой день: куда смотреть дальше — ближайший день с парами.
+	if len(rows) == 0 {
+		h.NextDay = s.nextLessonDay(r.Context(), subj, lessons, date, hrefFor)
+	}
 
 	pinned := SubjectFromCookie(r)
 	data["Group"], data["IsLecturer"] = label, subj.Kind == sched.SubjectLecturer
@@ -510,6 +640,54 @@ func roomPhrase(r lessonRow) string {
 		return r.Room
 	}
 	return "аудитория " + r.Room
+}
+
+// nextDay — ближайший день с парами после пустого.
+type nextDay struct {
+	Label, Href, Count, First string
+}
+
+// nextLessonDay ищет ближайший день с парами: сначала в уже загруженной
+// неделе, затем — ещё одним запросом — в следующей. Дальше не смотрим:
+// окно слепка неделя-две, и «через месяц» мы всё равно не знаем.
+func (s *Server) nextLessonDay(ctx context.Context, subj sched.Subject, week []sched.Lesson, after time.Time, href func(time.Time) string) *nextDay {
+	afterKey := after.Format("2006-01-02")
+	pick := func(lessons []sched.Lesson) *nextDay {
+		var best *sched.Lesson
+		count := 0
+		for i := range lessons {
+			key := lessons[i].DateKey()
+			if key <= afterKey {
+				continue
+			}
+			if best == nil || key < best.DateKey() {
+				best, count = &lessons[i], 0
+			}
+			if key == best.DateKey() {
+				count++
+			}
+		}
+		if best == nil {
+			return nil
+		}
+		first := best.BeginsAt
+		for _, l := range lessons {
+			if l.DateKey() == best.DateKey() && l.BeginsAt < first {
+				first = l.BeginsAt
+			}
+		}
+		return &nextDay{Label: clock.WeekdayRu(best.Date) + ", " + clock.DateRu(best.Date), Href: href(best.Date),
+			Count: pluralN(count, "пара", "пары", "пар"), First: first}
+	}
+	if nd := pick(week); nd != nil {
+		return nd
+	}
+	nextStart := clock.StartOfWeek(after).AddDate(0, 0, 7)
+	more, err := s.d.Schedule.ScheduleFor(ctx, subj, nextStart, nextStart.AddDate(0, 0, 6))
+	if err != nil {
+		return nil
+	}
+	return pick(more)
 }
 
 // progress — доля пройденного и оставшиеся минуты между двумя ЧЧ:ММ.
@@ -886,6 +1064,7 @@ func (s *Server) lecturers(w http.ResponseWriter, r *http.Request) {
 	if v := r.URL.Query().Get("now"); s.d.Dev && len(v) == 5 {
 		hhmm = v
 	}
+	rows = stackSlots(rows)
 	markStatuses(rows, todayKey, todayKey, hhmm)
 	// Тот же «герой», что на экране дня, но про преподавателя: оформления
 	// рисуют его кольцом, табло, дорогой — как умеют.

@@ -34,14 +34,41 @@
 
   <ol class="lesson-list">
     {{range .Lessons}}
+    {{if .Variants}}
+    <li class="lesson stack" data-status="{{.Status}}" data-index="{{.Index}}">
+      <details class="stack-box">
+        <summary class="stack-summary">
+          <div class="lesson-time"><span class="lesson-from">{{.BeginsAt}}</span><span class="lesson-to">{{.EndsAt}}</span></div>
+          <div class="lesson-body">
+            <div class="lesson-discipline">{{.Discipline}}</div>
+            <div class="lesson-kind">{{.KindOfWork}}{{if .LecturerName}} · {{.LecturerName}}{{end}}</div>
+            <span class="stack-badge">{{.StackLabel}}<i class="stack-arrow"></i></span>
+          </div>
+          <div class="lesson-room{{if .LongRoom}} long{{end}}"><span class="lesson-roomnum">{{if .Room}}{{.Room}}{{else}}—{{end}}</span><span class="lesson-place">{{.Place}}</span></div>
+          <div class="lesson-status"><span class="lesson-state">{{.StatusLabel}}</span>{{if .Changed}}<span class="lesson-changed">изменено</span>{{end}}</div>
+        </summary>
+        <ul class="stack-list">
+          {{range .Variants}}
+          <li class="stack-item">
+            <span class="stack-item-sub">{{if .Subgroup}}{{.Subgroup}}{{else}}{{.Discipline}}{{end}}</span>
+            <span class="stack-item-who">{{if .Subgroup}}{{.Discipline}} · {{end}}{{.KindOfWork}}{{if .LecturerName}} · {{.LecturerName}}{{end}}</span>
+            <span class="stack-item-room">{{if .Room}}{{.Room}}{{else}}—{{end}}</span>
+          </li>
+          {{end}}
+        </ul>
+      </details>
+    </li>
+    {{else}}
     <li class="lesson" data-status="{{.Status}}" data-index="{{.Index}}">
       <div class="lesson-time"><span class="lesson-from">{{.BeginsAt}}</span><span class="lesson-to">{{.EndsAt}}</span></div>
-      <div class="lesson-body"><div class="lesson-discipline">{{.Discipline}}</div><div class="lesson-kind">{{.KindOfWork}}{{if .LecturerName}} · {{.LecturerName}}{{end}}</div></div>
+      <div class="lesson-body">
+        <div class="lesson-discipline">{{.Discipline}}</div>
+        <div class="lesson-kind">{{.KindOfWork}}{{if .LecturerName}} · {{.LecturerName}}{{end}}</div>
+      </div>
       <div class="lesson-room{{if .LongRoom}} long{{end}}"><span class="lesson-roomnum">{{if .Room}}{{.Room}}{{else}}—{{end}}</span><span class="lesson-place">{{.Place}}</span></div>
       <div class="lesson-status"><span class="lesson-state">{{.StatusLabel}}</span>{{if .Changed}}<span class="lesson-changed">изменено</span>{{end}}</div>
     </li>
-    {{else}}
-    <li class="empty"><div class="empty-title">Сегодня пар нет</div></li>
+    {{end}}
     {{end}}
   </ol>
 {{else}}

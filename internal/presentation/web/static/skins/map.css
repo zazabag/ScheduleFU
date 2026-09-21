@@ -166,3 +166,15 @@
 .lh-teacher-name::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 999px 999px 999px 0; transform: rotate(-45deg); background: var(--text-3); margin-right: 8px; vertical-align: 1px; }
 .lh-teacher.today .lh-teacher-name::before { background: var(--accent); }
 .lh-recent-item { box-shadow: var(--shadow); }
+
+/* ─── пустой день и стопки ────────────────────────────────────────────── */
+.hero[data-state="none"] .hero-stops { display: none; }
+.hero-empty { order: 2; padding: 8px var(--pad) 0; }
+.hero-empty-title { font-size: 24px; }
+.hero-empty-title::after { content: ' — маршрут пуст'; font-size: 14px; color: var(--text-2); font-weight: 600; }
+.hero-empty-next { background: var(--surface); box-shadow: var(--shadow); border-radius: var(--radius-lg); }
+.hero-empty-next-label::before { content: '⚑ '; }
+.hero-empty-none { color: var(--text-2); }
+.lesson.stack { box-shadow: var(--shadow), 0 4px 0 -1px var(--surface-2); }
+.stack-badge { background: var(--accent-2); color: #fff; }
+.stack-item-room::before { content: '⚑ '; color: var(--accent); font-size: 10px; }

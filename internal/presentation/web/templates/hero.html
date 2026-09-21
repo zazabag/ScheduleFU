@@ -34,6 +34,21 @@
     </div>
   </div>
 
+  {{if eq .Hero.State "none"}}
+  <div class="hero-empty">
+    <span class="hero-empty-title">Пар нет</span>
+    <span class="hero-empty-sub">{{if .Date.IsToday}}Сегодня свободный день{{else}}Свободный день{{end}}</span>
+    {{with .Hero.NextDay}}
+    <a class="hero-empty-next" href="{{.Href}}">
+      <span class="hero-empty-next-label">ближайшие пары</span>
+      <span class="hero-empty-next-day">{{.Label}}</span>
+      <span class="hero-empty-next-meta">{{.Count}} · с {{.First}}</span>
+    </a>
+    {{else}}
+    <span class="hero-empty-none">На ближайшие две недели пар в расписании нет</span>
+    {{end}}
+  </div>
+  {{end}}
   <p class="hero-sentence">{{.Hero.Sentence}}</p>
   <p class="hero-mood">{{.Hero.Mood}}</p>
   {{with .Hero.Next}}<p class="hero-next"><span class="hero-next-label">дальше</span> <span class="hero-next-what">{{.BeginsAt}} · {{.Discipline}}</span>{{if .Room}} <span class="hero-next-room">ауд. {{.Room}}</span>{{end}}</p>{{end}}

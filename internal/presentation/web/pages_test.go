@@ -170,3 +170,32 @@ func TestNedavniePrepodavateliIzCookieProveryayutsya(t *testing.T) {
 		t.Errorf("получили %+v", got)
 	}
 }
+
+func TestStopkaPodgruppVOdnomSlote(t *testing.T) {
+	rs := []lessonRow{
+		{BeginsAt: "11:50", EndsAt: "13:20", Discipline: "Иностранный язык", Subgroup: "подгруппа 12", Room: "417", LecturerName: "Максимова О.И."},
+		{BeginsAt: "11:50", EndsAt: "13:20", Discipline: "Иностранный язык", Subgroup: "подгруппа 10", Room: "432", LecturerName: "Кондрахина Н.Г."},
+		{BeginsAt: "11:50", EndsAt: "13:20", Discipline: "Иностранный язык", Subgroup: "подгруппа 11", Room: "433", LecturerName: "Дробышева Н.Н."},
+		{BeginsAt: "14:00", EndsAt: "15:30", Discipline: "Философия", Room: "1210"},
+	}
+	out := stackSlots(rs)
+	if len(out) != 2 {
+		t.Fatalf("ожидали две карточки, получили %d", len(out))
+	}
+	if len(out[0].Variants) != 3 || out[0].StackLabel != "3 подгруппы" || out[0].Room != "" || out[0].LecturerName != "" {
+		t.Errorf("стопка: %+v", out[0])
+	}
+	if out[0].Variants[0].Subgroup != "подгруппа 10" || out[0].Variants[2].Subgroup != "подгруппа 12" {
+		t.Errorf("подгруппы не по порядку: %s, %s, %s", out[0].Variants[0].Subgroup, out[0].Variants[1].Subgroup, out[0].Variants[2].Subgroup)
+	}
+	if !naturalLess("подгруппа 2", "подгруппа 10") {
+		t.Errorf("вторая подгруппа должна идти раньше десятой")
+	}
+	if len(out[1].Variants) != 0 {
+		t.Errorf("одиночная пара не должна стать стопкой")
+	}
+	mixed := stackSlots([]lessonRow{{BeginsAt: "15:40", EndsAt: "17:10", Discipline: "Право"}, {BeginsAt: "15:40", EndsAt: "17:10", Discipline: "Споры"}})
+	if mixed[0].StackLabel != "2 пары в одно время" {
+		t.Errorf("разные дисциплины: %q", mixed[0].StackLabel)
+	}
+}

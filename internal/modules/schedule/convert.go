@@ -1,6 +1,7 @@
 package schedule
 
 import (
+	"regexp"
 	"strings"
 	"time"
 
@@ -33,7 +34,7 @@ func fromSource(l source.Lesson, loc *time.Location) (domain.Lesson, bool) {
 		LecturerName: strings.TrimSpace(l.Lecturer),
 		Stream:       strings.TrimSpace(l.Stream),
 		GroupNames:   ParseStream(l.Stream, l.Group),
-		Subgroup:     strings.TrimSpace(l.SubGroup),
+		Subgroup:     subgroupOf(l.SubGroup, l.Stream, l.Group),
 		Note:         strings.TrimSpace(l.Note),
 	}
 	if out.BeginsAt == "" || out.EndsAt == "" {
@@ -54,9 +55,17 @@ func fromSource(l source.Lesson, loc *time.Location) (domain.Lesson, bool) {
 }
 
 // ParseStream разбирает поток «ПИ24-1; ПИ24-2; ПИ24-3» в список групп.
+//
 // Поле group у пары почти всегда пустое, состав лежит в stream. По этому
 // списку адресуются уведомления, поэтому дубли недопустимы: они дали бы
 // письмо дважды.
+//
+// Языковые подгруппы источник оформляет отдельными «группами» вида
+// «006073_2 Иностранный язык (КАЯиПК)-10 СОЦ25-6_7»: базовые группы
+// зашиты в хвост имени, «СОЦ25-6_7» — это СОЦ25-6 и СОЦ25-7 вместе. Без
+// разбора хвоста студент СОЦ25-6 не видел бы свой английский вовсе —
+// проверено по расписанию группы у самого вуза. Имя потока остаётся в
+// списке тоже: по нему пара находится, если кто-то закрепил поток.
 func ParseStream(stream, group string) []string {
 	raw := strings.TrimSpace(stream)
 	if raw == "" {
@@ -67,17 +76,69 @@ func ParseStream(stream, group string) []string {
 	}
 	seen := map[string]bool{}
 	var out []string
-	for _, p := range strings.FieldsFunc(raw, func(r rune) bool { return r == ';' || r == ',' || r == '\n' }) {
-		name := strings.TrimSpace(p)
+	add := func(name string) {
 		if name != "" && !seen[name] {
 			seen[name] = true
 			out = append(out, name)
+		}
+	}
+	for _, p := range strings.FieldsFunc(raw, func(r rune) bool { return r == ';' || r == ',' || r == '\n' }) {
+		name := strings.TrimSpace(p)
+		add(name)
+		for _, base := range baseGroupsOf(name) {
+			add(base)
 		}
 	}
 	if out == nil {
 		out = []string{}
 	}
 	return out
+}
+
+// groupToken — «СОЦ25-6», «Ю24-5в», «СОЦ25-6_7» (несколько групп одним
+// хвостом). Скобки вокруг — «(РКИ26-15)» — снимаются заранее.
+var groupToken = regexp.MustCompile(`^(\p{L}+\d{2}-)(\d+\p{L}*)((?:_\d+\p{L}*)*)$`)
+
+// baseGroupsOf достаёт базовые группы из имени языкового потока. Обычное
+// имя группы возвращает пустой список: оно уже в списке само.
+func baseGroupsOf(name string) []string {
+	if !strings.Contains(name, " ") {
+		return nil
+	}
+	var out []string
+	for _, word := range strings.Fields(name) {
+		word = strings.Trim(word, "()")
+		m := groupToken.FindStringSubmatch(word)
+		if m == nil {
+			continue
+		}
+		out = append(out, m[1]+m[2])
+		for _, extra := range strings.Split(m[3], "_") {
+			if extra != "" {
+				out = append(out, m[1]+extra)
+			}
+		}
+	}
+	return out
+}
+
+// subgroupCode — «(КАЯиПК)-10» → «10»: номер подгруппы из имени потока,
+// когда поле subGroup пустое. Так стопка подгрупп в одном слоте получает
+// подписи, по которым студент находит свою.
+var subgroupCode = regexp.MustCompile(`\)-(\d+)\b`)
+
+func subgroupOf(explicit, stream, group string) string {
+	if v := strings.TrimSpace(explicit); v != "" {
+		return v
+	}
+	name := strings.TrimSpace(stream)
+	if name == "" {
+		name = strings.TrimSpace(group)
+	}
+	if m := subgroupCode.FindStringSubmatch(name); m != nil {
+		return "подгруппа " + m[1]
+	}
+	return ""
 }
 
 func hhmm(s string) string {

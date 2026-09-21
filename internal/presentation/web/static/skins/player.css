@@ -214,3 +214,19 @@
 .lh-teacher.today .lh-teacher-when { color: #fff; }
 :root[data-theme="light"] .lh-teacher.today .lh-teacher-when { color: var(--accent-2); }
 .lh-recent-item::before { content: '≡ '; color: var(--accent); }
+
+/* ─── пустой день и стопки ────────────────────────────────────────────── */
+.hero[data-state="none"] .hero-timer { visibility: visible; opacity: 0.35; }
+.hero-empty { align-items: center; text-align: center; }
+.hero-empty-title { font-size: 22px; }
+.hero-empty-title::before { content: '❚❚ '; color: var(--accent); }
+.hero-empty-sub::after { content: ' · тишина в эфире'; }
+.hero-empty-next { width: 100%; text-align: left; border-radius: 16px; }
+.lesson.stack { box-shadow: none; border-top: 1px solid var(--line); }
+.stack-summary { grid-template-columns: auto 1fr auto; grid-template-areas: "time body status"; padding: 11px 0; }
+.stack-summary .lesson-room { display: none; }
+.stack-badge { background: #fff; color: #0d1330; }
+:root[data-theme="light"] .stack-badge { background: var(--accent); color: #fff; }
+.stack-badge::before { content: '≡ '; }
+.stack-list { padding-left: 62px; }
+.stack-item-room { color: var(--text-2); font-size: 12px; }

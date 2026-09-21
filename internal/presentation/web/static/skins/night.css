@@ -138,3 +138,14 @@
 .lh-teacher { border: 1px solid var(--line); }
 .lh-teacher.today { border-color: var(--accent); box-shadow: 0 0 14px rgba(139,123,255,0.3); }
 .lh-recent-item { border: 1px solid var(--line); }
+
+/* ─── пустой день и стопки ────────────────────────────────────────────── */
+.hero[data-state="none"] .hero-mood { display: block; }
+.hero-empty { align-items: center; text-align: center; }
+.hero-empty-title { display: none; }
+.hero-empty-sub { font-size: 13px; color: var(--text-3); }
+.hero-empty-next { width: 100%; max-width: 320px; border: 1px solid var(--line); box-shadow: 0 0 22px rgba(139,123,255,0.25); text-align: left; }
+.lesson.stack { box-shadow: none; border-top: 1px solid var(--line); }
+.stack-summary { grid-template-columns: 56px 1fr auto; grid-template-areas: "time body status" "time body room"; padding: 12px 4px; }
+.stack-badge { box-shadow: 0 0 12px rgba(139,123,255,0.45); }
+.stack-list { padding-left: 64px; }

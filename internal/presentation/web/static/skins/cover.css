@@ -187,3 +187,18 @@
 .lh-teacher-when { color: var(--accent); }
 .lh-teacher-what { color: var(--text-2); font-style: italic; }
 .lh-recent-item { border-radius: 0; border: 1px solid var(--line); background: transparent; color: #fff; font-family: var(--font-display); }
+
+/* ─── пустой день и стопки ────────────────────────────────────────────── */
+.hero[data-state="none"] .hero-next, .hero[data-state="none"] .hero-stats { display: none; }
+.hero-empty { max-width: 66%; }
+.hero-empty-title { font-family: var(--font-display); font-style: italic; font-size: 34px; font-weight: 700; }
+.hero-empty-title::after { content: ' — выходной номер'; font-size: 16px; }
+.hero-empty-sub { color: var(--text-2); }
+.hero-empty-next { background: transparent; border-radius: 0; border-top: 2px solid var(--text); padding: 12px 0; }
+.hero-empty-next-day { font-family: var(--font-display); font-size: 20px; }
+.hero-empty-next-meta { color: var(--text-2); }
+.lesson.stack { box-shadow: none; border-top: 1px solid var(--line); }
+.stack-summary { grid-template-columns: 54px 1fr auto; padding: 12px 0; }
+.stack-badge { border-radius: 0; }
+.stack-list { padding-left: 66px; }
+.stack-item-sub { font-family: var(--font-display); font-size: 15px; }

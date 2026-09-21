@@ -141,3 +141,13 @@
 .lh-teacher-name::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: var(--past); margin-right: 8px; vertical-align: 1px; }
 .lh-teacher.today .lh-teacher-name::before { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
 .lh-recent-item { border: 1.5px solid var(--line); background: var(--bg); }
+
+/* ─── пустой день и стопки ────────────────────────────────────────────── */
+.hero[data-state="none"] .hero-date::after { content: 'Никуда идти не надо'; }
+.hero-empty-title { display: none; }
+.hero-empty-next { background: var(--bg); border: 1.5px solid var(--accent); border-radius: 8px; }
+.hero-empty-next-label { color: var(--accent-2); }
+.lesson.stack { box-shadow: inset 3px 0 0 var(--accent-2); }
+.lesson.stack[data-status="now"] { box-shadow: inset 3px 0 0 var(--accent); }
+.stack-badge { background: var(--accent-2); color: #fff; }
+.stack-item-room::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 999px; background: var(--accent); margin-right: 6px; vertical-align: 2px; }
