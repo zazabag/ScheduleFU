@@ -61,3 +61,65 @@
 :root[data-theme="dark"] .nav { border-top-color: var(--line); }
 .nav-item.on { color: var(--text); }
 :root[data-theme="dark"] .nav-item.on { color: var(--accent); }
+
+/* ─── остальные экраны: та же редакционная сетка ────────────────────────── */
+.top-kicker { letter-spacing: 0.12em; }
+.clock { background: transparent; padding: 0; font-size: 34px; font-weight: 900; letter-spacing: -0.04em; color: var(--text); line-height: 1; }
+.tabs { gap: 0; border-bottom: 2px solid var(--text); }
+:root[data-theme="dark"] .tabs { border-bottom-color: var(--line); }
+.tab { background: transparent; border-radius: 0; padding: 8px 10px 10px; color: var(--text-3); font-weight: 600; margin-bottom: -2px; border-bottom: 2px solid transparent; }
+.tab.on { background: transparent; color: var(--text); border-bottom-color: var(--accent); }
+.chips { gap: 10px; }
+.chip { background: transparent; padding: 2px 0; border-radius: 0; font-weight: 600; color: var(--text-3); }
+.chip.on { background: transparent; color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
+
+/* Аудитории — строки таблицы, а не карточки. */
+.rooms { gap: 0; }
+.room { background: transparent; border-radius: 0; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.room-num { font-size: 26px; font-weight: 900; }
+.room-until { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+.rail { gap: 2px; }
+.rail-box { height: 6px; border-radius: 0; }
+.rail-time { font-size: 9px; color: var(--text-3); }
+.rail-cell.free .rail-time { color: var(--text); }
+.legend-box { border-radius: 0; height: 6px; }
+.room-lessons { border-top-color: var(--line); }
+
+/* Преподаватель — как «герой»: огромный номер аудитории. */
+.now-card { background: transparent; border-radius: 0; padding: 14px 0 0; border-top: 2px solid var(--text); }
+:root[data-theme="dark"] .now-card { border-top-color: var(--line); }
+.now-name { font-size: 22px; font-weight: 900; letter-spacing: -0.02em; }
+.badge { border-radius: 0; background: var(--text); color: var(--bg); }
+.badge.idle { background: var(--surface-2); color: var(--text-3); }
+.now-room { font-size: 72px; font-weight: 900; letter-spacing: -0.06em; color: var(--text); line-height: 0.9; }
+.now-timer { display: none; }
+.now-where { grid-template-columns: auto 1fr; }
+.now-actions .act { border-radius: 0; background: transparent; padding: 8px 0; color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
+.now-actions .act.on { color: var(--text); }
+
+/* Выбор группы и поиск — линейки. */
+.search { gap: 0; border-bottom: 2px solid var(--text); }
+:root[data-theme="dark"] .search { border-bottom-color: var(--line); }
+.search input { background: transparent; border: 0; border-radius: 0; padding: 10px 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.search button { border-radius: 0; background: transparent; color: var(--accent); padding: 0 4px; font-size: 13px; text-decoration: underline; text-underline-offset: 4px; }
+.picks { gap: 0; }
+.picks-count { padding: 8px 0; text-transform: uppercase; letter-spacing: 0.12em; font-size: 9px; }
+.pick { background: transparent; border: 0; border-radius: 0; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.pick.on .pick-name { color: var(--accent); }
+.pick-name { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+.pick-mark { color: var(--text-3); }
+
+/* Настройки — разделы через линейки. */
+.settings { gap: 0; }
+.setting-group { background: transparent; border-radius: 0; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.setting-title { color: var(--text); letter-spacing: 0.14em; }
+.segment { background: transparent; padding: 0; gap: 0; border-bottom: 2px solid var(--text); border-radius: 0; }
+:root[data-theme="dark"] .segment { border-bottom-color: var(--line); }
+.segment-item span { border-radius: 0; color: var(--text-3); }
+.segment-item input:checked + span { background: transparent; box-shadow: inset 0 -2px 0 var(--accent); color: var(--text); }
+.skin-card { background: var(--surface); border-radius: 0; }
+.skin-card:has(input:checked) { border-color: var(--text); }
+:root[data-theme="dark"] .skin-card:has(input:checked) { border-color: var(--accent); }
+.btn { border-radius: 0; }
+.setting-code { border-radius: 0; }
+.notify { border-top: 1px solid var(--line); padding-top: 12px; }

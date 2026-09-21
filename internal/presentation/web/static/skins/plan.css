@@ -52,3 +52,50 @@
 .lesson[data-status="next"] { box-shadow: inset 3px 0 0 var(--accent-2); }
 .lesson[data-status="next"] .lesson-state { color: var(--accent-2); }
 .lesson-changed { color: var(--accent-2); }
+
+/* ─── остальные экраны: схема, этажи, метки ─────────────────────────────── */
+.clock { background: var(--surface); color: var(--text); border: 1px solid var(--line); }
+.tab { border: 1px solid var(--line); background: var(--bg); }
+.tab.on { border-color: var(--accent); }
+.chips { padding: 10px 12px; background: var(--bg-hero); border-radius: 12px; }
+.chip { background: var(--bg); border: 1px solid var(--line); }
+.chip.on { border-color: var(--accent); }
+
+/* Аудитории — комнаты на схеме: номер с меткой, коридор занятости. */
+.room { border: 1.5px solid var(--line); background: var(--bg); }
+.room-num { font-size: 22px; font-weight: 900; }
+.room-num::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 999px; background: var(--accent); margin-right: 8px; vertical-align: 2px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
+.room-until { color: var(--accent); }
+.room-until.warn { color: var(--accent-2); }
+.rail { gap: 2px; padding: 4px; background: var(--surface); border-radius: 8px; }
+.rail-box { height: 22px; border-radius: 4px; background: var(--past); }
+.rail-cell.free .rail-box { background: var(--bg); border: 1.5px solid var(--accent); }
+.rail-cell.busy .rail-box { background: var(--busy); }
+.rail-time { padding-bottom: 2px; }
+.legend-box.free { background: var(--bg); border: 1.5px solid var(--accent); box-sizing: border-box; }
+.room-lessons { border-top: 1px dashed var(--line); }
+
+/* Преподаватель — «ты здесь» для человека. */
+.now-card { background: var(--bg-hero); border: 1.5px solid var(--line); }
+.badge { background: var(--accent); }
+.badge.idle { background: var(--surface-2); color: var(--text-3); }
+.now-room { font-size: 40px; font-weight: 900; color: var(--text); padding-left: 22px; position: relative; }
+.now-room::before { content: ''; position: absolute; left: 0; top: 50%; width: 12px; height: 12px; border-radius: 999px; background: var(--accent); transform: translateY(-50%); box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 18%, transparent); }
+.now-time { color: var(--accent); }
+.now-timer .ring-track { stroke: var(--surface-2); }
+.now-where { border-top: 1px dashed var(--line); }
+.now-actions { border-top: 1px dashed var(--line); }
+.now-actions .act { border: 1px solid var(--line); background: var(--bg); }
+.now-actions .act.on { border-color: var(--accent); }
+.page-lecturers .lesson[data-status="now"] { box-shadow: inset 3px 0 0 var(--accent); }
+
+.search input { background: var(--bg); }
+.pick { border: 1.5px solid var(--line); background: var(--bg); }
+.pick.on { border-color: var(--accent); background: var(--bg-hero); }
+.pick-mark { color: var(--text-3); }
+.pick.on .pick-mark { color: var(--accent); }
+
+.setting-group { background: var(--bg-hero); border: 1.5px solid var(--line); }
+.segment { background: var(--surface-2); }
+.skin-card { background: var(--bg); border-color: var(--line); }
+.skin-card:has(input:checked) { border-color: var(--accent); }

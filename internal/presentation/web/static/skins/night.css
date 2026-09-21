@@ -61,3 +61,44 @@
 .day.on { background: var(--accent); box-shadow: 0 0 18px rgba(139,123,255,0.45); }
 .act.on, .tab.on, .chip.on { box-shadow: 0 0 14px rgba(139,123,255,0.35); }
 .nav-item.on .nav-icon { filter: drop-shadow(0 0 6px rgba(139,123,255,0.8)); }
+
+/* ─── остальные экраны: стекло и свечение ───────────────────────────────── */
+.clock { background: transparent; font-size: 28px; font-weight: 800; letter-spacing: -0.03em; color: var(--text); text-shadow: 0 0 18px rgba(139,123,255,0.6); }
+.tab.on, .chip.on, .act.on, .btn, .search button { box-shadow: 0 0 16px rgba(139,123,255,0.4); }
+.room { border: 1px solid var(--line); backdrop-filter: blur(8px); }
+.room-num { font-weight: 800; letter-spacing: -0.03em; }
+.room-until { color: var(--accent); }
+.rail-box { height: 16px; border-radius: 999px; }
+.rail-cell.free .rail-box { background: var(--accent); box-shadow: 0 0 10px rgba(139,123,255,0.55); }
+.rail-cell.busy .rail-box { background: rgba(255,159,90,0.3); }
+:root[data-theme="light"] .rail-cell.busy .rail-box { background: var(--busy); }
+.rail-time { font-size: 9px; }
+.legend-box { border-radius: 999px; }
+.legend-box.free { box-shadow: 0 0 6px rgba(139,123,255,0.7); }
+
+/* Преподаватель: карточка со своим кольцом-отсчётом, как на экране дня. */
+.now-card { border: 1px solid var(--line); background: radial-gradient(120% 120% at 100% 0%, rgba(139,123,255,0.18) 0%, rgba(255,255,255,0.04) 60%); }
+.now-name { font-size: 20px; font-weight: 800; }
+.badge { box-shadow: 0 0 14px rgba(139,123,255,0.5); }
+.badge.idle { box-shadow: none; }
+.now-room { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; text-shadow: 0 0 22px rgba(139,123,255,0.55); }
+.now-timer { width: 84px; height: 84px; }
+.now-timer .ring-track { stroke: rgba(255,255,255,0.08); }
+.now-timer .ring-bar { filter: drop-shadow(0 0 6px rgba(139,123,255,0.7)); }
+.now-timer .hero-countdown { font-size: 17px; }
+
+.search input { border-color: var(--line); background: var(--surface); }
+.search input:focus { box-shadow: 0 0 0 3px rgba(139,123,255,0.25); }
+.pick { border: 1px solid var(--line); }
+.pick.on { border-color: var(--accent); box-shadow: 0 0 16px rgba(139,123,255,0.3); }
+.pick-name { font-weight: 700; }
+
+.setting-group { border: 1px solid var(--line); }
+.segment { background: rgba(0,0,0,0.3); }
+:root[data-theme="light"] .segment { background: var(--surface-2); }
+.segment-item input:checked + span { background: var(--accent); color: #fff; box-shadow: 0 0 14px rgba(139,123,255,0.5); }
+.skin-card { background: rgba(0,0,0,0.25); }
+:root[data-theme="light"] .skin-card { background: var(--surface-2); }
+.skin-card:has(input:checked) { box-shadow: 0 0 18px rgba(139,123,255,0.35); }
+.setting-code { background: rgba(0,0,0,0.3); }
+:root[data-theme="light"] .setting-code { background: var(--surface-2); }

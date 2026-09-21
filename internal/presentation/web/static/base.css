@@ -189,7 +189,7 @@ svg { display: block; }
 .room > summary::-webkit-details-marker { display: none; }
 .room-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .room-id { display: flex; align-items: baseline; gap: 9px; min-width: 0; }
-.room-num { font-family: var(--font-display); font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.room-num { font-family: var(--font-display); font-size: 22px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; }
 .room-meta { font-size: 11px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .room-until { font-size: 11px; font-weight: 700; color: var(--ok); white-space: nowrap; }
 .room-until.warn { color: var(--warn); }

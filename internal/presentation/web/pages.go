@@ -704,7 +704,12 @@ func (s *Server) lecturers(w http.ResponseWriter, r *http.Request) {
 	}
 	todayKey := s.d.Clock.Today().Format("2006-01-02")
 	markStatuses(rows, todayKey, todayKey, s.d.Clock.HHMM())
-	data["Selected"] = sched.Lecturer{Oid: oid, Name: s.d.Schedule.LecturerName(r.Context(), oid, lessons)}
+	name := s.d.Schedule.LecturerName(r.Context(), oid, lessons)
+	data["Selected"] = sched.Lecturer{Oid: oid, Name: name}
+	// Инициал для оформлений, рисующих «аватар» — кружок с первой буквой.
+	if rs := []rune(strings.TrimSpace(name)); len(rs) > 0 {
+		data["SelectedInitial"] = string(rs[0])
+	}
 	data["SelectedPinned"] = pinned.Key() == subj.Key()
 	data["Lessons"], data["InClass"] = rows, current != nil
 	if current != nil {

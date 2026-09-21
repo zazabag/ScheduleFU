@@ -85,3 +85,75 @@
 .day.on { background: #fff; color: #0d1330; }
 :root[data-theme="light"] .day.on { background: var(--accent); color: #fff; }
 .now-card { background: var(--surface); }
+
+/* ─── остальные экраны: библиотека, исполнители, эфир ───────────────────── */
+.top-kicker { color: var(--text-3); }
+.clock { background: transparent; font-size: 22px; font-weight: 800; letter-spacing: -0.03em; color: #fff; }
+:root[data-theme="light"] .clock { color: var(--text); }
+.tab, .chip, .act, .weeknav-btn, .weeknav-today, .btn, .search button, .search input, .pick, .room, .setting-group, .segment, .segment-item span, .skin-card { border-radius: 999px; }
+.room, .setting-group, .now-card, .pick, .skin-card, .skin-preview { border-radius: 16px; }
+.tab.on, .chip.on, .act.on { background: #fff; color: #0d1330; }
+:root[data-theme="light"] .tab.on, :root[data-theme="light"] .chip.on, :root[data-theme="light"] .act.on { background: var(--accent); color: #fff; }
+
+/* Аудитории — треки эфира: номер как название, полоса как волна. */
+.page-rooms .rooms::before { content: 'В эфире'; display: block; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-3); padding: 4px 0 6px; }
+.room { background: var(--surface); }
+.room-num { font-size: 18px; font-weight: 800; }
+.room-num::before { content: '♪'; color: var(--accent); margin-right: 8px; font-size: 14px; }
+.room-until { color: var(--text-2); font-weight: 600; }
+.rail { align-items: flex-end; gap: 4px; }
+.rail-box { height: 14px; border-radius: 3px; }
+.rail-cell:nth-child(2n) .rail-box { height: 20px; }
+.rail-cell:nth-child(3n) .rail-box { height: 24px; }
+.rail-cell:nth-child(5n) .rail-box { height: 18px; }
+.rail-cell.free .rail-box { background: #fff; }
+:root[data-theme="light"] .rail-cell.free .rail-box { background: var(--accent); }
+.rail-cell.busy .rail-box { background: rgba(255,143,106,0.45); }
+.rail-time { font-size: 9px; }
+.legend-box.free { background: #fff; }
+:root[data-theme="light"] .legend-box.free { background: var(--accent); }
+
+/* Преподаватель — исполнитель: кружок с инициалом, «сейчас играет». */
+.now-card { background: linear-gradient(160deg, rgba(59,123,255,0.25), rgba(255,255,255,0.04)); }
+:root[data-theme="light"] .now-card { background: #fff; }
+.now-head { align-items: center; }
+.now-name { font-size: 20px; font-weight: 800; padding-left: 58px; position: relative; }
+.now-name::before { content: attr(data-initial); position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 999px; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 20px; font-weight: 800; }
+.now-date { padding-left: 58px; }
+.badge { background: #fff; color: #0d1330; }
+:root[data-theme="light"] .badge { background: var(--accent); color: #fff; }
+.badge::before { content: '▶ '; }
+.badge.idle { background: var(--surface-2); color: var(--text-3); }
+.badge.idle::before { content: '❚❚ '; }
+.now-room { font-size: 30px; font-weight: 800; color: #fff; }
+:root[data-theme="light"] .now-room { color: var(--accent); }
+.now-timer .ring-track { stroke: rgba(255,255,255,0.1); }
+.now-timer .ring-bar { stroke: #fff; }
+:root[data-theme="light"] .now-timer .ring-bar { stroke: var(--accent); }
+.page-lecturers .lesson-list::before { content: 'Треки сегодня'; display: block; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-3); padding: 8px 0; }
+.page-lecturers .lesson { grid-template-columns: auto 1fr auto; grid-template-areas: "time body room" "time body status"; }
+.page-lecturers .lesson-room { display: block; }
+.page-lecturers .lesson-kind { display: block; }
+
+/* Выбор группы — плейлисты. */
+.search input { background: var(--surface); border-color: transparent; padding-left: 18px; }
+.picks-count { padding-left: 4px; }
+.pick { background: var(--surface); }
+.pick-name::before { content: '≡'; color: var(--accent); margin-right: 10px; font-weight: 800; }
+.pick-mark { color: #fff; }
+:root[data-theme="light"] .pick-mark { color: var(--accent); }
+
+.setting-group { background: var(--surface); }
+.segment { background: rgba(0,0,0,0.3); }
+:root[data-theme="light"] .segment { background: var(--surface-2); }
+.segment-item input:checked + span { background: #fff; color: #0d1330; }
+:root[data-theme="light"] .segment-item input:checked + span { background: var(--accent); color: #fff; }
+.skin-card { background: rgba(0,0,0,0.25); }
+:root[data-theme="light"] .skin-card { background: var(--surface-2); }
+.skin-card:has(input:checked) { border-color: #fff; }
+:root[data-theme="light"] .skin-card:has(input:checked) { border-color: var(--accent); }
+.btn { background: #fff; color: #0d1330; border-radius: 999px; }
+:root[data-theme="light"] .btn { background: var(--accent); color: #fff; }
+.btn.ghost { background: var(--surface-2); color: var(--text-2); }
+.setting-code { background: rgba(0,0,0,0.3); }
+:root[data-theme="light"] .setting-code { background: var(--surface-2); }

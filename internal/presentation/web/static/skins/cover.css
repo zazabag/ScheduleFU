@@ -74,3 +74,67 @@
 .segment-item input:checked + span { background: var(--accent); color: var(--accent-ink); }
 .skin-card { background: rgba(0,0,0,0.15); }
 .setting-code { background: rgba(0,0,0,0.2); color: #fff; }
+
+/* ─── остальные экраны: журнальные развороты ───────────────────────────── */
+.top-title { font-size: 30px; letter-spacing: -0.03em; }
+.top-row { align-items: center; }
+.top-row > div:first-child { min-width: 0; }
+.top-sub { font-family: var(--font-display); font-style: italic; font-size: 13px; color: var(--text-2); }
+.clock { font-family: var(--font-display); font-weight: 900; font-size: 20px; padding: 4px 10px; border-radius: 0; }
+.tabs { gap: 14px; }
+.tab { background: transparent; border-radius: 0; padding: 6px 0; color: var(--text-3); font-family: var(--font-display); font-size: 15px; font-weight: 700; border-bottom: 2px solid transparent; }
+.tab.on { background: transparent; color: #fff; border-bottom-color: var(--accent); }
+.chip { background: transparent; border: 1px solid var(--line); color: var(--text-2); }
+.chip.on { background: var(--accent); border-color: var(--accent); }
+
+/* Аудитории — рубрика: номер антиквой, жёлтая линейка занятости. */
+.rooms { gap: 0; }
+.room { background: transparent; border-radius: 0; padding: 14px 0; border-top: 1px solid var(--line); }
+.room-num { font-family: var(--font-display); font-size: 30px; font-weight: 900; font-style: italic; }
+.room-meta { color: var(--text-3); }
+.room-until { color: var(--accent); font-family: var(--font-display); font-style: italic; font-size: 13px; font-weight: 400; text-transform: none; }
+.rail-box { height: 8px; border-radius: 0; background: rgba(255,255,255,0.15); }
+.rail-cell.free .rail-box { background: var(--accent); }
+.rail-cell.busy .rail-box { background: rgba(255,255,255,0.45); }
+.rail-time { color: var(--text-3); }
+.rail-cell.free .rail-time { color: #fff; }
+.legend-box { border-radius: 0; }
+.legend-box.busy { background: rgba(255,255,255,0.45); }
+.room-lessons { border-top-color: var(--line); }
+.room-lesson-time { color: var(--accent); }
+.room-lesson-what { color: var(--text-2); }
+
+/* Преподаватель — «персона номера». */
+.now-card { background: transparent; border-radius: 0; padding: 16px 0 0; border-top: 3px double var(--text); gap: 14px; }
+.now-card::before { content: 'Персона номера'; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent); }
+.now-name { font-family: var(--font-display); font-size: 30px; font-weight: 900; line-height: 1; }
+.now-date { font-family: var(--font-display); font-style: italic; font-size: 13px; color: var(--text-2); }
+.badge { border-radius: 0; }
+.now-room { font-family: var(--font-display); font-size: 64px; font-weight: 900; line-height: 0.9; color: var(--accent); }
+.now-disc { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+.now-timer { display: none; }
+.now-where { grid-template-columns: auto 1fr; border-top-color: var(--line); }
+.now-idle { font-family: var(--font-display); font-style: italic; font-size: 15px; }
+.now-actions { border-top-color: var(--line); }
+.now-actions .act { border-radius: 0; background: transparent; border: 1px solid var(--line); color: #fff; }
+.now-actions .act.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+.search input { background: transparent; border: 0; border-bottom: 2px solid var(--text); border-radius: 0; font-family: var(--font-display); font-size: 24px; font-weight: 700; padding: 8px 0; }
+.search input:focus { border-color: var(--accent); }
+.search button { border-radius: 0; }
+.picks { gap: 0; }
+.picks-count { font-family: var(--font-display); font-style: italic; font-size: 12px; }
+.pick { background: transparent; border: 0; border-radius: 0; padding: 12px 0; border-top: 1px solid var(--line); }
+.pick.on .pick-name { color: var(--accent); }
+.pick-name { font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+
+.settings { gap: 0; }
+.setting-group { background: transparent; border-radius: 0; padding: 18px 0; border-top: 1px solid var(--line); }
+.setting-title { font-family: var(--font-display); font-style: italic; font-size: 20px; text-transform: none; letter-spacing: 0; color: #fff; }
+.segment { background: transparent; border: 1px solid var(--line); border-radius: 0; padding: 0; gap: 0; }
+.segment-item span { border-radius: 0; color: var(--text-2); }
+.skin-card { border-radius: 0; background: rgba(0,0,0,0.18); }
+.skin-card:has(input:checked) { border-color: var(--accent); }
+.btn { border-radius: 0; }
+.btn.ghost { background: transparent; border: 1px solid var(--line); color: #fff; }
+.setting-code { border-radius: 0; }

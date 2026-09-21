@@ -90,3 +90,59 @@
 .badge { background: var(--accent); color: var(--accent-ink); }
 .btn { background: #ff6a00; color: #fff; }
 .skin-card { background: var(--surface-2); }
+
+/* ─── остальные экраны: наклейки на всём ───────────────────────────────── */
+.top-kicker { letter-spacing: 0.1em; }
+.legend-item { color: rgba(255,255,255,0.9); }
+
+/* Аудитории — каждая аудитория наклейка, свободные пары зелёные. */
+.rooms { gap: 12px; padding-left: 24px; padding-right: 24px; }
+.room { background: #fff; border-radius: 12px; box-shadow: var(--shadow); transform: rotate(-1deg); }
+.room:nth-child(2n) { transform: rotate(1.2deg); }
+.room:nth-child(3n) { transform: rotate(-0.5deg); }
+:root[data-theme="dark"] .room { background: var(--surface); }
+.room-num { font-size: 26px; font-weight: 900; }
+.room-until { background: var(--accent); color: var(--accent-ink); padding: 4px 9px; border-radius: 8px; transform: rotate(3deg); display: inline-block; }
+.room-until.warn { background: var(--warn); color: var(--text); }
+.rail { gap: 4px; }
+.rail-box { height: 22px; border-radius: 6px; }
+.rail-cell.free .rail-box { background: var(--accent); box-shadow: 0 2px 0 rgba(0,0,0,0.12); }
+.rail-cell.busy .rail-box { background: var(--busy); }
+.rail-time { font-weight: 600; }
+.legend-box { border-radius: 3px; }
+
+/* Преподаватель — большая наклейка «НА ПАРЕ». */
+.now-card { background: #fff; box-shadow: var(--shadow); transform: rotate(-1deg); margin: 4px 6px; }
+:root[data-theme="dark"] .now-card { background: var(--surface); }
+.now-name { font-size: 22px; font-weight: 900; }
+.badge { background: var(--accent); color: var(--accent-ink); transform: rotate(4deg); font-size: 11px; padding: 7px 12px; border-radius: 10px; }
+.badge.idle { background: var(--past); color: var(--text-2); }
+.now-room { font-size: 44px; font-weight: 900; color: var(--text); background: var(--warn); padding: 4px 12px; border-radius: 10px; transform: rotate(-3deg); display: inline-block; }
+.now-time { color: #ff6a00; }
+.now-timer .ring-track { stroke: var(--surface-2); }
+.now-timer .ring-bar { stroke: var(--accent); }
+.now-actions .act { background: var(--surface-2); color: var(--text-2); }
+.now-actions .act.on { background: var(--accent); color: var(--accent-ink); }
+.page-lecturers .lesson-list { padding: 0 6px; }
+
+/* Выбор группы — стопка стикеров с галочкой. */
+.picks { padding-left: 24px; padding-right: 24px; }
+.pick { background: #fff; box-shadow: var(--shadow); transform: rotate(-0.8deg); border: 0; }
+.pick:nth-child(2n) { transform: rotate(0.9deg); }
+:root[data-theme="dark"] .pick { background: var(--surface); }
+.pick.on { background: var(--accent); color: var(--accent-ink); }
+.pick.on .pick-meta, .pick.on .pick-mark { color: var(--accent-ink); }
+.pick-name { font-weight: 800; }
+.empty-title, .empty-sub { color: #fff; }
+
+/* Настройки — листы блокнота. */
+.setting-group { background: #fff; box-shadow: var(--shadow); transform: rotate(-0.6deg); margin: 0 6px; }
+.setting-group:nth-child(2n) { transform: rotate(0.6deg); }
+:root[data-theme="dark"] .setting-group { background: var(--surface); }
+.setting-title { color: #ff6a00; }
+.segment { background: var(--surface-2); }
+.segment-item input:checked + span { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
+.skin-card { background: var(--surface-2); transform: none; }
+.skin-card:has(input:checked) { border-color: #ff6a00; }
+.btn { background: #ff6a00; color: #fff; }
+.btn.ghost { background: var(--surface-2); color: var(--text-2); }

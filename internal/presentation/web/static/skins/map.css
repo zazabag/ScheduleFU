@@ -67,3 +67,57 @@
 .pick, .room, .now-card, .setting-group { box-shadow: var(--shadow); }
 .btn { border-radius: 999px; }
 .act, .tab, .chip, .day, .weeknav-btn, .weeknav-today { border-radius: 999px; }
+
+/* ─── остальные экраны: остановки, указатели, рюкзак ───────────────────── */
+.clock { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.tab { background: var(--surface); box-shadow: var(--shadow); }
+.chip { background: var(--surface); }
+
+/* Аудитории — остановки на линии: указатель, дорога из клеток. */
+.rooms { gap: 10px; }
+.room { position: relative; padding-left: 40px; }
+.room::before { content: ''; position: absolute; left: 16px; top: 18px; width: 12px; height: 12px; border-radius: 999px 999px 999px 0; transform: rotate(-45deg); background: var(--accent); box-shadow: 0 0 0 3px #fff; }
+:root[data-theme="dark"] .room::before { box-shadow: 0 0 0 3px var(--surface); }
+.room:has(.room-until.warn)::before { background: var(--warn); }
+.room-num { font-size: 22px; font-weight: 800; }
+.room-until { color: var(--accent); }
+.room-until.warn { color: var(--warn); }
+.rail { gap: 0; }
+.rail-box { height: 10px; border-radius: 0; background: var(--past); }
+.rail-cell:first-child .rail-box { border-radius: 999px 0 0 999px; }
+.rail-cell:last-child .rail-box { border-radius: 0 999px 999px 0; }
+.rail-cell.free .rail-box { background: var(--accent); }
+.rail-cell.busy .rail-box { background: var(--busy); background-image: repeating-linear-gradient(90deg, transparent 0 6px, rgba(0,0,0,0.12) 6px 10px); }
+.rail-time { font-weight: 600; }
+.legend-box { border-radius: 999px; }
+.room-lessons { margin-left: -22px; }
+
+/* Преподаватель — «сейчас на остановке». */
+.now-card { position: relative; box-shadow: var(--shadow); }
+.now-card::before { content: ''; width: 36px; height: 4px; border-radius: 999px; background: var(--line); margin: -4px auto 0; }
+.now-name { font-size: 20px; font-weight: 800; }
+.badge { background: var(--accent); }
+.badge.idle { background: var(--surface-2); color: var(--text-3); }
+.now-room { font-size: 36px; font-weight: 800; color: var(--text); padding-left: 24px; position: relative; }
+.now-room::before { content: ''; position: absolute; left: 0; top: 50%; width: 14px; height: 14px; margin-top: -9px; border-radius: 999px 999px 999px 0; transform: rotate(-45deg); background: var(--accent-2); }
+.now-time { color: var(--accent); }
+.now-timer .ring-track { stroke: var(--surface-2); }
+.now-actions .act { background: var(--surface-2); }
+.now-actions .act.on { background: var(--accent); color: var(--accent-ink); }
+.page-lecturers .lesson { box-shadow: var(--shadow); }
+
+.search input { background: var(--surface); border-color: transparent; box-shadow: var(--shadow); }
+.search button { border-radius: 999px; }
+.pick { box-shadow: var(--shadow); border: 0; }
+.pick.on { background: var(--accent); color: var(--accent-ink); }
+.pick.on .pick-meta, .pick.on .pick-mark { color: var(--accent-ink); }
+.pick-name::before { content: '⚑ '; color: var(--accent); font-size: 12px; }
+.pick.on .pick-name::before { color: var(--accent-ink); }
+
+.setting-group { box-shadow: var(--shadow); }
+.setting-title { color: var(--accent); }
+.segment { background: var(--surface-2); border-radius: 999px; }
+.segment-item span { border-radius: 999px; }
+.segment-item input:checked + span { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
+.skin-card { background: var(--surface-2); }
+.skin-card:has(input:checked) { border-color: var(--accent); }

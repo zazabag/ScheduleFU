@@ -18,7 +18,7 @@
 {{if .Selected}}
   <article class="now-card" data-state="{{if .InClass}}now{{else}}idle{{end}}">
     <div class="now-head">
-      <div><div class="now-name">{{.Selected.Name}}</div><div class="now-date">{{.Today}}</div></div>
+      <div><div class="now-name" data-initial="{{.SelectedInitial}}">{{.Selected.Name}}</div><div class="now-date">{{.Today}}</div></div>
       <span class="badge {{if not .InClass}}idle{{end}}">{{if .InClass}}на паре{{else}}вне пар{{end}}</span>
     </div>
     {{if .InClass}}

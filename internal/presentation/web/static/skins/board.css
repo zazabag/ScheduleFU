@@ -75,3 +75,82 @@ body { font-size: 13px; text-transform: none; }
 
 .room-num, .now-room { font-family: var(--font-display); color: var(--accent); }
 .nav-label { text-transform: uppercase; letter-spacing: 0.1em; font-size: 9px; }
+
+/* ─── остальные экраны: всё как на табло ───────────────────────────────── */
+.top-kicker { letter-spacing: 0.25em; }
+.top-sub { text-transform: uppercase; letter-spacing: 0.15em; font-size: 10px; }
+.clock { background: transparent; border: 1px solid var(--accent); border-radius: 0; color: var(--accent); font-size: 16px; letter-spacing: 0.15em; padding: 8px 10px; }
+.tabs { gap: 0; }
+.tab { background: transparent; border: 1px solid var(--line); border-radius: 0; margin-right: -1px; color: var(--text-3); }
+.tab.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.chip { background: transparent; border: 1px solid var(--line); border-radius: 0; color: var(--text-3); letter-spacing: 0.1em; }
+.chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.chips-label { text-transform: uppercase; letter-spacing: 0.2em; font-size: 9px; }
+.act, .weeknav-today, .weeknav-btn, .day, .btn, .search button, .search input, .badge, .pick, .setting-code, .segment, .segment-item span, .skin-card, .skin-preview, .skin-preview i { border-radius: 0; }
+
+/* Аудитории — рейсы: номер, «выход», светодиоды по парам. */
+.rooms { gap: 0; }
+.room { background: transparent; border-radius: 0; padding: 12px 0; border-bottom: 1px dashed var(--line); }
+.room-num { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: 0.1em; }
+.room-meta { text-transform: uppercase; letter-spacing: 0.1em; font-size: 9px; }
+.room-until { text-transform: uppercase; letter-spacing: 0.15em; font-size: 9px; color: var(--ok); }
+.room-until::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 999px; background: var(--ok); margin-right: 8px; vertical-align: middle; box-shadow: 0 0 6px var(--ok); }
+.room-until.warn { color: var(--accent); }
+.room-until.warn::before { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.rail { gap: 4px; }
+.rail-box { height: 10px; border-radius: 0; background: #1c1c1c; border: 1px solid #262626; }
+:root[data-theme="light"] .rail-box { background: #ddd5c0; border-color: #cfc6ae; }
+.rail-cell.free .rail-box { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 8px rgba(255,200,61,0.5); }
+.rail-cell.busy .rail-box { background: #3a1e1e; border-color: #5a2a2a; }
+:root[data-theme="light"] .rail-cell.busy .rail-box { background: #e9b8a8; border-color: #d29a86; }
+.rail-time { letter-spacing: 0; font-size: 9px; }
+.legend-box { border-radius: 0; }
+.legend-box.busy { background: #3a1e1e; }
+.legend, .foot, .picks-count, .room-lesson-what { text-transform: uppercase; letter-spacing: 0.1em; font-size: 9px; }
+.room-lesson-time { color: var(--accent); }
+
+/* Преподаватель — «борт»: имя, статус-светодиод, выход. */
+.now-card { background: transparent; border-radius: 0; padding: 14px 0; border-top: 2px solid var(--accent); border-bottom: 1px dashed var(--line); }
+.now-name { font-family: var(--font-display); font-size: 22px; font-weight: 800; text-transform: uppercase; }
+.now-date { text-transform: uppercase; letter-spacing: 0.15em; font-size: 9px; }
+.badge { background: transparent; border: 1px solid var(--ok); color: var(--ok); }
+.badge::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 999px; background: var(--ok); margin-right: 8px; vertical-align: middle; box-shadow: 0 0 6px var(--ok); }
+.badge.idle { border-color: var(--text-3); color: var(--text-3); }
+.badge.idle::before { background: var(--text-3); box-shadow: none; }
+.now-where { border-top: 1px dashed var(--line); }
+.now-room { font-family: var(--font-display); font-size: 48px; color: var(--accent); }
+.now-room::before { content: 'выход'; display: block; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-3); margin-bottom: 4px; }
+.now-time { color: var(--accent); letter-spacing: 0.1em; }
+.now-disc { text-transform: uppercase; letter-spacing: 0.1em; font-size: 12px; }
+.now-groups { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; }
+.now-timer { display: none; }
+.now-idle { text-transform: uppercase; letter-spacing: 0.1em; font-size: 11px; }
+.now-actions { border-top: 1px dashed var(--line); }
+.now-actions .act { background: transparent; border: 1px solid var(--line); }
+.now-actions .act.on { background: var(--accent); border-color: var(--accent); }
+.page-lecturers .lessons-head { display: grid; }
+
+/* Поиск и выбор группы — как окно кассы. */
+.search input { background: transparent; border: 1px solid var(--line); letter-spacing: 0.1em; text-transform: uppercase; font-size: 13px; }
+.search input:focus { border-color: var(--accent); }
+.search button { text-transform: uppercase; letter-spacing: 0.15em; }
+.picks { gap: 0; }
+.pick { background: transparent; border: 0; border-bottom: 1px dashed var(--line); padding: 12px 0; }
+.pick.on .pick-name { color: var(--accent); }
+.pick-name { font-family: var(--font-mono); letter-spacing: 0.1em; font-weight: 700; text-transform: uppercase; font-size: 14px; }
+.pick-meta { text-transform: uppercase; letter-spacing: 0.1em; font-size: 9px; }
+.pick-mark { color: var(--accent); }
+
+/* Настройки — пульт. */
+.settings { gap: 0; }
+.setting-group { background: transparent; padding: 16px 0; border-bottom: 1px dashed var(--line); }
+.setting-title { color: var(--accent); letter-spacing: 0.25em; }
+.setting-note { text-transform: none; letter-spacing: 0; }
+.segment { background: transparent; border: 1px solid var(--line); padding: 0; gap: 0; }
+.segment-item span { color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; }
+.segment-item input:checked + span { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
+.skin-card { background: transparent; border: 1px solid var(--line); }
+.skin-card:has(input:checked) { border-color: var(--accent); }
+.skin-name { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.1em; font-size: 11px; }
+.setting-code { background: transparent; border: 1px solid var(--line); color: var(--accent); }
+.setting-value { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.1em; }
