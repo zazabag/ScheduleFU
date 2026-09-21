@@ -118,6 +118,7 @@ svg { display: block; }
 .hero-month, .hero-year { font-size: 13px; color: var(--hero-text-2); }
 .hero-week { display: none; font-size: 12px; color: var(--hero-text-2); }
 .hero-dateline { display: none; font-size: 12px; color: var(--hero-text-2); }
+.hero-mascot { display: none; }
 
 .hero-now { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "label label" "lesson timer" "room timer" "meta timer" "time timer" "progress progress" "controls controls"; column-gap: 14px; row-gap: 2px; align-items: center; }
 .hero-label { grid-area: label; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); font-weight: 700; }

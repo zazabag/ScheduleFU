@@ -41,6 +41,7 @@
 .route-sub { font-size: 11px; fill: var(--text-2); font-weight: 600; }
 .route-pin[data-status="past"] .route-title, .route-pin[data-status="past"] .route-sub { fill: var(--text-3); }
 .route-pin[data-status="now"] .route-halo { opacity: 0.25; }
+.route-mascot { filter: drop-shadow(0 4px 6px rgba(40,80,20,0.25)); }
 .route-pin[data-status="now"] .route-dot { fill: var(--accent); stroke: #fff; }
 .route-pin[data-status="next"] .route-dot { fill: var(--accent-2); stroke: #fff; }
 

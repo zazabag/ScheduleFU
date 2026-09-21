@@ -117,3 +117,19 @@ func TestVyborGruppyOtsevaetPotoki(t *testing.T) {
 		}
 	}
 }
+
+func TestPersonazhStoitUTekushcheyOstanovki(t *testing.T) {
+	s := &Server{}
+	rs := rows("08:30", "10:00", "10:10", "11:40", "14:00", "15:30")
+	markStatuses(rs, "2026-09-24", "2026-09-24", "10:30")
+	h := s.buildHero(rs, true, "10:30")
+	var here []int
+	for _, p := range h.Route.Pins {
+		if p.Here {
+			here = append(here, p.Lesson.Index)
+		}
+	}
+	if len(here) != 1 || here[0] != 2 {
+		t.Errorf("персонаж должен стоять у второй пары, получили %v", here)
+	}
+}

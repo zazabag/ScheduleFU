@@ -37,7 +37,9 @@
 
 /* Заголовок: «ПЯТНИЦА 19/09». */
 .hero { gap: 14px; padding-top: 6px; }
-.hero-date { flex-direction: column; align-items: flex-start; gap: 0; }
+.hero-date { flex-direction: column; align-items: flex-start; gap: 0; position: relative; padding-right: 100px; }
+/* Манул выглядывает из-за заголовка, как персонаж на макете 19. */
+.hero-mascot { display: block; position: absolute; right: 0; top: -10px; width: 96px; height: 96px; transform: rotate(8deg); filter: drop-shadow(0 6px 10px rgba(80,30,0,0.25)); }
 .hero-dow { order: -1; font-size: 40px; font-weight: 900; line-height: 1; }
 .hero-num { font-size: 40px; font-weight: 900; letter-spacing: -0.02em; line-height: 1; }
 .hero-num::after { content: '/' attr(data-mm); }

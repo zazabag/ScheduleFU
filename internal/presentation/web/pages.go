@@ -289,8 +289,10 @@ func markStatuses(rows []lessonRow, dateKey, todayKey, now string) {
 	}
 }
 
-func (s *Server) buildHero(rows []lessonRow, isToday bool, now string) hero {
-	h := hero{Count: len(rows), CountLabel: "пар нет", State: "none", Label: "пар нет", Mood: "выходной", Sentence: "Сегодня пар нет."}
+// Результат именованный: отложенная пометка остановки персонажа должна
+// попасть в возвращаемое значение, а не в его копию.
+func (s *Server) buildHero(rows []lessonRow, isToday bool, now string) (h hero) {
+	h = hero{Count: len(rows), CountLabel: "пар нет", State: "none", Label: "пар нет", Mood: "выходной", Sentence: "Сегодня пар нет."}
 	if len(rows) == 0 {
 		if !isToday {
 			h.Sentence = "Пар нет."
@@ -318,6 +320,14 @@ func (s *Server) buildHero(rows []lessonRow, isToday bool, now string) hero {
 	h.Plan = buildPlan(rows)
 	h.CountLabel = plural(len(rows))
 	h.Stops = stopsLabel(len(rows), 0)
+	defer func() {
+		// Персонаж стоит у пары героя: идущей, а в перерыве — ближайшей.
+		if h.Lesson != nil && h.State != "after" && h.State != "day" {
+			for i := range h.Route.Pins {
+				h.Route.Pins[i].Here = h.Route.Pins[i].Lesson.Index == h.Lesson.Index
+			}
+		}
+	}()
 
 	if !isToday {
 		h.State, h.Lesson = "day", &rows[0]
@@ -442,6 +452,7 @@ type routeView struct {
 type routePin struct {
 	X, Y   int
 	Right  bool   // остановка у правого края: подпись слева от неё
+	Here   bool   // здесь стоит персонаж: текущая пара, а в перерыве — ближайшая
 	Title  string // название, укороченное до ширины экрана
 	Lesson lessonRow
 }

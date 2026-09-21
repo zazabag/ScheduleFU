@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
+  <!-- Манул ScheduleFU: свой персонаж, не копия символа вуза. Студент между
+       парами — с рюкзаком. Рисуется в коде, чтобы жить в одном файле и
+       перекрашиваться под оформление через currentColor не приходилось. -->
+  <defs>
+    <linearGradient id="fur" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cdb99a"/>
+      <stop offset="1" stop-color="#b09a7c"/>
+    </linearGradient>
+  </defs>
+  <!-- хвост: толстый, полосатый, лежит слева -->
+  <path d="M34 92 C14 96 6 84 10 70 C12 62 20 60 24 66 C27 72 22 78 18 78 C16 86 26 88 36 84Z" fill="#b8a385" stroke="#4a3f33" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M13 72 C15 69 19 69 21 71" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M11 78 C14 76 18 77 20 79" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M17 85 C20 83 25 84 27 86" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- рюкзак за спиной -->
+  <rect x="70" y="52" width="30" height="36" rx="10" fill="#4aa3ff" stroke="#1f5fa8" stroke-width="2.4"/>
+  <rect x="76" y="58" width="18" height="10" rx="4" fill="#7fc0ff" stroke="#1f5fa8" stroke-width="2"/>
+  <!-- тело -->
+  <ellipse cx="58" cy="86" rx="32" ry="24" fill="url(#fur)" stroke="#4a3f33" stroke-width="2.4"/>
+  <ellipse cx="58" cy="92" rx="18" ry="14" fill="#e6dac4"/>
+  <!-- лямка рюкзака -->
+  <path d="M42 70 C48 82 52 92 50 108" stroke="#1f5fa8" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- лапы с розовыми подушечками -->
+  <ellipse cx="44" cy="106" rx="11" ry="7" fill="#c8b596" stroke="#4a3f33" stroke-width="2.4"/>
+  <ellipse cx="72" cy="106" rx="11" ry="7" fill="#c8b596" stroke="#4a3f33" stroke-width="2.4"/>
+  <g fill="#f29aa5">
+    <circle cx="40" cy="107" r="1.8"/><circle cx="44" cy="105" r="1.8"/><circle cx="48" cy="107" r="1.8"/>
+    <circle cx="68" cy="107" r="1.8"/><circle cx="72" cy="105" r="1.8"/><circle cx="76" cy="107" r="1.8"/>
+  </g>
+  <!-- голова: широкая и плоская, как у манула; уши низко по бокам -->
+  <path d="M22 44 C18 34 26 30 32 36 Z" fill="#c8b596" stroke="#4a3f33" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M94 44 C98 34 90 30 84 36 Z" fill="#c8b596" stroke="#4a3f33" stroke-width="2.4" stroke-linejoin="round"/>
+  <ellipse cx="58" cy="52" rx="38" ry="30" fill="url(#fur)" stroke="#4a3f33" stroke-width="2.4"/>
+  <!-- щёки: пушистые, с двумя тёмными полосами с каждой стороны -->
+  <path d="M24 56 C20 62 22 70 28 72" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M30 60 C27 65 28 70 32 73" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M92 56 C96 62 94 70 88 72" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M86 60 C89 65 88 70 84 73" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- пятна на лбу -->
+  <g fill="#4a3f33">
+    <circle cx="50" cy="30" r="1.8"/><circle cx="58" cy="27" r="1.8"/><circle cx="66" cy="30" r="1.8"/>
+    <circle cx="54" cy="34" r="1.4"/><circle cx="62" cy="34" r="1.4"/>
+  </g>
+  <!-- глаза: большие, жёлто-зелёные; брови делают выражение слегка ворчливым -->
+  <circle cx="46" cy="50" r="8.5" fill="#fff" stroke="#4a3f33" stroke-width="2.2"/>
+  <circle cx="70" cy="50" r="8.5" fill="#fff" stroke="#4a3f33" stroke-width="2.2"/>
+  <circle cx="46.5" cy="50.5" r="5.6" fill="#c9d13b"/>
+  <circle cx="70.5" cy="50.5" r="5.6" fill="#c9d13b"/>
+  <circle cx="47" cy="51" r="3" fill="#1c1a17"/>
+  <circle cx="71" cy="51" r="3" fill="#1c1a17"/>
+  <circle cx="49" cy="48.5" r="1.3" fill="#fff"/>
+  <circle cx="73" cy="48.5" r="1.3" fill="#fff"/>
+  <path d="M37 40 C41 38 46 39 50 42" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M79 40 C75 38 70 39 66 42" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- нос и рот -->
+  <path d="M55 60 L61 60 L58 64 Z" fill="#e58a95" stroke="#4a3f33" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M58 64 C58 67 54 68 52 66 M58 64 C58 67 62 68 64 66" stroke="#4a3f33" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <!-- усы -->
+  <g stroke="#4a3f33" stroke-width="1.6" stroke-linecap="round">
+    <path d="M40 62 L28 60"/><path d="M40 66 L29 67"/>
+    <path d="M76 62 L88 60"/><path d="M76 66 L87 67"/>
+  </g>
+</svg>
