@@ -49,6 +49,13 @@ if [ ! -f "$HOME_DIR/env" ]; then
   echo "==> Ключи уведомлений"
   "$BIN" vapid 2>/dev/null > "$HOME_DIR/env"
   chmod 600 "$HOME_DIR/env"   # секрет: читать может только владелец
+elif grep -q '^VAPID_PUBLIC_KEY=' "$HOME_DIR/env"; then
+  # Файл от первой версии: имена переменных другие, а ключи те же. Менять
+  # ключи нельзя — это обнулило бы подписки; переименовываем переменные.
+  echo "==> Перевожу ключи на новые имена переменных"
+  sed -i '' -e 's/^VAPID_PUBLIC_KEY=/SCHEDULEFU_NOTIFY_VAPID_PUBLIC=/' \
+            -e 's/^VAPID_PRIVATE_KEY=/SCHEDULEFU_NOTIFY_VAPID_PRIVATE=/' \
+            -e '/^DATABASE_URL=/d' -e '/^ADDR=/d' "$HOME_DIR/env"
 fi
 
 export SCHEDULEFU_CONFIG="$HOME_DIR/config.yaml"
