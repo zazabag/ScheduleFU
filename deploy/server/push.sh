@@ -4,14 +4,16 @@
 # выкатывается и каждое обновление.
 #
 #   deploy/server/push.sh                # сервер и домен по умолчанию
-#   HOST=1.2.3.4 DOMAIN=sched.example deploy/server/push.sh
+#   HOST=1.2.3.4 DOMAIN=sched.example REDIRECT_FROM="old.example" deploy/server/push.sh
 #
 # Вход по ключу ~/.ssh/schedulefu_deploy; если ключа на сервере ещё нет —
 # сначала deploy/server/bootstrap.sh.
 set -euo pipefail
 
 HOST="${HOST:-31.76.6.36}"
-DOMAIN="${DOMAIN:-31-76-6-36.sslip.io}"
+DOMAIN="${DOMAIN:-fa.planovo.pro}"
+# Старые адреса, с которых Caddy отвечает редиректом на DOMAIN.
+REDIRECT_FROM="${REDIRECT_FROM:-31-76-6-36.sslip.io}"
 KEY="${KEY:-$HOME/.ssh/schedulefu_deploy}"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SSH="ssh -i $KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new root@$HOST"
@@ -29,7 +31,7 @@ $SCP "$REPO_DIR"/deploy/server/install.sh "$REPO_DIR"/deploy/server/harden.sh ro
 rm -rf "$(dirname "$BIN")"
 
 echo "==> Установка"
-$SSH "DOMAIN=$DOMAIN bash /opt/schedulefu/deploy/install.sh"
+$SSH "DOMAIN=$DOMAIN REDIRECT_FROM='$REDIRECT_FROM' bash /opt/schedulefu/deploy/install.sh"
 
 echo "==> Проверка"
 sleep 5

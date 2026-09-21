@@ -3,7 +3,7 @@
 # идемпотентна: повторный прогон обновляет бинарник и конфиг, не трогая
 # базу и ключи.
 #
-#   DOMAIN=31-76-6-36.sslip.io bash install.sh
+#   DOMAIN=fa.planovo.pro REDIRECT_FROM=31-76-6-36.sslip.io bash install.sh
 #
 # Что ставится и почему:
 #   PostgreSQL 16   — база слепков; из репозитория Ubuntu, версия та же, что локально
@@ -126,6 +126,16 @@ $DOMAIN {
     reverse_proxy 127.0.0.1:8090
 }
 CADDY
+# Прежние адреса не бросаем: у кого-то приложение установлено с них.
+for old in ${REDIRECT_FROM:-}; do
+  [ "$old" = "$DOMAIN" ] && continue
+  cat >> /etc/caddy/Caddyfile <<CADDY
+
+$old {
+    redir https://$DOMAIN{uri} permanent
+}
+CADDY
+done
 systemctl enable -q --now caddy
 systemctl reload caddy
 
