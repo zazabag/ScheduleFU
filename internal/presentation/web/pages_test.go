@@ -109,3 +109,11 @@ func TestNeizvestnoeOformlenieDayotUmolchanie(t *testing.T) {
 		t.Errorf("неизвестная тема должна быть системной, получили %q", got)
 	}
 }
+
+func TestVyborGruppyOtsevaetPotoki(t *testing.T) {
+	for name, want := range map[string]bool{"ПИ24-1": true, "Ю24-5в": true, "006073_2 Иностранный язык (КАЯиПК)-10 СОЦ25-6_7": false, "ДПИ22-1; ДПИ22-2": false} {
+		if got := groupNameRe.MatchString(name); got != want {
+			t.Errorf("%q: %v, ожидалось %v", name, got, want)
+		}
+	}
+}

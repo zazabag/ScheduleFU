@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -601,6 +602,11 @@ func nz(s string) string {
 
 // ─── выбор группы ────────────────────────────────────────────────────────────
 
+// groupNameRe — настоящая группа: «ПИ24-1», «Ю24-5в». В справочнике источника
+// рядом лежат потоки вроде «006073_2 Иностранный язык (КАЯиПК)-10 СОЦ25-6_7»:
+// студент своей группой их не назовёт, в выборе им не место.
+var groupNameRe = regexp.MustCompile(`^[[:alpha:]]+[0-9]{2}-[0-9]+[[:alpha:]]*$`)
+
 func (s *Server) pickerData(r *http.Request, data map[string]any) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	course := r.URL.Query().Get("course")
@@ -616,6 +622,9 @@ func (s *Server) pickerData(r *http.Request, data map[string]any) {
 	}
 	var rows []row
 	for _, g := range found {
+		if !groupNameRe.MatchString(g.Name) {
+			continue
+		}
 		c := g.Course(year)
 		if course != "" && strconv.Itoa(c) != course {
 			continue
