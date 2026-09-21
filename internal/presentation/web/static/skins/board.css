@@ -161,3 +161,27 @@ body { font-size: 13px; text-transform: none; }
 .skin-current { color: var(--ok); }
 .skin-current::before { content: '● '; }
 .top-kicker { color: var(--accent); }
+
+/* ─── аудитории: табло занятости ──────────────────────────────────────── */
+.rhero { gap: 12px; padding-top: 10px; }
+.rh-head { text-transform: uppercase; letter-spacing: 0.2em; font-size: 9px; color: var(--text-3); }
+.rh-head::before { content: 'Табло занятости'; }
+.rh-site { display: none; }
+.rh-now { grid-template-columns: auto 1fr; grid-template-areas: "count label" "count of"; column-gap: 14px; align-items: end; }
+.rh-count { font-family: var(--font-display); font-size: 72px; color: var(--accent); letter-spacing: -0.03em; }
+.rh-label { text-transform: uppercase; letter-spacing: 0.2em; font-size: 10px; color: var(--text-3); font-weight: 500; }
+.rh-of { text-transform: uppercase; letter-spacing: 0.15em; font-size: 11px; }
+.rh-sentence { text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; color: var(--text-2); line-height: 1.6; }
+.rh-bar-track { fill: #151515; stroke: #262626; }
+:root[data-theme="light"] .rh-bar-track { fill: #ddd5c0; stroke: #cfc6ae; }
+.rh-bar-fill { fill: var(--accent); }
+.rh-bar[data-state="past"] .rh-bar-fill { fill: #3a3a3a; }
+:root[data-theme="light"] .rh-bar[data-state="past"] .rh-bar-fill { fill: #bdb49b; }
+.rh-bar[data-state="now"] .rh-bar-fill { fill: var(--ok); }
+.rh-bar-free { font-family: var(--font-mono); fill: var(--accent); }
+.rh-bar[data-state="now"] .rh-bar-free { fill: var(--ok); }
+.rh-bar-label { font-family: var(--font-mono); letter-spacing: 0.05em; }
+.rh-floor { background: transparent; border: 1px solid var(--line); border-radius: 0; text-transform: uppercase; letter-spacing: 0.1em; }
+.rh-floor b { color: var(--accent); }
+.rooms-floor { letter-spacing: 0.25em; color: var(--accent); border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
+.rooms-floor::before { content: '▸ '; }

@@ -258,6 +258,27 @@ func (s *Service) FreeRooms(ctx context.Context, site string, at time.Time) ([]d
 	return free, len(days), nil
 }
 
+// SiteNow — свободные аудитории и сводка площадки на момент: сколько
+// свободно сейчас, сколько будет свободно в каждую пару, как по этажам.
+// Сводка и список считаются из одних полос — расходиться им негде.
+func (s *Service) SiteNow(ctx context.Context, site string, at time.Time) ([]domain.RoomView, domain.SiteSummary, error) {
+	days, err := s.repo.SiteDay(ctx, site, at)
+	if err != nil {
+		return nil, domain.SiteSummary{}, err
+	}
+	now := at.In(s.clock.Location()).Format("15:04")
+	all := make([]domain.RoomView, 0, len(days))
+	var free []domain.RoomView
+	for _, d := range days {
+		v := domain.BuildRoomView(d.Auditorium, d.Lessons, now)
+		all = append(all, v)
+		if v.FreeNow {
+			free = append(free, v)
+		}
+	}
+	return free, domain.BuildSiteSummary(all, now), nil
+}
+
 // Sites — площадки для переключателя.
 func (s *Service) Sites(ctx context.Context) ([]SiteRow, error) { return s.repo.Sites(ctx) }
 

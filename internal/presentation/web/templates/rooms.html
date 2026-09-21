@@ -19,7 +19,49 @@
   {{end}}
 </header>
 
+<section class="rhero" data-state="{{if eq .FreeCount 0}}none{{else if .Summary.NextSlot}}open{{else}}late{{end}}">
+  <div class="rh-head">
+    <span class="rh-dateline">{{.Date.Label}}</span>
+    <span class="rh-site">{{.SiteLabel}}</span>
+  </div>
+  <div class="rh-now">
+    <span class="rh-label">свободно сейчас</span>
+    <span class="rh-count">{{.FreeCount}}</span>
+    <span class="rh-of">из {{.TotalCount}}</span>
+    <div class="rh-ring" data-progress="{{.FreePct}}">
+      <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-track" cx="60" cy="60" r="52"/><circle class="ring-bar" cx="60" cy="60" r="52" pathLength="100"/></svg>
+      <span class="rh-pct">{{.FreePct}}%</span>
+    </div>
+  </div>
+  <p class="rh-sentence">{{.Sentence}}</p>
+  <svg class="rh-slots" viewBox="0 0 390 112" aria-hidden="true">
+    {{range .Bars}}
+    <g class="rh-bar" data-state="{{.State}}">
+      <rect class="rh-bar-track" x="{{.X}}" y="10" width="36" height="80" rx="4"/>
+      <rect class="rh-bar-fill" x="{{.X}}" y="{{.Y}}" width="36" height="{{.H}}" rx="4"/>
+      <text class="rh-bar-free" x="{{.X}}" y="{{.Y}}" dx="18" dy="-4" text-anchor="middle">{{.Free}}</text>
+      <text class="rh-bar-label" x="{{.X}}" y="106" dx="18" text-anchor="middle">{{.Label}}</text>
+    </g>
+    {{end}}
+  </svg>
+  <div class="rh-floors">
+    {{range .Summary.Floors}}
+    <a class="rh-floor {{if lt .Floor 0}}unknown{{end}}" href="/rooms?site={{$.SiteSlug}}{{if ge .Floor 0}}&amp;floor={{.Floor}}{{end}}">
+      <b>{{if ge .Floor 0}}{{.Floor}} эт{{else}}этаж ?{{end}}</b><i>{{.Free}} из {{.Total}}</i>
+    </a>
+    {{end}}
+  </div>
+  <div class="rh-stats">
+    <span class="stat"><b>{{.FreeCount}}</b><i>свободно</i></span>
+    <span class="stat"><b>{{.BusyCount}}</b><i>занято</i></span>
+    {{with .Summary.NextSlot}}<span class="stat"><b>{{.Slot.Begins}}</b><i>следующая</i></span>{{end}}
+    {{with .Summary.BestSlot}}<span class="stat"><b>{{.Free}}</b><i>макс. в {{.Slot.Begins}}</i></span>{{end}}
+  </div>
+</section>
+
 <section class="rooms">
+  {{range .Groups}}
+  <h2 class="rooms-floor"><span>{{.Label}}</span><i>{{len .Rooms}}</i></h2>
   {{range .Rooms}}
   <details class="room">
     <summary>
@@ -29,7 +71,7 @@
       </div>
       <div class="rail">
         {{range .Cells}}
-        <div class="rail-cell {{.State}}"{{if .Title}} title="{{.Title}}"{{end}}><div class="rail-box"></div><div class="rail-time">{{.Label}}</div></div>
+        <div class="rail-cell {{.State}}{{if .Now}} now{{end}}"{{if .Title}} title="{{.Title}}"{{end}}><div class="rail-box"></div><div class="rail-time">{{.Label}}</div></div>
         {{end}}
       </div>
     </summary>
@@ -39,8 +81,10 @@
       {{else}}<div class="room-empty">Сегодня пар нет</div>{{end}}
     </div>
   </details>
-  {{else}}
-  <div class="empty"><div class="empty-title">Свободных нет</div><div class="empty-sub">Попробуйте другой корпус или этаж</div></div>
+  {{end}}
+  {{end}}
+  {{if not .HasRooms}}
+  <div class="empty"><div class="empty-title">Свободных нет</div><div class="empty-sub">Попробуйте другой корпус или этаж{{with .Summary.NextSlot}} — в {{.Slot.Begins}} освободится {{.Free}}{{end}}</div></div>
   {{end}}
 </section>
 

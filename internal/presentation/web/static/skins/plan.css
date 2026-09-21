@@ -104,3 +104,21 @@
 .setting-title::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); margin-right: 8px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
 .setting-group[data-section="pinned"] .setting-title::before { background: var(--accent-2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 18%, transparent); }
 .skin-preview { border: 1.5px solid var(--line); }
+
+/* ─── аудитории: этажи как схема ──────────────────────────────────────── */
+.rhero { border-radius: var(--radius-lg); margin: 0 var(--pad); padding: 14px; gap: 10px; }
+.rh-head { font-size: 12px; color: var(--text-3); }
+.rh-now { grid-template-columns: auto 1fr; grid-template-areas: "count label" "count of"; column-gap: 12px; align-items: end; }
+.rh-count { font-size: 48px; font-weight: 900; letter-spacing: -0.04em; }
+.rh-label { text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 700; color: var(--text); }
+.rh-sentence { font-size: 12px; color: var(--text-3); }
+/* Этажи — коробки схемы: чем больше свободных, тем «синее» рамка. */
+.rh-floors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.rh-floor { background: var(--bg); border: 1.5px solid var(--line); border-radius: 6px; padding: 10px 12px; min-width: 0; position: relative; }
+.rh-floor::before { content: ''; position: absolute; right: 10px; top: 12px; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.rh-floor.unknown::before { background: var(--text-3); box-shadow: none; }
+.rh-floor b { font-size: 15px; }
+.rh-slots { order: 10; }
+.rh-bar[data-state="now"] .rh-bar-fill { fill: var(--accent-2); }
+.rooms-floor { color: var(--accent); }
+.rooms-floor span::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); margin-right: 8px; vertical-align: 1px; }

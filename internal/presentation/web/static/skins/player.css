@@ -164,3 +164,27 @@
 .skin-current { color: #fff; }
 :root[data-theme="light"] .skin-current { color: var(--accent); }
 .skin-current::before { content: '▶ '; }
+
+/* ─── аудитории: эквалайзер площадки ──────────────────────────────────── */
+.rhero { gap: 10px; }
+.rh-head { color: var(--text-3); }
+.rh-head::before { content: 'Эфир · '; }
+.rh-now { grid-template-columns: 1fr; grid-template-areas: "label" "count" "of"; }
+.rh-count { font-size: 44px; }
+.rh-count::after { content: ' свободно'; font-size: 16px; font-weight: 600; letter-spacing: 0; color: var(--text-2); }
+.rh-label { display: none; }
+.rh-of { font-size: 12px; }
+.rh-sentence { font-size: 13px; color: var(--text-2); }
+.rh-bar-track { fill: rgba(255,255,255,0.06); }
+:root[data-theme="light"] .rh-bar-track { fill: var(--surface-2); }
+.rh-bar-fill { fill: #fff; }
+:root[data-theme="light"] .rh-bar-fill { fill: var(--accent); }
+.rh-bar[data-state="past"] .rh-bar-fill { fill: rgba(255,255,255,0.18); }
+:root[data-theme="light"] .rh-bar[data-state="past"] .rh-bar-fill { fill: var(--past); }
+.rh-bar[data-state="now"] .rh-bar-fill { fill: var(--accent); }
+:root[data-theme="light"] .rh-bar[data-state="now"] .rh-bar-fill { fill: var(--accent-2); }
+.rh-bar[data-state="now"] .rh-bar-track { stroke: none; }
+.rh-floor { border-radius: 999px; flex-direction: row; gap: 6px; align-items: baseline; padding: 6px 12px; }
+.rh-floor b::before { content: '♪ '; color: var(--accent); }
+.rooms-floor { color: var(--text-3); }
+.rooms-floor span::before { content: 'Плейлист · '; }

@@ -128,3 +128,24 @@
 .setting-group[data-section="pinned"] .setting-title::before { color: var(--accent-2); }
 .skin-preview { border-radius: 12px; box-shadow: var(--shadow); }
 .skin-current { color: var(--accent); }
+
+/* ─── аудитории: остановки по этажам ──────────────────────────────────── */
+.rhero { position: relative; gap: 10px; padding: 10px var(--pad) 14px; }
+.rhero::before { content: ''; position: absolute; inset: 0; z-index: 0; background: linear-gradient(180deg, #cfe9ff 0%, #d9efc1 40%, #cfe7b3 100%); }
+:root[data-theme="dark"] .rhero::before { background: linear-gradient(180deg, #14263a 0%, #17301a 40%, #10200e 100%); }
+.rhero > * { position: relative; z-index: 1; }
+.rh-head { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.rh-now { background: var(--surface); border-radius: var(--radius-lg); padding: 14px 16px; box-shadow: var(--shadow); grid-template-columns: auto 1fr; grid-template-areas: "count label" "count of"; column-gap: 12px; align-items: center; }
+.rh-count { font-size: 44px; font-weight: 800; }
+.rh-label { color: var(--accent); }
+.rh-sentence { font-size: 13px; color: var(--text-2); }
+.rh-bar-track { fill: rgba(255,255,255,0.5); }
+:root[data-theme="dark"] .rh-bar-track { fill: rgba(255,255,255,0.08); }
+.rh-bar-fill { fill: var(--accent); }
+.rh-bar[data-state="past"] .rh-bar-fill { fill: var(--past); }
+.rh-bar[data-state="now"] .rh-bar-fill { fill: var(--accent-2); }
+.rh-bar[data-state="now"] .rh-bar-track { stroke: none; }
+.rh-floor { border-radius: 999px; flex-direction: row; gap: 6px; align-items: baseline; padding: 6px 12px; box-shadow: var(--shadow); }
+.rh-floor b::before { content: '⚑ '; color: var(--accent); }
+.rooms-floor { color: var(--accent); }
+.rooms-floor span::before { content: '⚑ '; }

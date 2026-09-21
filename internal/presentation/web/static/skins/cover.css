@@ -144,3 +144,23 @@
 .setting-group:first-of-type { border-top: 0; }
 .skin-current { color: var(--accent); font-family: var(--font); }
 .skin-preview { border: 1px solid rgba(255,255,255,0.15); }
+
+/* ─── аудитории: цифра номера ─────────────────────────────────────────── */
+.rhero { position: relative; overflow: hidden; gap: 10px; padding-top: 4px; }
+.rhero::before { content: ''; position: absolute; right: -50px; top: 20px; width: 190px; height: 190px; border-radius: 999px; background: var(--accent); z-index: 0; }
+.rhero > * { position: relative; z-index: 1; }
+.rh-head { text-transform: uppercase; letter-spacing: 0.2em; font-size: 10px; }
+.rh-now { grid-template-columns: auto 1fr; grid-template-areas: "count label" "count of"; column-gap: 12px; align-items: end; }
+.rh-count { font-family: var(--font-display); font-size: 110px; font-weight: 900; line-height: 0.85; letter-spacing: -0.04em; }
+.rh-label { font-family: var(--font-display); font-style: italic; text-transform: none; letter-spacing: 0; font-size: 16px; color: #fff; font-weight: 400; }
+.rh-of { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 600; color: #fff; }
+.rh-sentence { max-width: 66%; font-size: 13px; color: var(--text-2); }
+.rh-bar-track { fill: rgba(255,255,255,0.14); }
+.rh-bar-fill { fill: #fff; }
+.rh-bar[data-state="past"] .rh-bar-fill { fill: rgba(255,255,255,0.35); }
+.rh-bar[data-state="now"] .rh-bar-fill { fill: var(--accent); }
+.rh-bar[data-state="now"] .rh-bar-track { stroke: none; }
+.rh-bar-free, .rh-bar-label { fill: #fff; }
+.rh-floor { background: transparent; border: 1px solid var(--line); border-radius: 0; color: #fff; }
+.rh-floor b { font-family: var(--font-display); font-size: 15px; }
+.rooms-floor { font-family: var(--font-display); font-style: italic; text-transform: none; letter-spacing: 0; font-size: 18px; color: #fff; border-bottom: 1px solid var(--line); padding-bottom: 6px; }

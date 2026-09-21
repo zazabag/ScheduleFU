@@ -106,3 +106,23 @@
 /* ─── настройки: светящаяся точка у раздела ────────────────────────────── */
 .setting-title::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 8px var(--accent); margin-right: 8px; vertical-align: middle; }
 .skin-preview { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+/* ─── аудитории: кольцо занятости площадки ────────────────────────────── */
+.rhero { align-items: center; text-align: center; }
+.rh-head { width: 100%; justify-content: center; gap: 8px; }
+.rh-now { grid-template-columns: 1fr; grid-template-areas: "ring" "label" "count" "of"; justify-items: center; row-gap: 2px; }
+.rh-ring { display: grid; width: 180px; height: 180px; margin: 6px 0 8px; }
+.rh-ring .ring-track { stroke: rgba(255,255,255,0.08); stroke-width: 6; }
+:root[data-theme="light"] .rh-ring .ring-track { stroke: #dde0f0; }
+.rh-ring .ring-bar { stroke-width: 6; filter: drop-shadow(0 0 10px rgba(139,123,255,0.7)); }
+.rh-pct { font-size: 40px; letter-spacing: -0.03em; }
+.rh-count { font-size: 30px; }
+.rh-label { color: var(--text-3); }
+.rh-sentence { font-size: 13px; color: var(--text-2); max-width: 30ch; }
+.rh-bar-track { fill: rgba(255,255,255,0.06); }
+:root[data-theme="light"] .rh-bar-track { fill: var(--surface-2); }
+.rh-bar-fill { fill: var(--accent); filter: drop-shadow(0 0 6px rgba(139,123,255,0.6)); }
+.rh-bar[data-state="past"] .rh-bar-fill { fill: rgba(255,255,255,0.12); filter: none; }
+.rh-floors { justify-content: center; }
+.rh-floor { border: 1px solid var(--line); }
+.rooms-floor { color: var(--accent); }

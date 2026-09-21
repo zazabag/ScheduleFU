@@ -1,6 +1,9 @@
 package domain
 
-import "strings"
+import (
+	"sort"
+	"strings"
+)
 
 // Slot — пара в сетке занятий.
 type Slot struct{ Begins, Ends string }
@@ -26,6 +29,7 @@ const (
 type SlotCell struct {
 	Slot  Slot
 	State SlotState
+	Now   bool   // пара идёт прямо сейчас: полоса подсвечивает её отдельно
 	Label string // время начала без ведущего нуля: под узкой клеткой каждый символ на счету
 	Title string // чем занято
 }
@@ -62,6 +66,7 @@ func BuildRoomView(a Auditorium, lessons []Lesson, now string) RoomView {
 		if cell.State == SlotFree && s.Ends <= now {
 			cell.State = SlotPast
 		}
+		cell.Now = s.Begins <= now && now < s.Ends
 		v.Cells = append(v.Cells, cell)
 	}
 	for _, l := range lessons {
@@ -73,4 +78,98 @@ func BuildRoomView(a Auditorium, lessons []Lesson, now string) RoomView {
 		}
 	}
 	return v
+}
+
+// SlotStat — сколько аудиторий площадки свободно в пару.
+type SlotStat struct {
+	Slot  Slot
+	Label string
+	Free  int
+	Total int
+	State string // past · now · later
+}
+
+// FloorStat — сколько свободно на этаже. Floor -1 — этаж неизвестен:
+// правило нумерации корпуса не подтверждено, и мы не угадываем.
+type FloorStat struct {
+	Floor int
+	Free  int
+	Total int
+}
+
+// SiteSummary — сводка площадки на момент: свободно сейчас, по парам и по
+// этажам. Считается из тех же полос, что показываются в списке, поэтому
+// цифры сходятся с ним всегда.
+type SiteSummary struct {
+	Total   int
+	FreeNow int
+	Slots   []SlotStat
+	Floors  []FloorStat
+	// BestSlot — пара с наибольшим числом свободных аудиторий из ещё не
+	// прошедших; пусто, если день закончился.
+	BestSlot *SlotStat
+	// NextSlot — ближайшая пара после текущей: к ней меняется картина.
+	NextSlot *SlotStat
+}
+
+// BuildSiteSummary складывает сводку из полос аудиторий.
+func BuildSiteSummary(views []RoomView, now string) SiteSummary {
+	sum := SiteSummary{Total: len(views)}
+	stats := make([]SlotStat, len(Slots))
+	for i, s := range Slots {
+		stats[i] = SlotStat{Slot: s, Label: strings.TrimPrefix(s.Begins, "0"), Total: len(views), State: "later"}
+		switch {
+		case s.Ends <= now:
+			stats[i].State = "past"
+		case s.Begins <= now:
+			stats[i].State = "now"
+		}
+	}
+	floors := map[int]*FloorStat{}
+	for _, v := range views {
+		if v.FreeNow {
+			sum.FreeNow++
+		}
+		for i, c := range v.Cells {
+			if c.State != SlotBusy {
+				stats[i].Free++
+			}
+		}
+		f := -1
+		if v.Auditorium.Floor != nil {
+			f = *v.Auditorium.Floor
+		}
+		fs, ok := floors[f]
+		if !ok {
+			fs = &FloorStat{Floor: f}
+			floors[f] = fs
+		}
+		fs.Total++
+		if v.FreeNow {
+			fs.Free++
+		}
+	}
+	sum.Slots = stats
+	for i := range stats {
+		if stats[i].State == "past" {
+			continue
+		}
+		if sum.BestSlot == nil || stats[i].Free > sum.BestSlot.Free {
+			sum.BestSlot = &stats[i]
+		}
+		if stats[i].State == "later" && sum.NextSlot == nil {
+			sum.NextSlot = &stats[i]
+		}
+	}
+	for f := range floors {
+		sum.Floors = append(sum.Floors, *floors[f])
+	}
+	sort.Slice(sum.Floors, func(i, j int) bool {
+		// Неизвестный этаж — в конец.
+		if (sum.Floors[i].Floor < 0) != (sum.Floors[j].Floor < 0) {
+			return sum.Floors[j].Floor < 0
+		}
+		return sum.Floors[i].Floor < sum.Floors[j].Floor
+	})
+	return sum
 }

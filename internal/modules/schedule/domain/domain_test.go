@@ -122,3 +122,31 @@ func TestChangeSubjects(t *testing.T) {
 		t.Errorf("адресаты: %+v", got)
 	}
 }
+
+func TestSvodkaPloshchadkiSkhoditsyaSPolosami(t *testing.T) {
+	fl2, fl3 := 2, 3
+	views := []RoomView{
+		BuildRoomView(Auditorium{Room: "201", Floor: &fl2}, []Lesson{lesson("10:10", "11:40", "Право")}, "10:30"),
+		BuildRoomView(Auditorium{Room: "202", Floor: &fl2}, nil, "10:30"),
+		BuildRoomView(Auditorium{Room: "301", Floor: &fl3}, []Lesson{lesson("14:00", "15:30", "Учёт")}, "10:30"),
+	}
+	sum := BuildSiteSummary(views, "10:30")
+	if sum.Total != 3 || sum.FreeNow != 2 {
+		t.Fatalf("всего %d, свободно %d", sum.Total, sum.FreeNow)
+	}
+	if sum.Slots[1].State != "now" || sum.Slots[1].Free != 2 || sum.Slots[0].State != "past" {
+		t.Errorf("пары: %+v", sum.Slots[:2])
+	}
+	if sum.Slots[3].Free != 2 {
+		t.Errorf("в 14:00 занята одна, свободных должно быть 2, получили %d", sum.Slots[3].Free)
+	}
+	if len(sum.Floors) != 2 || sum.Floors[0].Floor != 2 || sum.Floors[0].Free != 1 || sum.Floors[1].Free != 1 {
+		t.Errorf("этажи: %+v", sum.Floors)
+	}
+	if sum.NextSlot == nil || sum.NextSlot.Label != "11:50" {
+		t.Errorf("следующая пара: %+v", sum.NextSlot)
+	}
+	if !views[0].Cells[1].Now || views[0].Cells[0].Now {
+		t.Errorf("клетка текущей пары должна быть помечена")
+	}
+}

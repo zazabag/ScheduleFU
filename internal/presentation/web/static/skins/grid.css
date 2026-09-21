@@ -128,3 +128,24 @@
 .settings { counter-reset: section; }
 .setting-title::before { counter-increment: section; content: counter(section, decimal-leading-zero) " / "; color: var(--accent); }
 .skin-current { color: var(--accent); }
+
+/* ─── аудитории: сводка как редакционный разворот ─────────────────────── */
+.rhero { gap: 12px; padding-top: 10px; }
+.rh-head { text-transform: uppercase; letter-spacing: 0.12em; font-size: 10px; }
+.rh-now { grid-template-areas: "count label" "count of"; grid-template-columns: auto 1fr; align-items: end; column-gap: 16px; }
+.rh-count { font-size: 120px; font-weight: 900; letter-spacing: -0.07em; line-height: 0.85; }
+.rh-label { align-self: end; font-size: 14px; letter-spacing: 0; text-transform: none; color: var(--text); font-weight: 600; }
+.rh-of { font-size: 14px; }
+.rh-sentence { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
+.rh-bar-track { fill: transparent; }
+.rh-bar-fill { fill: #111; }
+:root[data-theme="dark"] .rh-bar-fill { fill: #f2f2f2; }
+.rh-bar[data-state="past"] .rh-bar-fill { fill: var(--past); }
+.rh-bar[data-state="now"] .rh-bar-fill { fill: var(--accent); }
+.rh-bar[data-state="now"] .rh-bar-track { stroke: none; }
+.rh-floor { background: transparent; border-bottom: 2px solid var(--text); border-radius: 0; padding: 4px 0; min-width: 52px; }
+:root[data-theme="dark"] .rh-floor { border-bottom-color: var(--line); }
+.rh-stats { display: flex; }
+.rhero .stat b { font-size: 28px; font-weight: 900; letter-spacing: -0.04em; }
+.rooms-floor { border-bottom: 2px solid var(--text); padding-bottom: 6px; margin-top: 18px; color: var(--text); }
+:root[data-theme="dark"] .rooms-floor { border-bottom-color: var(--line); }

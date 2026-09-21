@@ -368,3 +368,41 @@ svg { display: block; }
 .skin-card[data-skin="map"] .sp-b { display: block; left: 44px; top: 18px; width: 10px; height: 10px; border-radius: 999px; background: #fff; border: 3px solid #7f9a78; }
 .skin-card[data-skin="map"] .sp-c { display: block; left: 74px; top: 44px; width: 12px; height: 12px; border-radius: 999px; background: #57b03a; border: 3px solid #fff; box-shadow: 0 0 0 4px rgba(87,176,58,0.25); }
 .skin-card[data-skin="map"] .sp-d { display: block; left: 52px; top: 66px; width: 10px; height: 10px; border-radius: 999px; background: #2f8cff; border: 3px solid #fff; }
+
+/* ─── герой площадки: сводка свободных аудиторий ───────────────────────── */
+/* Как и герой дня: всё нужное в разметке, оформления включают своё. */
+.rhero { padding: 4px var(--pad) 14px; background: var(--bg-hero); color: var(--hero-text); display: flex; flex-direction: column; gap: 10px; }
+.rh-head { display: flex; justify-content: space-between; font-size: 12px; color: var(--hero-text-2); }
+.rh-site { font-weight: 600; }
+.rh-now { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "label ring" "count ring" "of ring"; column-gap: 14px; align-items: center; }
+.rh-label { grid-area: label; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+.rh-count { grid-area: count; font-family: var(--font-display); font-size: 56px; font-weight: 800; line-height: 1; letter-spacing: -0.04em; }
+.rh-of { grid-area: of; font-size: 13px; color: var(--hero-text-2); }
+.rh-ring { grid-area: ring; display: none; position: relative; width: 84px; height: 84px; place-items: center; }
+.rh-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.rh-ring .ring-bar { stroke-dashoffset: calc(100 - var(--progress, 0)); }
+.rh-pct { position: relative; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.rh-sentence { margin: 0; font-size: 14px; line-height: 1.4; }
+.rh-slots { display: block; width: 100%; height: auto; }
+.rh-bar-track { fill: var(--surface-2); }
+.rh-bar-fill { fill: var(--accent); }
+.rh-bar[data-state="past"] .rh-bar-fill { fill: var(--past); }
+.rh-bar[data-state="now"] .rh-bar-track { stroke: var(--accent); stroke-width: 2; }
+.rh-bar-free { font-size: 11px; font-weight: 700; fill: var(--hero-text); }
+.rh-bar[data-state="past"] .rh-bar-free { fill: var(--hero-text-2); }
+.rh-bar-label { font-size: 10px; fill: var(--hero-text-2); }
+.rh-floors { display: flex; gap: 6px; flex-wrap: wrap; }
+.rh-floor { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 10px; background: var(--surface); color: var(--text); min-width: 64px; }
+.rh-floor b { font-size: 13px; font-weight: 700; }
+.rh-floor i { font-style: normal; font-size: 10px; color: var(--text-3); }
+.rh-floor.unknown { opacity: 0.7; }
+.rh-stats { display: none; gap: 16px; flex-wrap: wrap; }
+.rhero .stat b { font-size: 16px; }
+.rhero[data-state="none"] .rh-ring, .rhero[data-state="none"] .rh-floors { display: none; }
+
+.rooms-floor { display: flex; justify-content: space-between; align-items: baseline; margin: 10px 0 2px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); font-weight: 700; }
+.rooms-floor:first-child { margin-top: 0; }
+.rooms-floor i { font-style: normal; font-weight: 600; }
+/* Текущая пара в полосе: обводка, чтобы глаз сразу нашёл «сейчас». */
+.rail-cell.now .rail-box { box-shadow: inset 0 0 0 2px var(--text); }
+.rail-cell.now .rail-time { color: var(--text); font-weight: 700; }

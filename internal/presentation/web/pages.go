@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -34,11 +33,17 @@ func (s *Server) rooms(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "не удалось получить список корпусов", http.StatusInternalServerError)
 		return
 	}
-	free, total, err := s.d.Schedule.FreeRooms(ctx, site, s.d.Clock.Now())
+	at := s.d.Clock.Now()
+	if v := r.URL.Query().Get("now"); s.d.Dev && len(v) == 5 {
+		// В разработке — любой момент дня, чтобы увидеть занятую площадку.
+		at = time.Date(at.Year(), at.Month(), at.Day(), int(v[0]-'0')*10+int(v[1]-'0'), int(v[3]-'0')*10+int(v[4]-'0'), 0, 0, at.Location())
+	}
+	free, sum, err := s.d.Schedule.SiteNow(ctx, site, at)
 	if err != nil {
 		http.Error(w, "не удалось получить занятость", http.StatusInternalServerError)
 		return
 	}
+	total := sum.Total
 
 	label := site
 	tabs := make([]chip, 0, len(sites))
@@ -51,44 +56,94 @@ func (s *Server) rooms(w http.ResponseWriter, r *http.Request) {
 
 	// Этажи — из того, что реально есть на площадке: нумерация в корпусах
 	// разная, общего списка не существует.
-	floorSet := map[int]bool{}
 	type row struct {
 		Room, Meta, Until, UntilClass string
 		Cells                         []sched.SlotCell
 		Lessons                       []sched.Lesson
 	}
-	var rows []row
+	type floorGroup struct {
+		Label string
+		Rooms []row
+	}
+	var groups []floorGroup
+	byFloor := map[string]int{}
 	for _, v := range free {
+		key, title := "?", "этаж не определён"
 		if v.Auditorium.Floor != nil {
-			floorSet[*v.Auditorium.Floor] = true
+			key = strconv.Itoa(*v.Auditorium.Floor)
+			title = key + " этаж"
 		}
-		if floor != "" && (v.Auditorium.Floor == nil || strconv.Itoa(*v.Auditorium.Floor) != floor) {
+		if floor != "" && key != floor {
 			continue
 		}
 		until, cls := "до конца дня", ""
 		if v.FreeUntil != "" {
 			until, cls = "до "+v.FreeUntil, "warn"
 		}
-		rows = append(rows, row{Room: roomShort(v.Auditorium.Room), Meta: s.roomMeta(v.Auditorium), Until: until, UntilClass: cls, Cells: v.Cells, Lessons: v.Lessons})
+		rw := row{Room: roomShort(v.Auditorium.Room), Meta: s.roomMeta(v.Auditorium), Until: until, UntilClass: cls, Cells: v.Cells, Lessons: v.Lessons}
+		gi, ok := byFloor[key]
+		if !ok {
+			gi = len(groups)
+			byFloor[key] = gi
+			groups = append(groups, floorGroup{Label: title})
+		}
+		groups[gi].Rooms = append(groups[gi].Rooms, rw)
 	}
-	floors := make([]int, 0, len(floorSet))
-	for f := range floorSet {
-		floors = append(floors, f)
-	}
-	sort.Ints(floors)
 	chips := []chip{{Label: "все", Href: "/rooms?site=" + url.QueryEscape(site), On: floor == ""}}
-	for _, f := range floors {
-		v := strconv.Itoa(f)
+	for _, f := range sum.Floors {
+		if f.Floor < 0 {
+			continue
+		}
+		v := strconv.Itoa(f.Floor)
 		chips = append(chips, chip{Label: v, Href: "/rooms?site=" + url.QueryEscape(site) + "&floor=" + v, On: floor == v})
 	}
 
-	now := s.d.Clock.Now()
+	// Столбики по парам для SVG: высота — доля свободных.
+	type bar struct {
+		X, Y, H     int
+		Label       string
+		Free, Total int
+		State       string
+	}
+	var bars []bar
+	for i, st := range sum.Slots {
+		h := 0
+		if st.Total > 0 {
+			h = st.Free * 80 / st.Total
+		}
+		bars = append(bars, bar{X: 10 + i*47, Y: 90 - h, H: h, Label: st.Label, Free: st.Free, Total: st.Total, State: st.State})
+	}
+	sentence := roomsSentence(sum, label)
+	pct := 0
+	if total > 0 {
+		pct = sum.FreeNow * 100 / total
+	}
+	nowHHMM := at.Format("15:04")
 	s.render(w, r, "rooms", map[string]any{
-		"Title": "Свободные аудитории", "Tab": "rooms", "Clock": s.d.Clock.HHMM(),
-		"Today":     clock.DateRu(now) + " · " + clock.WeekdayRu(now),
-		"SiteLabel": label, "FreeCount": len(free), "TotalCount": total,
-		"Sites": tabs, "Floors": chips, "Rooms": rows, "Freshness": s.freshness(r),
+		"Title": "Свободные аудитории", "Tab": "rooms", "Clock": nowHHMM,
+		"Today": clock.DateRu(at) + " · " + clock.WeekdayRu(at), "Date": dateInfo(at, s.d.Clock.Today()),
+		"SiteLabel": label, "FreeCount": sum.FreeNow, "TotalCount": total, "BusyCount": total - sum.FreeNow, "FreePct": pct,
+		"Sites": tabs, "Floors": chips, "Groups": groups, "HasRooms": len(groups) > 0, "Freshness": s.freshness(r),
+		"Summary": sum, "Bars": bars, "Sentence": sentence, "FloorFilter": floor, "SiteSlug": url.QueryEscape(site),
 	})
+}
+
+// roomsSentence — фраза сводки: что свободно сейчас и что будет дальше.
+func roomsSentence(sum sched.SiteSummary, site string) string {
+	if sum.Total == 0 {
+		return "На площадке нет учебных аудиторий в расписании."
+	}
+	text := fmt.Sprintf("%s: свободно %d из %d.", site, sum.FreeNow, sum.Total)
+	if sum.NextSlot != nil {
+		text += fmt.Sprintf(" В %s будет свободно %d.", sum.NextSlot.Slot.Begins, sum.NextSlot.Free)
+	}
+	if sum.BestSlot != nil && sum.NextSlot != nil && sum.BestSlot != sum.NextSlot && sum.BestSlot.State == "later" {
+		text += fmt.Sprintf(" Больше всего — в %s: %d.", sum.BestSlot.Slot.Begins, sum.BestSlot.Free)
+	}
+	if sum.NextSlot == nil && sum.BestSlot == nil {
+		text = fmt.Sprintf("%s: пары закончились, свободно всё — %d аудиторий.", site, sum.Total)
+	}
+	return text
 }
 
 func (s *Server) roomMeta(a sched.Auditorium) string {

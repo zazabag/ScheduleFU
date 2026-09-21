@@ -155,3 +155,24 @@
 .setting-group[data-section="calendar"] .setting-title { background: var(--accent); color: var(--accent-ink); transform: rotate(-1deg); }
 .skin-current { color: #ff6a00; }
 .skin-preview { border-radius: 10px; box-shadow: 0 3px 8px rgba(80,30,0,0.15); }
+
+/* ─── аудитории: цифра на большой наклейке ────────────────────────────── */
+.rhero { gap: 14px; padding-top: 8px; }
+.rh-head { color: rgba(255,255,255,0.85); text-transform: uppercase; letter-spacing: 0.1em; font-size: 11px; }
+.rh-now { grid-template-columns: auto 1fr; grid-template-areas: "count label" "count of"; column-gap: 14px; align-items: center; width: fit-content; background: var(--accent); color: var(--accent-ink); padding: 12px 18px; border-radius: 14px; transform: rotate(-2deg); box-shadow: var(--shadow); }
+.rh-count { font-size: 56px; font-weight: 900; }
+.rh-label { color: var(--accent-ink); font-size: 12px; }
+.rh-of { color: var(--accent-ink); font-size: 13px; font-weight: 600; }
+.rhero[data-state="none"] .rh-now { background: #fff; color: var(--text); }
+.rh-sentence { color: #fff; font-weight: 600; }
+.rh-bar-track { fill: rgba(255,255,255,0.25); }
+.rh-bar-fill { fill: #fff; }
+.rh-bar[data-state="past"] .rh-bar-fill { fill: rgba(255,255,255,0.45); }
+.rh-bar[data-state="now"] .rh-bar-fill { fill: var(--warn); }
+.rh-bar[data-state="now"] .rh-bar-track { stroke: #fff; }
+.rh-bar-free, .rh-bar-label { fill: #fff; }
+.rh-floor { background: #fff; box-shadow: var(--shadow); transform: rotate(2deg); border-radius: 10px; }
+.rh-floor:nth-child(2n) { transform: rotate(-2deg); }
+:root[data-theme="dark"] .rh-floor { background: var(--surface); }
+.rooms-floor { color: #fff; }
+.rooms-floor span { background: var(--warn); color: var(--text); padding: 3px 8px; border-radius: 6px; transform: rotate(-2deg); display: inline-block; }
