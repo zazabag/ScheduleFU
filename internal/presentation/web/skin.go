@@ -31,7 +31,7 @@ var Skins = []Skin{
 	{ID: "map", Name: "Карта дня", Note: "Маршрут с остановками: пары как точки на дороге", Fonts: "Nunito:wght@400;600;700;800"},
 }
 
-const defaultSkin = "grid"
+const defaultSkin = "night"
 
 // SkinByID возвращает оформление; неизвестное — по умолчанию, потому что
 // значение приходит из cookie и может быть чем угодно.
