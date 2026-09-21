@@ -3,13 +3,14 @@
 <header class="top">
   <div class="top-row">
     <div>
-      <span class="top-kicker">расписание</span>
+      <span class="top-kicker">{{.GroupCount}} групп · {{.DirCount}} направлений</span>
       <h1 class="top-title">Твоя группа</h1>
-      <p class="top-sub">Запомним в браузере — без логина и пароля. Преподаватели — в своём разделе.</p>
+      <p class="top-sub">Запомним в браузере — без логина и пароля. Преподаватели — <a href="/lecturers">в своём разделе</a>.</p>
     </div>
   </div>
   <form class="search" method="get" action="{{.Action}}">
-    <input type="search" name="q" value="{{.Query}}" placeholder="Например, ПИ24-1" autocomplete="off" autofocus>
+    {{if .Dir}}<input type="hidden" name="dir" value="{{.Dir}}">{{end}}
+    <input type="search" name="q" value="{{.Query}}" placeholder="Например, ПИ24-1" autocomplete="off" {{if not .PinnedGroup}}autofocus{{end}}>
     <button type="submit">Найти</button>
   </form>
   <div class="chips">
@@ -17,8 +18,33 @@
     {{range .Courses}}<a class="chip {{if .On}}on{{end}}" href="{{.Href}}">{{.Label}}</a>{{end}}
   </div>
 </header>
+
+<section class="phero">
+  {{if .PinnedGroup}}
+  <a class="ph-pinned" href="/schedule?group={{.PinnedGroupEscaped}}">
+    <span class="ph-pinned-label">закреплена</span>
+    <span class="ph-pinned-name">{{.PinnedGroup}}</span>
+    <span class="ph-pinned-go">открыть ›</span>
+  </a>
+  {{end}}
+  {{if .Recent}}
+  <div class="ph-recent">
+    <span class="ph-recent-label">недавно</span>
+    {{range .Recent}}<a class="ph-recent-item" href="/schedule?group={{.NameEscaped}}">{{.Name}}</a>{{end}}
+  </div>
+  {{end}}
+  {{if not .Searching}}
+  <div class="ph-dirs-head"><span>направление</span><i>групп</i></div>
+  <div class="ph-dirs">
+    {{range .Dirs}}<a class="ph-dir {{if .On}}on{{end}}" href="{{.Href}}"><b>{{.Code}}</b><i>{{.Count}}</i></a>{{end}}
+    {{if .DirsHidden}}<a class="ph-dir more" href="{{.AllDirsHref}}"><b>ещё</b><i>{{.DirsHidden}}</i></a>{{end}}
+  </div>
+  {{end}}
+</section>
+
 <section class="picks">
-  <div class="picks-count">{{.ResultLabel}}</div>
+  {{if .Searching}}
+  <div class="picks-count">{{.ResultLabel}}{{if .Dir}} · {{.Dir}} <a class="picks-reset" href="{{.Action}}">сбросить</a>{{end}}</div>
   {{range .Groups}}
   <a class="pick {{if .On}}on{{end}}" href="/schedule?group={{.NameEscaped}}&amp;pin=1">
     <span class="pick-body"><span class="pick-name">{{.Name}}</span><span class="pick-meta">{{.Meta}}</span></span>
@@ -26,6 +52,7 @@
   </a>
   {{else}}
   <div class="empty"><div class="empty-title">Ничего не нашлось</div><div class="empty-sub">Проверьте написание — например, ПИ24-1</div></div>
+  {{end}}
   {{end}}
 </section>
 {{else}}

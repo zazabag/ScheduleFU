@@ -150,3 +150,11 @@ func TestGeroyPrepodavatelyaGovoritProGruppy(t *testing.T) {
 		t.Errorf("настроение преподавателя: %q", h.Mood)
 	}
 }
+
+func TestNapravlenieIzNazvaniyaGruppy(t *testing.T) {
+	for name, want := range map[string]string{"ПИ24-1": "ПИ", "Ю24-5в": "Ю", "ДПИ22-1": "ДПИ", "БИ23-2": "БИ"} {
+		if got := dirCode(name); got != want {
+			t.Errorf("%q: %q, ожидалось %q", name, got, want)
+		}
+	}
+}

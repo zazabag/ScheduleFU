@@ -188,3 +188,16 @@
 .rh-floor b::before { content: '♪ '; color: var(--accent); }
 .rooms-floor { color: var(--text-3); }
 .rooms-floor span::before { content: 'Плейлист · '; }
+
+/* ─── выбор группы: обложки альбомов ──────────────────────────────────── */
+.ph-pinned { border-radius: 16px; background: #fff; color: #0d1330; }
+:root[data-theme="light"] .ph-pinned { background: var(--accent); color: #fff; }
+.ph-pinned-label::before { content: '▶ '; }
+.ph-dirs-head::before { content: '♪ '; color: var(--accent); }
+.ph-dir { border-radius: 12px; aspect-ratio: 1; justify-content: flex-end; background: linear-gradient(160deg, rgba(59,123,255,0.35), rgba(255,255,255,0.05)); box-shadow: 0 6px 14px rgba(0,0,0,0.3); }
+:root[data-theme="light"] .ph-dir { background: linear-gradient(160deg, #dfe6ff, #fff); box-shadow: 0 6px 14px rgba(13,19,48,0.1); }
+.ph-dir:nth-child(3n) { background: linear-gradient(160deg, rgba(255,143,106,0.35), rgba(255,255,255,0.05)); }
+.ph-dir:nth-child(5n) { background: linear-gradient(160deg, rgba(111,220,140,0.3), rgba(255,255,255,0.05)); }
+.ph-dir.on { background: #fff; color: #0d1330; }
+:root[data-theme="light"] .ph-dir.on { background: var(--accent); color: #fff; }
+.ph-recent-item::before { content: '≡ '; color: var(--accent); }

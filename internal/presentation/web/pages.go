@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -243,6 +244,9 @@ func (s *Server) schedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if subj.Kind == sched.SubjectGroup {
+		RememberRecent(w, r, subj.Group, secure)
+	}
 	today := s.d.Clock.Today()
 	date := today
 	if v := r.URL.Query().Get("date"); v != "" {
@@ -715,12 +719,41 @@ var groupNameRe = regexp.MustCompile(`^\p{L}+[0-9]{2}-[0-9]+\p{L}*$`)
 func (s *Server) pickerData(r *http.Request, data map[string]any) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	course := r.URL.Query().Get("course")
+	prefix := strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("dir")))
 	chosen := SubjectFromCookie(r)
-	found, err := s.d.Schedule.Repo().SearchGroups(r.Context(), q, 200)
-	if err != nil {
-		found = nil
-	}
 	year := academicYear(s.d.Clock.Now())
+
+	// Направления — буквы до цифр в названии: «ПИ24-1» → «ПИ». Считаются по
+	// всему справочнику, а не по найденному: плитки нужны как вход, до поиска.
+	all, _ := s.d.Schedule.Repo().GroupNames(r.Context())
+	type dir struct {
+		Code  string
+		Count int
+		On    bool
+		Href  string
+	}
+	counts := map[string]int{}
+	for _, name := range all {
+		if code := dirCode(name); code != "" {
+			counts[code]++
+		}
+	}
+	var dirs []dir
+	for code, n := range counts {
+		dirs = append(dirs, dir{Code: code, Count: n, On: code == prefix,
+			Href: r.URL.Path + "?dir=" + url.QueryEscape(code)})
+	}
+	sort.Slice(dirs, func(i, j int) bool {
+		if dirs[i].Count != dirs[j].Count {
+			return dirs[i].Count > dirs[j].Count
+		}
+		return dirs[i].Code < dirs[j].Code
+	})
+
+	var found []sched.Group
+	if q != "" || prefix != "" || course != "" {
+		found, _ = s.d.Schedule.Repo().SearchGroups(r.Context(), q, 500)
+	}
 	type row struct {
 		Name, NameEscaped, Meta string
 		On                      bool
@@ -728,6 +761,9 @@ func (s *Server) pickerData(r *http.Request, data map[string]any) {
 	var rows []row
 	for _, g := range found {
 		if !groupNameRe.MatchString(g.Name) {
+			continue
+		}
+		if prefix != "" && dirCode(g.Name) != prefix {
 			continue
 		}
 		c := g.Course(year)
@@ -741,14 +777,51 @@ func (s *Server) pickerData(r *http.Request, data map[string]any) {
 		rows = append(rows, row{Name: g.Name, NameEscaped: url.QueryEscape(g.Name), Meta: meta, On: chosen.Group == g.Name})
 	}
 	base := r.URL.Path + "?q=" + url.QueryEscape(q)
+	if prefix != "" {
+		base += "&dir=" + url.QueryEscape(prefix)
+	}
 	chips := []chip{{Label: "все", Href: base, On: course == ""}}
 	for i := 1; i <= 5; i++ {
 		v := strconv.Itoa(i)
 		chips = append(chips, chip{Label: v, Href: base + "&course=" + v, On: course == v})
 	}
+	type recent struct{ Name, NameEscaped string }
+	var recents []recent
+	for _, n := range RecentFromCookie(r) {
+		if n != chosen.Group {
+			recents = append(recents, recent{Name: n, NameEscaped: url.QueryEscape(n)})
+		}
+	}
 	data["Query"], data["Courses"], data["Groups"] = q, chips, rows
+	// Направлений полторы сотни: по умолчанию — самые многочисленные, за
+	// остальными — ссылка. Своё направление студент чаще найдёт поиском.
+	const topDirs = 20
+	showAll := r.URL.Query().Get("dirs") == "all"
+	data["DirsHidden"] = 0
+	if !showAll && len(dirs) > topDirs {
+		data["DirsHidden"] = len(dirs) - topDirs
+		dirs = dirs[:topDirs]
+	}
+	data["Dirs"], data["Dir"], data["DirCount"], data["GroupCount"] = dirs, prefix, len(counts), len(all)
+	data["AllDirsHref"] = r.URL.Path + "?dirs=all"
+	data["Recent"], data["Searching"] = recents, q != "" || prefix != "" || course != ""
 	data["ResultLabel"] = fmt.Sprintf("найдено: %d", len(rows))
 	data["Action"] = r.URL.Path
+	if chosen.Kind == sched.SubjectGroup {
+		data["PinnedGroup"], data["PinnedGroupEscaped"] = chosen.Group, url.QueryEscape(chosen.Group)
+	}
+}
+
+// dirCode — направление из названия группы: буквы до первой цифры.
+func dirCode(name string) string {
+	var b strings.Builder
+	for _, r := range name {
+		if r >= '0' && r <= '9' {
+			break
+		}
+		b.WriteRune(r)
+	}
+	return strings.ToUpper(strings.TrimSpace(b.String()))
 }
 
 func (s *Server) groups(w http.ResponseWriter, r *http.Request) {

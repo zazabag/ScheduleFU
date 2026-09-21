@@ -122,3 +122,13 @@
 .rh-bar[data-state="now"] .rh-bar-fill { fill: var(--accent-2); }
 .rooms-floor { color: var(--accent); }
 .rooms-floor span::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); margin-right: 8px; vertical-align: 1px; }
+
+/* ─── выбор группы: корпуса на схеме ──────────────────────────────────── */
+.ph-pinned { border: 1.5px solid var(--accent); background: var(--bg-hero); color: var(--text); }
+.ph-pinned-label, .ph-pinned-go { color: var(--accent); }
+.ph-dir { background: var(--bg); border: 1.5px solid var(--line); border-radius: 6px; position: relative; }
+.ph-dir::after { content: ''; position: absolute; right: 8px; top: 10px; width: 6px; height: 6px; border-radius: 999px; background: var(--past); }
+.ph-dir.on { background: var(--bg-hero); color: var(--text); border-color: var(--accent); }
+.ph-dir.on::after { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.ph-dir.on i { color: var(--text-3); }
+.ph-recent-item { border: 1.5px solid var(--line); background: var(--bg); }

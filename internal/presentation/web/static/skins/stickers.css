@@ -176,3 +176,18 @@
 :root[data-theme="dark"] .rh-floor { background: var(--surface); }
 .rooms-floor { color: #fff; }
 .rooms-floor span { background: var(--warn); color: var(--text); padding: 3px 8px; border-radius: 6px; transform: rotate(-2deg); display: inline-block; }
+
+/* ─── выбор группы: наклейки направлений ──────────────────────────────── */
+.ph-pinned { transform: rotate(-1.5deg); box-shadow: var(--shadow); border-radius: 12px; }
+.ph-dirs-head { color: rgba(255,255,255,0.9); }
+.ph-dirs { gap: 10px; padding: 4px; }
+.ph-dir { background: #fff; border-radius: 10px; box-shadow: var(--shadow); transform: rotate(-2deg); }
+.ph-dir:nth-child(2n) { transform: rotate(2deg); }
+.ph-dir:nth-child(3n) { transform: rotate(-1deg); background: var(--warn); }
+.ph-dir:nth-child(5n) { background: var(--accent-2); color: #fff; }
+.ph-dir:nth-child(5n) i { color: rgba(255,255,255,0.85); }
+.ph-dir.on { background: var(--accent); color: var(--accent-ink); }
+:root[data-theme="dark"] .ph-dir { background: var(--surface); }
+.ph-recent-label { color: rgba(255,255,255,0.85); }
+.ph-recent-item { background: #fff; box-shadow: var(--shadow); transform: rotate(-1deg); }
+.ph-recent-item:nth-child(2n) { transform: rotate(1.5deg); }

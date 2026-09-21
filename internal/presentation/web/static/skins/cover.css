@@ -164,3 +164,15 @@
 .rh-floor { background: transparent; border: 1px solid var(--line); border-radius: 0; color: #fff; }
 .rh-floor b { font-family: var(--font-display); font-size: 15px; }
 .rooms-floor { font-family: var(--font-display); font-style: italic; text-transform: none; letter-spacing: 0; font-size: 18px; color: #fff; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+
+/* ─── выбор группы: рубрикатор антиквой ───────────────────────────────── */
+.ph-pinned { border-radius: 0; background: var(--accent); }
+.ph-pinned-name { font-family: var(--font-display); font-style: italic; font-size: 26px; }
+.ph-dirs-head { font-family: var(--font-display); font-style: italic; text-transform: none; letter-spacing: 0; font-size: 15px; color: #fff; border-bottom: 3px double var(--text); padding-bottom: 6px; }
+.ph-dirs { gap: 0; }
+.ph-dir { background: transparent; border-radius: 0; border-bottom: 1px solid var(--line); padding-left: 0; }
+.ph-dir b { font-family: var(--font-display); font-weight: 900; font-size: 24px; }
+.ph-dir.on { background: transparent; color: var(--accent); }
+.ph-dir.on i { color: var(--accent); }
+.ph-recent-item { border-radius: 0; border: 1px solid var(--line); background: transparent; color: #fff; font-family: var(--font-display); }
+.ph-dirs { grid-template-columns: repeat(3, 1fr); }

@@ -185,3 +185,16 @@ body { font-size: 13px; text-transform: none; }
 .rh-floor b { color: var(--accent); }
 .rooms-floor { letter-spacing: 0.25em; color: var(--accent); border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
 .rooms-floor::before { content: '▸ '; }
+
+/* ─── выбор группы: клавиши пульта ────────────────────────────────────── */
+.ph-pinned { border-radius: 0; background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+.ph-pinned-label, .ph-pinned-go { letter-spacing: 0.2em; text-transform: uppercase; font-size: 9px; }
+.ph-pinned-name { font-family: var(--font-mono); letter-spacing: 0.1em; font-size: 18px; }
+.ph-dirs-head { letter-spacing: 0.25em; }
+.ph-dirs { gap: 4px; }
+.ph-dir { background: transparent; border: 1px solid var(--line); border-radius: 0; }
+.ph-dir b { font-family: var(--font-mono); letter-spacing: 0.1em; font-size: 15px; color: var(--accent); }
+.ph-dir i { letter-spacing: 0.1em; }
+.ph-dir.on { background: var(--accent); }
+.ph-dir.on b { color: var(--accent-ink); }
+.ph-recent-item { border-radius: 0; background: transparent; border: 1px solid var(--line); font-family: var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; }

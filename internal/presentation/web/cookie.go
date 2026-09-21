@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"net/url"
+	"strings"
 
 	sched "github.com/zazabag/schedulefu/internal/modules/schedule/domain"
 )
@@ -42,4 +43,39 @@ func SubjectFromCookie(r *http.Request) sched.Subject {
 		return sched.Subject{}
 	}
 	return s
+}
+
+// recentCookie — последние открытые группы: студент смотрит не только
+// свою, но и группу друга или потока; пять имён через «|», процентами.
+const recentCookie = "schedulefu_recent"
+
+// RecentFromCookie — недавние группы, свежие первыми.
+func RecentFromCookie(r *http.Request) []string {
+	c, err := r.Cookie(recentCookie)
+	if err != nil || c.Value == "" {
+		return nil
+	}
+	v, err := url.QueryUnescape(c.Value)
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, name := range strings.Split(v, "|") {
+		if name = strings.TrimSpace(name); name != "" && len(out) < 5 {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+// RememberRecent ставит группу первой в списке недавних.
+func RememberRecent(w http.ResponseWriter, r *http.Request, group string, secure bool) {
+	names := []string{group}
+	for _, n := range RecentFromCookie(r) {
+		if n != group && len(names) < 5 {
+			names = append(names, n)
+		}
+	}
+	http.SetCookie(w, &http.Cookie{Name: recentCookie, Value: url.QueryEscape(strings.Join(names, "|")), Path: "/",
+		MaxAge: 180 * 24 * 60 * 60, HttpOnly: true, Secure: secure, SameSite: http.SameSiteLaxMode})
 }

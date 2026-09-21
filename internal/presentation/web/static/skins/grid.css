@@ -149,3 +149,15 @@
 .rhero .stat b { font-size: 28px; font-weight: 900; letter-spacing: -0.04em; }
 .rooms-floor { border-bottom: 2px solid var(--text); padding-bottom: 6px; margin-top: 18px; color: var(--text); }
 :root[data-theme="dark"] .rooms-floor { border-bottom-color: var(--line); }
+
+/* ─── выбор группы: указатель направлений ─────────────────────────────── */
+.ph-pinned { border-radius: 0; background: var(--text); color: var(--bg); }
+.ph-dirs-head { border-bottom: 2px solid var(--text); padding-bottom: 6px; color: var(--text); }
+:root[data-theme="dark"] .ph-dirs-head { border-bottom-color: var(--line); }
+.ph-dirs { gap: 0; }
+.ph-dir { background: transparent; border-radius: 0; border-bottom: 1px solid var(--line); padding: 10px 6px 8px 0; }
+.ph-dir b { font-size: 22px; font-weight: 900; letter-spacing: -0.03em; }
+.ph-dir.on { background: transparent; color: var(--accent); }
+.ph-dir.on i { color: var(--accent); }
+.ph-recent-item { border-radius: 0; background: transparent; border-bottom: 2px solid var(--accent); padding: 4px 0; }
+.ph-dirs { grid-template-columns: repeat(3, 1fr); }

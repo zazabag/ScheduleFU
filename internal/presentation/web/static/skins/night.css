@@ -126,3 +126,9 @@
 .rh-floors { justify-content: center; }
 .rh-floor { border: 1px solid var(--line); }
 .rooms-floor { color: var(--accent); }
+
+/* ─── выбор группы: стеклянные плитки ─────────────────────────────────── */
+.ph-pinned { box-shadow: 0 0 22px rgba(139,123,255,0.45); }
+.ph-dir { border: 1px solid var(--line); }
+.ph-dir.on { box-shadow: 0 0 16px rgba(139,123,255,0.45); }
+.ph-recent-item { border: 1px solid var(--line); }

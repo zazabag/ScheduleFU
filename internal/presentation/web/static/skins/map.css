@@ -149,3 +149,12 @@
 .rh-floor b::before { content: '⚑ '; color: var(--accent); }
 .rooms-floor { color: var(--accent); }
 .rooms-floor span::before { content: '⚑ '; }
+
+/* ─── выбор группы: указатели направлений ─────────────────────────────── */
+.ph-pinned { box-shadow: var(--shadow); border-radius: var(--radius-lg); }
+.ph-pinned-label::before { content: '⚑ '; }
+.ph-dir { box-shadow: var(--shadow); border-radius: 12px; }
+.ph-dir b::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 999px 999px 999px 0; transform: rotate(-45deg); background: var(--accent); margin-right: 6px; vertical-align: 1px; }
+.ph-dir.on b::before { background: #fff; }
+.ph-recent-item { box-shadow: var(--shadow); }
+.ph-dirs { grid-template-columns: repeat(3, 1fr); }
