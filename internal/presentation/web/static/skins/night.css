@@ -149,3 +149,7 @@
 .stack-summary { grid-template-columns: 56px 1fr auto; grid-template-areas: "time body status" "time body room"; padding: 12px 4px; }
 .stack-badge { box-shadow: 0 0 12px rgba(139,123,255,0.45); }
 .stack-list { padding-left: 64px; }
+
+/* ─── онбординг: свечение ─────────────────────────────────────────────── */
+.onb { box-shadow: 0 0 30px rgba(139,123,255,0.55), 0 10px 30px rgba(0,0,0,0.4); }
+.onb-num { box-shadow: 0 0 10px rgba(255,255,255,0.6); }

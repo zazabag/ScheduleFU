@@ -182,3 +182,12 @@
 .stack-badge { background: transparent; color: var(--accent); padding: 0; border-bottom: 1px solid var(--accent); border-radius: 0; }
 .stack-list { padding-left: 64px; }
 .stack-item-sub { font-weight: 700; }
+
+/* ─── онбординг: чёрная плашка с нумерацией ───────────────────────────── */
+.onb { border-radius: 0; background: var(--text); color: var(--bg); box-shadow: none; }
+.onb-step { background: transparent; border-radius: 0; border-top: 1px solid rgba(255,255,255,0.18); padding: 10px 0; }
+:root[data-theme="dark"] .onb-step { border-top-color: rgba(0,0,0,0.15); }
+.onb-num { background: var(--accent); color: #fff; border-radius: 0; }
+.onb-btn { border-radius: 0; background: var(--accent); color: #fff; }
+.onb-step.done .onb-num { background: var(--bg); color: var(--text); }
+.onb-fold { border-radius: 0; }

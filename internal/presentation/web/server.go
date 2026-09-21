@@ -54,7 +54,7 @@ func New(d Deps) (*Server, error) {
 	for _, name := range []string{"rooms", "schedule", "lecturers", "settings"} {
 		// hero.html — общий верхний блок дня: его рисуют и экран расписания,
 		// и экран «где преподаватель».
-		t, err := template.New("base").Funcs(funcs).ParseFS(templateFS, "templates/base.html", "templates/hero.html", "templates/"+name+".html")
+		t, err := template.New("base").Funcs(funcs).ParseFS(templateFS, "templates/base.html", "templates/hero.html", "templates/onboard.html", "templates/"+name+".html")
 		if err != nil {
 			return nil, fmt.Errorf("web: шаблон %s: %w", name, err)
 		}
@@ -90,6 +90,7 @@ func (s *Server) Routes() http.Handler {
 
 func (s *Server) render(w http.ResponseWriter, r *http.Request, page string, data map[string]any) {
 	data["Look"] = lookFrom(r)
+	data["Onboard"] = s.onboard(r)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	// Страницы отвечают «что свободно прямо сейчас»: ответ из кэша через
 	// минуту уже врёт.
@@ -162,4 +163,24 @@ func staticHandler() http.Handler {
 		}
 		files.ServeHTTP(w, r)
 	})
+}
+
+// onboardState — что сервер знает о трёх шагах: закреплено ли расписание.
+// Уведомления и установка — знание браузера, их уточняет скрипт.
+type onboardState struct {
+	Pinned bool
+	Label  string
+	Key    string
+}
+
+func (s *Server) onboard(r *http.Request) onboardState {
+	subj := SubjectFromCookie(r)
+	if subj.IsZero() {
+		return onboardState{}
+	}
+	label := subj.Group
+	if subj.LecturerOid != 0 {
+		label = s.d.Schedule.LecturerName(r.Context(), subj.LecturerOid, nil)
+	}
+	return onboardState{Pinned: true, Label: label, Key: subj.Key()}
 }

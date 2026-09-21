@@ -228,3 +228,15 @@ body { font-size: 13px; text-transform: none; }
 .stack-item { border-top-style: dashed; }
 .stack-item-sub { color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-size: 11px; }
 .stack-item-room { color: var(--accent); }
+
+/* ─── онбординг: жёлтая рамка табло ───────────────────────────────────── */
+.onb { border-radius: 0; background: transparent; color: var(--text); border: 2px solid var(--accent); box-shadow: none; }
+.onb-kicker { color: var(--accent); letter-spacing: 0.25em; }
+.onb-kicker::before { content: '[!] '; }
+.onb-step { background: transparent; border-radius: 0; border-top: 1px dashed var(--line); padding: 10px 0; }
+.onb-num { background: var(--accent); color: var(--accent-ink); border-radius: 0; font-family: var(--font-mono); }
+.onb-body b { text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; }
+.onb-btn { border-radius: 0; background: var(--accent); color: var(--accent-ink); text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; }
+.onb-step.done .onb-num { background: var(--ok); color: #000; }
+.onb-fold { border-radius: 0; background: var(--surface); }
+.onb-howto { background: var(--surface); border-radius: 0; text-transform: none; letter-spacing: 0; }

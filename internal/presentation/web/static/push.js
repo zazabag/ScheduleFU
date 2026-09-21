@@ -1,24 +1,38 @@
 // Подписка на уведомления об изменениях расписания.
 //
 // Скрипт необязательный: страницы работают без него полностью, он только
-// добавляет кнопку. Поэтому всё внутри защищено проверками — при любой
-// неподдерживаемой мелочи кнопка просто не появляется.
+// оживляет кнопки. Кнопок может быть несколько на странице — в онбординге
+// и в настройках; все они про одну подписку и меняются вместе.
 
 (function () {
   'use strict';
 
-  var box = document.getElementById('notify-box');
-  if (!box) return;
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.push-box[data-subject], .onb-step[data-step="push"]'));
+  if (!boxes.length) return;
 
-  var subjectKey = box.getAttribute('data-subject');
-  if (!subjectKey) return;
+  var onb = document.getElementById('onb');
+  var subjectKey = (onb && onb.getAttribute('data-subject')) || (boxes[0].getAttribute('data-subject') || '');
 
-  var button = box.querySelector('button');
-  var label = box.querySelector('.notify-text');
+  function label(box) { return box.querySelector('.notify-text, .onb-push-text'); }
+  function button(box) { return box.querySelector('button'); }
 
   function say(text, disabled) {
-    if (label) label.textContent = text;
-    if (button) button.disabled = !!disabled;
+    boxes.forEach(function (box) {
+      var l = label(box), b = button(box);
+      if (l) l.textContent = text;
+      if (b) b.disabled = !!disabled;
+    });
+  }
+  function markDone(done) {
+    boxes.forEach(function (box) {
+      if (box.classList.contains('onb-step')) box.classList.toggle('done', done);
+    });
+    if (window.ScheduleFUOnboard) window.ScheduleFUOnboard.recount();
+  }
+
+  if (!subjectKey) {
+    // Группа не закреплена — шаг заперт, кнопки нет; ничего не трогаем.
+    return;
   }
 
   // Уведомления требуют защищённого соединения: на http браузер не даст
@@ -28,7 +42,9 @@
     return;
   }
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    say('Этот браузер не умеет уведомления', true);
+    // iPhone до установки на экран «Домой» уведомлений не даёт вовсе.
+    var ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    say(ios ? 'На iPhone — сначала шаг 3, потом уведомления из приложения' : 'Этот браузер не умеет уведомления', true);
     return;
   }
 
@@ -57,12 +73,14 @@
 
   function refresh() {
     if (!state.subscription) {
-      say('Сообщать об изменениях расписания');
-      if (button) button.textContent = 'Включить';
+      say('Одно сообщение, когда деканат поменяет расписание');
+      boxes.forEach(function (box) { var b = button(box); if (b) b.textContent = box.classList.contains('onb-step') ? 'Разрешить' : 'Включить'; });
+      markDone(false);
       return;
     }
     say('Уведомления включены');
-    if (button) button.textContent = 'Выключить';
+    boxes.forEach(function (box) { var b = button(box); if (b) b.textContent = box.classList.contains('onb-step') ? 'Готово' : 'Выключить'; });
+    markDone(true);
   }
 
   function enable() {
@@ -117,7 +135,7 @@
     .then(function (cfg) {
       if (!cfg.enabled) {
         // Сервер собран без ключей — кнопки быть не должно.
-        box.hidden = true;
+        say('На этом сервере уведомления выключены', true);
         return;
       }
       state.publicKey = cfg.public_key;
@@ -126,16 +144,19 @@
         return reg.pushManager.getSubscription();
       }).then(function (sub) {
         state.subscription = sub;
-        box.hidden = false;
         refresh();
-        if (button) {
-          button.addEventListener('click', function () {
+        boxes.forEach(function (box) {
+          var b = button(box);
+          if (!b) return;
+          b.addEventListener('click', function () {
+            // В онбординге кнопка «Готово» ничего не делает: выключить — в настройках.
+            if (state.subscription && box.classList.contains('onb-step')) return;
             if (state.subscription) disable(); else enable();
           });
-        }
+        });
       });
     })
     .catch(function () {
-      box.hidden = true;
+      say('Уведомления сейчас недоступны', true);
     });
 })();

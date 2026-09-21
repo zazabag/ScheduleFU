@@ -1,0 +1,44 @@
+{{define "onboard"}}
+{{/* Три шага, без которых приложение не работает как приложение: группа,
+     уведомления, значок на рабочем столе. Блок липкий и есть на каждом
+     экране, пока все три не сделаны. Шаг 1 знает сервер; 2 и 3 уточняет
+     скрипт (подписка и режим standalone) и прячет сделанное. */}}
+<section class="onb" id="onb" data-pinned="{{if .Onboard.Pinned}}1{{else}}0{{end}}" data-subject="{{.Onboard.Key}}" data-tab="{{.Tab}}">
+  <div class="onb-head">
+    <span class="onb-kicker">Чтобы всё работало</span>
+    <span class="onb-progress"><b class="onb-done">{{if .Onboard.Pinned}}1{{else}}0{{end}}</b> из 3</span>
+    <button class="onb-fold" type="button" aria-label="Свернуть">—</button>
+  </div>
+  <ol class="onb-steps">
+    <li class="onb-step {{if .Onboard.Pinned}}done{{end}}" data-step="pin">
+      <span class="onb-num">1</span>
+      <span class="onb-body">
+        <b>{{if .Onboard.Pinned}}Закреплено: {{.Onboard.Label}}{{else}}Закрепи свою группу{{end}}</b>
+        <i>{{if .Onboard.Pinned}}Расписание, уведомления и календарь — про неё{{else}}Иначе нечего показывать и не о чем предупреждать{{end}}</i>
+      </span>
+      {{if not .Onboard.Pinned}}<a class="onb-btn" href="{{if eq .Tab "schedule"}}#picker{{else}}/groups{{end}}">Выбрать</a>{{end}}
+    </li>
+    <li class="onb-step" data-step="push" {{if not .Onboard.Pinned}}data-locked="1"{{end}}>
+      <span class="onb-num">2</span>
+      <span class="onb-body">
+        <b>Разреши уведомления</b>
+        <i class="onb-push-text">{{if .Onboard.Pinned}}Одно сообщение, когда деканат поменяет расписание{{else}}Сначала закрепи группу{{end}}</i>
+      </span>
+      {{if .Onboard.Pinned}}<button class="onb-btn onb-push-btn" type="button">Разрешить</button>{{end}}
+    </li>
+    <li class="onb-step" data-step="install">
+      <span class="onb-num">3</span>
+      <span class="onb-body">
+        <b>Поставь на рабочий стол</b>
+        <i class="onb-install-text">Откроется как приложение: без адресной строки, с уведомлениями</i>
+      </span>
+      <button class="onb-btn onb-install-btn" type="button">Установить</button>
+    </li>
+  </ol>
+  <div class="onb-howto" hidden>
+    <div class="onb-howto-ios"><b>iPhone:</b> внизу Safari нажми «Поделиться» <span class="onb-glyph">⎙</span> → «На экран „Домой“» → «Добавить». Уведомления включаются уже из установленного приложения.</div>
+    <div class="onb-howto-android"><b>Android:</b> меню браузера <span class="onb-glyph">⋮</span> → «Добавить на главный экран» или «Установить приложение».</div>
+    <div class="onb-howto-desktop"><b>Компьютер:</b> в адресной строке Chrome — значок установки справа.</div>
+  </div>
+</section>
+{{end}}

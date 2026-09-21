@@ -230,3 +230,15 @@
 .stack-badge::before { content: '≡ '; }
 .stack-list { padding-left: 62px; }
 .stack-item-room { color: var(--text-2); font-size: 12px; }
+
+/* ─── онбординг: как карточка «сейчас играет» ─────────────────────────── */
+.onb { border-radius: 16px; background: #fff; color: #0d1330; }
+:root[data-theme="light"] .onb { background: var(--accent); color: #fff; }
+.onb-kicker::before { content: '▶ '; }
+.onb-num { background: var(--accent); color: #fff; }
+:root[data-theme="light"] .onb-num { background: #fff; color: var(--accent); }
+.onb-step { background: rgba(13,19,48,0.06); border-radius: 12px; }
+:root[data-theme="light"] .onb-step { background: rgba(255,255,255,0.16); }
+.onb-btn { border-radius: 999px; background: #0d1330; color: #fff; }
+:root[data-theme="light"] .onb-btn { background: #fff; color: var(--accent); }
+.onb-fold { background: rgba(13,19,48,0.1); }

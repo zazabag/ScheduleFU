@@ -202,3 +202,12 @@
 .stack-badge { border-radius: 0; }
 .stack-list { padding-left: 66px; }
 .stack-item-sub { font-family: var(--font-display); font-size: 15px; }
+
+/* ─── онбординг: жёлтая врезка ────────────────────────────────────────── */
+.onb { border-radius: 0; background: var(--accent); color: var(--accent-ink); box-shadow: none; }
+.onb-kicker { font-family: var(--font-display); font-style: italic; text-transform: none; letter-spacing: 0; font-size: 15px; }
+.onb-step { background: transparent; border-radius: 0; border-top: 1px solid rgba(27,42,128,0.25); padding: 10px 0; }
+.onb-num { background: var(--accent-ink); color: var(--accent); font-family: var(--font-display); border-radius: 0; }
+.onb-body b { font-family: var(--font-display); font-size: 15px; }
+.onb-btn { border-radius: 0; }
+.onb-fold { border-radius: 0; background: rgba(27,42,128,0.15); }

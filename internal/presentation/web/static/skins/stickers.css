@@ -217,3 +217,16 @@
 .stack-badge { background: var(--warn); color: var(--text); transform: rotate(-3deg); }
 .lesson.stack[data-status="now"] .stack-badge { background: #fff; }
 .stack-item { border-top-style: dashed; }
+
+/* ─── онбординг: жёлтая наклейка-напоминалка ──────────────────────────── */
+.onb { background: var(--warn); color: var(--text); border-radius: 14px; transform: rotate(-0.8deg); box-shadow: var(--shadow); }
+.onb-kicker { font-weight: 900; }
+.onb-step { background: #fff; border-radius: 10px; transform: rotate(0.6deg); }
+.onb-step:nth-child(2n) { transform: rotate(-0.6deg); }
+.onb-num { background: var(--accent-2); color: #fff; }
+.onb-btn { background: #ff6a00; color: #fff; border-radius: 8px; }
+.onb-step.done { background: var(--accent); color: var(--accent-ink); opacity: 1; }
+.onb-step.done .onb-num { background: #fff; color: var(--accent-ink); }
+.onb-fold { background: rgba(0,0,0,0.1); }
+.onb-howto { background: #fff; color: var(--text); }
+.onb-glyph { background: var(--surface-2); }

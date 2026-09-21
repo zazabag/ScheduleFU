@@ -178,3 +178,15 @@
 .lesson.stack { box-shadow: var(--shadow), 0 4px 0 -1px var(--surface-2); }
 .stack-badge { background: var(--accent-2); color: #fff; }
 .stack-item-room::before { content: '⚑ '; color: var(--accent); font-size: 10px; }
+
+/* ─── онбординг: указатель маршрута ───────────────────────────────────── */
+.onb { background: var(--surface); color: var(--text); border-radius: var(--radius-lg); box-shadow: var(--shadow); border: 2px solid var(--accent); }
+.onb-kicker { color: var(--accent); }
+.onb-kicker::before { content: '⚑ '; }
+.onb-step { background: var(--surface-2); border-radius: 12px; }
+.onb-num { background: var(--accent); color: #fff; }
+.onb-step[data-step="push"] .onb-num { background: var(--accent-2); }
+.onb-btn { background: var(--accent); color: #fff; border-radius: 999px; }
+.onb-step.done .onb-num { background: var(--ok); }
+.onb-fold { background: var(--surface-2); }
+.onb-howto { background: var(--surface-2); color: var(--text-2); }
