@@ -58,11 +58,20 @@ var months = [...]string{
 	"", "января", "февраля", "марта", "апреля", "мая", "июня",
 	"июля", "августа", "сентября", "октября", "ноября", "декабря",
 }
+
+// monthsNom — именительный падеж для заголовков: «сентябрь», не «сентября».
+var monthsNom = [...]string{
+	"", "январь", "февраль", "март", "апрель", "май", "июнь",
+	"июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь",
+}
 var weekdays = [...]string{"воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"}
 var weekdaysShort = [...]string{"вс", "пн", "вт", "ср", "чт", "пт", "сб"}
 
 // DateRu — «14 сентября».
 func DateRu(t time.Time) string { return strconv.Itoa(t.Day()) + " " + months[int(t.Month())] }
+
+// MonthRu — «сентябрь».
+func MonthRu(t time.Time) string { return monthsNom[int(t.Month())] }
 
 // DateTimeRu — «14 сентября в 15:04».
 func DateTimeRu(t time.Time) string { return DateRu(t) + " в " + t.Format("15:04") }

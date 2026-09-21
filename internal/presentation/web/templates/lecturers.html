@@ -1,82 +1,71 @@
 {{define "content"}}
-<div class="head">
-  <div class="head-row">
+<header class="top">
+  <div class="top-row">
     <div>
-      <h1 class="title">Преподаватели</h1>
-      <p class="subtitle">{{.Subtitle}}</p>
+      <span class="top-kicker">{{.Today}}</span>
+      <h1 class="top-title">Преподаватели</h1>
+      <p class="top-sub">{{.Subtitle}}</p>
     </div>
     <div class="clock">{{.Clock}}</div>
   </div>
-
   <form class="search" method="get" action="/lecturers">
     <input type="search" name="q" value="{{.Query}}" placeholder="Фамилия" autocomplete="off">
     <button type="submit">Найти</button>
   </form>
-</div>
+</header>
 
-<div class="list">
-  {{if .Selected}}
-  <div class="now-card {{if not .InClass}}idle{{end}}">
-    <div class="head-row">
-      <div>
-        <div class="pick-name">{{.Selected.Name}}</div>
-        <div class="pick-meta">{{.Today}}</div>
-      </div>
+<section class="picks">
+{{if .Selected}}
+  <article class="now-card" data-state="{{if .InClass}}now{{else}}idle{{end}}">
+    <div class="now-head">
+      <div><div class="now-name">{{.Selected.Name}}</div><div class="now-date">{{.Today}}</div></div>
       <span class="badge {{if not .InClass}}idle{{end}}">{{if .InClass}}на паре{{else}}вне пар{{end}}</span>
-    </div>
-    <div class="card-actions">
-      <a class="tab" href="/schedule?lecturer={{.Selected.Oid}}">Расписание на неделю</a>
-      <a class="tab on" href="/schedule?lecturer={{.Selected.Oid}}&amp;pin=1">Это моё расписание</a>
     </div>
     {{if .InClass}}
     <div class="now-where">
-      <div>
-        <div class="now-room">{{.NowRoom}}</div>
-        <div class="pick-meta">{{.NowPlace}}</div>
+      <div class="now-room">{{.NowRoom}}</div>
+      <div class="now-what">
+        <div class="now-time">{{.NowTime}}</div>
+        <div class="now-disc">{{.NowWhat}}</div>
+        <div class="now-groups">{{.NowGroups}} · {{.NowPlace}}</div>
       </div>
-      <div>
-        <div class="lesson-kind strong">{{.NowTime}}</div>
-        <div class="room-lesson-what">{{.NowWhat}}</div>
-        <div class="pick-meta">{{.NowGroups}}</div>
+      <div class="hero-timer now-timer" data-state="now" data-now="{{.Clock}}" data-begins="{{.NowBegins}}" data-ends="{{.NowEnds}}" data-progress="{{.NowProgress}}">
+        <svg class="hero-ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-track" cx="60" cy="60" r="52"/><circle class="ring-bar" cx="60" cy="60" r="52" pathLength="100"/></svg>
+        <span class="hero-countdown-label">до конца</span>
+        <span class="hero-countdown">{{.NowRemain}} мин</span>
       </div>
     </div>
     {{else}}
-    <div class="now-where"><span class="lesson-kind">{{.IdleText}}</span></div>
+    <div class="now-where idle"><span class="now-idle">{{.IdleText}}</span></div>
     {{end}}
-  </div>
+    <div class="now-actions">
+      <a class="act" href="/schedule?lecturer={{.Selected.Oid}}">Расписание на неделю</a>
+      {{if .SelectedPinned}}<a class="act on" href="/schedule?unpin=1">Моё ✓</a>{{else}}<a class="act" href="/schedule?lecturer={{.Selected.Oid}}&amp;pin=1">Это моё расписание</a>{{end}}
+    </div>
+  </article>
 
-  {{range .Lessons}}
-  <div class="lesson">
-    <div class="lesson-time">
-      <span class="lesson-from">{{.BeginsAt}}</span>
-      <span class="lesson-to">{{.EndsAt}}</span>
-    </div>
-    <div class="lesson-rail"></div>
-    <div class="lesson-body">
-      <div class="lesson-discipline">{{.Discipline}}</div>
-      <div class="lesson-where">
-        <span class="lesson-room">{{.Room}}</span>
-        <span class="lesson-place">{{.Place}}</span>
-      </div>
-    </div>
-  </div>
+  <ol class="lesson-list">
+    {{range .Lessons}}
+    <li class="lesson" data-status="{{.Status}}" data-index="{{.Index}}">
+      <div class="lesson-time"><span class="lesson-from">{{.BeginsAt}}</span><span class="lesson-to">{{.EndsAt}}</span></div>
+      <div class="lesson-body"><div class="lesson-discipline">{{.Discipline}}</div><div class="lesson-kind">{{.KindOfWork}}{{if .LecturerName}} · {{.LecturerName}}{{end}}</div></div>
+      <div class="lesson-room{{if .LongRoom}} long{{end}}"><span class="lesson-roomnum">{{if .Room}}{{.Room}}{{else}}—{{end}}</span><span class="lesson-place">{{.Place}}</span></div>
+      <div class="lesson-status"><span class="lesson-state">{{.StatusLabel}}</span>{{if .Changed}}<span class="lesson-changed">изменено</span>{{end}}</div>
+    </li>
+    {{else}}
+    <li class="empty"><div class="empty-title">Сегодня пар нет</div></li>
+    {{end}}
+  </ol>
+{{else}}
+  {{if .PinnedOid}}
+  <a class="pick on" href="/lecturers?oid={{.PinnedOid}}"><span class="pick-body"><span class="pick-name">{{.PinnedName}}</span><span class="pick-meta">моё расписание</span></span><span class="pick-mark">✓</span></a>
   {{end}}
-
+  {{range .Found}}
+  <a class="pick" href="/lecturers?q={{$.Query}}&amp;oid={{.Oid}}"><span class="pick-body"><span class="pick-name">{{.Name}}</span></span><span class="pick-mark">›</span></a>
   {{else}}
-    {{range .Found}}
-    <a class="pick" href="/lecturers?q={{$.Query}}&oid={{.Oid}}">
-      <span class="pick-name">{{.Name}}</span>
-    </a>
-    {{else}}
-    <div class="empty">
-      <div class="empty-title">{{if .Query}}Никого не нашлось{{else}}Найдите преподавателя{{end}}</div>
-      <div class="empty-sub">{{if .Query}}Проверьте написание фамилии{{else}}Введите фамилию в поиск{{end}}</div>
-    </div>
-    {{end}}
+  <div class="empty"><div class="empty-title">{{if .Query}}Никого не нашлось{{else}}Найдите преподавателя{{end}}</div><div class="empty-sub">{{if .Query}}Проверьте написание фамилии{{else}}Введите фамилию в поиск{{end}}</div></div>
   {{end}}
-</div>
-
-<div class="note">
-  Данные из открытого расписания вуза. Показывает пары, а не человека: вне пар местонахождение неизвестно.
-</div>
+{{end}}
+</section>
+<footer class="foot"><span class="foot-note">Данные из открытого расписания вуза. Показывает пары, а не человека: вне пар местонахождение неизвестно.</span></footer>
 {{end}}

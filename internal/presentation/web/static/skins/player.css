@@ -1,0 +1,87 @@
+/* Плеер — пара как трек (экран 29). Пластинка, полоса, «далее». */
+:root {
+  --bg: #0d1330; --bg-hero: transparent; --surface: rgba(255,255,255,0.07); --surface-2: rgba(255,255,255,0.14); --line: rgba(255,255,255,0.1);
+  --text: #eef1ff; --text-2: #b9c0e6; --text-3: #7d86b8;
+  --accent: #3b7bff; --accent-ink: #ffffff; --accent-2: #ff8f6a; --ok: #6fdc8c; --warn: #ff8f6a;
+  --past: rgba(255,255,255,0.12); --busy: rgba(255,143,106,0.4);
+  --nav-bg: #0b1029; --nav-line: rgba(255,255,255,0.08); --nav-on: #ffffff;
+  --radius: 12px; --radius-lg: 16px; --font: 'Inter', system-ui, sans-serif;
+}
+:root[data-theme="light"] {
+  --bg: #eef2ff; --surface: #ffffff; --surface-2: #dfe6ff; --line: #d9e0f7;
+  --text: #0d1330; --text-2: #3d4670; --text-3: #7a83ad; --accent: #2f6bff;
+  --past: #d4daf0; --busy: #ffd7c9; --nav-bg: #ffffff; --nav-line: #d9e0f7; --nav-on: #2f6bff;
+}
+:root[data-theme="dark"] body { background: linear-gradient(180deg, #0d1330 0%, #1a2352 100%) fixed; }
+
+.hero { align-items: stretch; gap: 10px; padding-top: 6px; }
+/* Верх плеера: «сейчас идёт» слева, «плейлист „пятница“» справа. */
+.hero-date { justify-content: space-between; align-items: center; }
+.hero-num, .hero-month, .hero-year, .hero-week { display: none; }
+.hero-dow { order: 2; font-size: 12px; font-weight: 500; color: var(--text-2); text-transform: none; }
+.hero-dow::before { content: 'Плейлист «'; }
+.hero-dow::after { content: '»'; }
+.hero-date::before { content: 'Сейчас идёт'; order: 1; font-size: 12px; color: var(--text-2); }
+.hero[data-state="before"] .hero-date::before { content: 'Скоро'; }
+.hero[data-state="between"] .hero-date::before { content: 'Перерыв'; }
+.hero[data-state="after"] .hero-date::before { content: 'Плейлист окончен'; }
+.hero[data-state="none"] .hero-date::before { content: 'Тишина'; }
+.hero[data-state="day"] .hero-date::before { content: 'Плейлист дня'; }
+
+.hero-now { grid-template-columns: 1fr; grid-template-areas: "timer" "lesson" "meta" "progress" "time" "controls"; justify-items: stretch; row-gap: 4px; }
+/* Пластинка: бороздки — концентрические кольца, этикетка — синий круг. */
+.hero-timer { display: grid; width: 230px; height: 230px; justify-self: center; margin: 6px 0 14px; border-radius: 999px;
+  background: repeating-radial-gradient(circle at center, #0a0e24 0 2px, #141a3d 2px 4px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45), inset 0 0 0 2px rgba(255,255,255,0.05); }
+:root[data-theme="light"] .hero-timer { background: repeating-radial-gradient(circle at center, #1a2050 0 2px, #2a3170 2px 4px); }
+.hero-timer::before { content: ''; position: absolute; left: 50%; top: 50%; width: 82px; height: 82px; border-radius: 999px; background: var(--accent); transform: translate(-50%, -50%); box-shadow: 0 0 0 6px rgba(59,123,255,0.25); }
+.hero-ring { display: none; }
+.hero-countdown-label { display: none; }
+.hero-countdown { font-size: 0; }
+.hero-countdown::before { content: ''; display: block; width: 24px; height: 18px; border-radius: 3px; background: #fff; margin: 0 auto; }
+.hero[data-state="now"] .hero-timer { animation: spin 12s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.hero[data-state="now"] .hero-countdown::before { animation: spin 12s linear infinite reverse; }
+.hero-label { display: none; }
+.hero-lesson { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.hero-lesson::after { content: '♥'; float: right; color: #ff6b8b; font-size: 18px; }
+.hero-meta { font-size: 13px; color: var(--text-2); }
+.hero-room { display: none; }
+.hero-progress { display: block; margin-top: 12px; margin-bottom: 14px; }
+.hero-progress-left { display: block; }
+.hero[data-state="now"] .hero-time { margin-top: 0; }
+.hero-progress-bar { background: #fff; }
+.hero-progress-knob { background: #fff; border-color: #fff; }
+:root[data-theme="light"] .hero-progress-bar, :root[data-theme="light"] .hero-progress-knob { background: var(--accent); border-color: var(--accent); }
+.hero-time { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-3); }
+.hero-time .hero-to::before { content: none; }
+.hero-controls { display: flex; }
+.ctl-main { background: #fff; color: #0d1330; }
+:root[data-theme="light"] .ctl-main { background: var(--accent); color: #fff; }
+.hero[data-state="none"] .hero-progress, .hero[data-state="none"] .hero-time { visibility: hidden; }
+.hero-sentence, .hero-next, .hero-stats { display: none; }
+.hero-mood { display: none; }
+
+/* «Далее». */
+.lessons::before { content: 'Далее'; display: block; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-3); padding: 6px 0 8px; }
+.lessons-head { display: none; }
+.lesson-list { gap: 0; }
+.lesson { grid-template-columns: auto 1fr auto; grid-template-areas: "time body status"; padding: 11px 0; background: transparent; border-radius: 0; border-top: 1px solid var(--line); }
+.lesson-time { flex-direction: row; gap: 0; }
+.lesson-from { font-size: 13px; font-weight: 600; }
+.lesson-from::after { content: ' ·'; color: var(--text-3); }
+.lesson-to { display: none; }
+.lesson-discipline { font-size: 13px; font-weight: 600; }
+.lesson-kind { display: none; }
+.lesson-room { display: none; }
+.lesson-status { text-transform: none; letter-spacing: 0; font-size: 11px; }
+.lesson[data-status="past"] .lesson-discipline { text-decoration: line-through; }
+.lesson[data-status="past"] .lesson-state { display: none; }
+.lesson[data-status="now"] .lesson-state { color: #fff; }
+.lesson[data-status="next"] .lesson-state { color: var(--accent-2); }
+.lesson-changed { color: var(--accent-2); }
+.lesson-changed::before { content: 'кавер · '; }
+
+.day.on { background: #fff; color: #0d1330; }
+:root[data-theme="light"] .day.on { background: var(--accent); color: #fff; }
+.now-card { background: var(--surface); }

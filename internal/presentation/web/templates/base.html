@@ -1,27 +1,45 @@
 {{define "base"}}<!doctype html>
-<html lang="ru">
+<html lang="ru" data-skin="{{.Look.Skin.ID}}" data-theme="{{.Look.Resolved}}" data-theme-mode="{{.Look.Theme}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f1115">
+<meta name="theme-color" content="{{if eq .Look.Resolved "dark"}}#0f1115{{else}}#ffffff{{end}}">
 <title>{{.Title}} — ScheduleFU</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="{{asset "style.css"}}">
+{{if .Look.Skin.Fonts}}<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{.Look.Skin.Fonts}}&display=swap">{{end}}
+<link rel="stylesheet" href="{{asset "base.css"}}">
+<link rel="stylesheet" href="{{skinCSS .Look.Skin.ID}}">
 <link rel="manifest" href="/static/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script src="{{asset "theme.js"}}"></script>
 </head>
-<body>
-<div class="shell">
+<body class="page-{{.Tab}}">
+<div class="app">
+<main class="screen">
 {{template "content" .}}
+</main>
 </div>
-<nav class="nav">
-  <a href="/" class="{{if eq .Tab "rooms"}}on{{end}}">Аудитории</a>
-  <a href="/schedule" class="{{if eq .Tab "schedule"}}on{{end}}">Расписание</a>
-  <a href="/lecturers" class="{{if eq .Tab "lecturers"}}on{{end}}">Преподаватели</a>
+<nav class="nav" aria-label="Разделы">
+  <a href="/schedule" class="nav-item {{if eq .Tab "schedule"}}on{{end}}">
+    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+    <span class="nav-label">Расписание</span>
+  </a>
+  <a href="/rooms" class="nav-item {{if eq .Tab "rooms"}}on{{end}}">
+    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h8v18M14 3l6 2v16"/><circle cx="11" cy="12" r="1"/></svg>
+    <span class="nav-label">Аудитории</span>
+  </a>
+  <a href="/lecturers" class="nav-item {{if eq .Tab "lecturers"}}on{{end}}">
+    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+    <span class="nav-label">Преподаватели</span>
+  </a>
+  <a href="/settings" class="nav-item {{if eq .Tab "settings"}}on{{end}}">
+    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.5"/><circle cx="9" cy="17" r="2.5"/></svg>
+    <span class="nav-label">Настройки</span>
+  </a>
 </nav>
+<script src="{{asset "app.js"}}" defer></script>
 </body>
 </html>{{end}}

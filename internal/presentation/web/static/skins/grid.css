@@ -1,0 +1,63 @@
+/* Сетка — редакционная типографика (экран 23).
+   Белая страница, гигантская дата, пары таблицей с колонками. */
+:root {
+  --bg: #ffffff; --surface: #f5f5f6; --surface-2: #ebebee; --line: #e6e6ea;
+  --text: #111111; --text-2: #4a4a52; --text-3: #8a8a93;
+  --accent: #2f6bff; --accent-ink: #fff; --accent-2: #ff6a2a; --ok: #2fb56a; --warn: #ff6a2a;
+  --past: #dcdce1; --busy: #ffd9c2; --radius: 8px; --radius-lg: 12px;
+  --font: 'Inter', system-ui, sans-serif;
+}
+:root[data-theme="dark"] {
+  --bg: #0f0f10; --surface: #1a1a1d; --surface-2: #26262b; --line: #26262b;
+  --text: #f2f2f2; --text-2: #b8b8c0; --text-3: #7d7d87;
+  --accent: #5b8dff; --past: #2c2c33; --busy: #4a3626;
+}
+
+.top-title { font-weight: 800; }
+.top-schedule { border-bottom: 1px solid var(--line); }
+
+/* Дата: число во всю ширину, рядом столбик «пятница / сентябрь / 2026». */
+.hero { padding-top: 14px; gap: 14px; }
+.hero-date { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "num dow" "num month" "num year"; column-gap: 18px; row-gap: 0; align-items: start; }
+.hero-num { grid-area: num; font-size: 132px; font-weight: 900; letter-spacing: -0.07em; line-height: 0.85; }
+.hero-dow { grid-area: dow; font-size: 15px; font-weight: 600; margin-top: 12px; }
+.hero-month { grid-area: month; font-size: 14px; color: var(--text); }
+.hero-year { grid-area: year; font-size: 14px; color: var(--text-3); }
+.hero-year::after { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 999px; background: var(--accent); margin-left: 10px; vertical-align: middle; }
+.hero-week { display: none; }
+
+.hero-now { grid-template-areas: "label label" "timer timer"; }
+.hero-label { display: none; }
+.hero-lesson, .hero-meta, .hero-time, .hero-room { display: none; }
+.hero-timer { display: none; }
+.hero-sentence { font-size: 22px; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
+.hero-next { display: none; }
+.hero-stats { gap: 22px; padding-top: 6px; }
+.stat b { font-size: 30px; font-weight: 900; letter-spacing: -0.04em; }
+.stat i { font-size: 10px; color: var(--text-3); }
+.hero[data-state="none"] .hero-stats { display: none; }
+
+/* Таблица пар. */
+.lessons-head { display: grid; grid-template-columns: 52px 1fr 52px 76px; gap: 12px; padding: 0 0 6px; border-bottom: 2px solid var(--text); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); }
+.lessons-head span:nth-child(3), .lessons-head span:nth-child(4) { text-align: right; }
+.lesson-list { gap: 0; }
+.lesson { grid-template-columns: 52px 1fr 52px 76px; grid-template-areas: "time body room status"; column-gap: 12px; padding: 12px 0; border-radius: 0; background: transparent; border-bottom: 1px solid var(--line); }
+.lesson-from { font-size: 15px; font-weight: 600; }
+.lesson-to { display: none; }
+.lesson-discipline { font-size: 15px; font-weight: 600; }
+.lesson-place { display: none; }
+.lesson-roomnum { font-weight: 600; }
+.lesson-status { font-size: 11px; letter-spacing: 0; text-transform: none; font-weight: 600; }
+.lesson[data-status="past"] { opacity: 1; color: var(--text-3); }
+.lesson[data-status="past"] .lesson-discipline { color: var(--text-3); font-weight: 500; }
+.lesson[data-status="now"] .lesson-state { color: var(--accent); }
+.lesson[data-status="next"] .lesson-state { color: var(--text-2); }
+.lesson-changed { color: var(--accent-2); }
+
+.day { border-radius: 6px; }
+.act, .tab, .chip, .weeknav-btn, .weeknav-today { border-radius: 6px; }
+.pick, .room, .now-card, .setting-group { border-radius: var(--radius-lg); }
+.nav { border-top-width: 2px; border-top-color: var(--text); }
+:root[data-theme="dark"] .nav { border-top-color: var(--line); }
+.nav-item.on { color: var(--text); }
+:root[data-theme="dark"] .nav-item.on { color: var(--accent); }

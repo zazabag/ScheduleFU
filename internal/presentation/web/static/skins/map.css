@@ -1,0 +1,69 @@
+/* Карта дня — маршрут с остановками (экран 20). Зелёная карта, дорога, пины. */
+:root {
+  --bg: #e4f2d3; --bg-hero: transparent; --surface: #ffffff; --surface-2: #eef6e4; --line: #d3e6bf;
+  --text: #1f3b1a; --text-2: #4d6a47; --text-3: #7f9a78;
+  --accent: #57b03a; --accent-ink: #ffffff; --accent-2: #2f8cff; --ok: #57b03a; --warn: #ff9f2e;
+  --past: #d5e3c8; --busy: #ffe0b3; --nav-bg: #ffffff; --nav-line: #d3e6bf; --nav-text: #7f9a78; --nav-on: #3a8f22;
+  --radius: 14px; --radius-lg: 20px; --font: 'Nunito', system-ui, sans-serif; --shadow: 0 6px 18px rgba(40,80,20,0.12);
+}
+:root[data-theme="dark"] {
+  --bg: #10200e; --surface: #1b2c18; --surface-2: #243a20; --line: #2c4427;
+  --text: #e8f3e2; --text-2: #b8ccb0; --text-3: #7f9a78; --accent: #6fcf52; --accent-ink: #0d1f0a;
+  --past: #2c4427; --busy: #4d3d1b; --nav-bg: #1b2c18; --nav-line: #2c4427; --nav-on: #8fe070;
+}
+.top-title { font-weight: 800; }
+
+.hero { position: relative; gap: 0; padding: 0 0 14px; }
+.hero::before { content: ''; position: absolute; inset: 0; z-index: 0;
+  background: linear-gradient(180deg, #cfe9ff 0%, #d9efc1 30%, #cfe7b3 100%); }
+:root[data-theme="dark"] .hero::before { background: linear-gradient(180deg, #14263a 0%, #17301a 40%, #10200e 100%); }
+.hero > * { position: relative; z-index: 1; }
+.hero-date { padding: 8px var(--pad) 0; gap: 4px; }
+.hero-num, .hero-year, .hero-week { display: none; }
+.hero-date::before { content: 'Маршрут: '; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+.hero-dow { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; text-transform: lowercase; }
+.hero-month { display: none; }
+.hero-stats { display: none; }
+.hero-stops { display: block; order: 2; padding: 0 var(--pad); font-size: 12px; font-weight: 600; color: var(--text-2); }
+.hero-date { order: 1; }
+.hero-route { order: 3; }
+.hero-now { order: 4; }
+.hero-next { order: 5; }
+.hero-mood { display: none; }
+
+.hero-route { display: block; margin-top: 6px; }
+.route-road { fill: none; stroke: #fff; stroke-width: 22; stroke-linecap: round; }
+:root[data-theme="dark"] .route-road { stroke: #2a4326; }
+.route-line { fill: none; stroke: var(--text-3); stroke-width: 3; stroke-dasharray: 10 12; stroke-linecap: round; }
+.route-halo { fill: var(--accent); opacity: 0; }
+.route-dot { fill: #fff; stroke: var(--text-3); stroke-width: 4; }
+.route-title { font-size: 15px; font-weight: 800; fill: var(--text); }
+.route-sub { font-size: 11px; fill: var(--text-2); font-weight: 600; }
+.route-pin[data-status="past"] .route-title, .route-pin[data-status="past"] .route-sub { fill: var(--text-3); }
+.route-pin[data-status="now"] .route-halo { opacity: 0.25; }
+.route-pin[data-status="now"] .route-dot { fill: var(--accent); stroke: #fff; }
+.route-pin[data-status="next"] .route-dot { fill: var(--accent-2); stroke: #fff; }
+
+/* Нижний лист: текущая остановка и что дальше. */
+.hero-now { margin: 6px var(--pad) 0; background: var(--surface); border-radius: var(--radius-lg); padding: 14px 16px; box-shadow: var(--shadow); grid-template-columns: 1fr; grid-template-areas: "label" "lesson" "meta"; row-gap: 2px; color: var(--text); }
+.hero-now::before { content: ''; width: 36px; height: 4px; border-radius: 999px; background: var(--line); margin: 0 auto 8px; grid-column: 1; }
+.hero-label { color: var(--accent); }
+.hero[data-state="between"] .hero-label, .hero[data-state="before"] .hero-label { color: var(--accent-2); }
+.hero-lesson { font-size: 18px; font-weight: 800; }
+.hero-meta { font-size: 12px; color: var(--text-2); }
+.hero-time, .hero-room, .hero-timer { display: none; }
+.hero-next { display: block; margin: 8px var(--pad) 0; padding: 0 16px; font-size: 12px; }
+.hero-next-label { color: var(--accent-2); }
+.hero-sentence { display: none; }
+.hero[data-state="none"] .hero-now { display: none; }
+
+.lessons { padding-top: 12px; }
+.lesson { background: var(--surface); box-shadow: var(--shadow); }
+.lesson-from { color: var(--accent); }
+.lesson[data-status="next"] .lesson-from { color: var(--accent-2); }
+.lesson[data-status="next"] .lesson-state { color: var(--accent-2); }
+.lesson[data-status="past"] .lesson-from { color: var(--text-3); }
+.lesson-changed { color: var(--warn); }
+.pick, .room, .now-card, .setting-group { box-shadow: var(--shadow); }
+.btn { border-radius: 999px; }
+.act, .tab, .chip, .day, .weeknav-btn, .weeknav-today { border-radius: 999px; }

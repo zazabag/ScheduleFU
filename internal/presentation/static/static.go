@@ -36,7 +36,6 @@ type Options struct {
 	APIBase string
 	// BuildingLabel — короткая подпись корпуса; живёт у источника.
 	BuildingLabel func(string) string
-	StyleCSS      []byte
 }
 
 // Короткие ключи: файл дня грузится на телефоне, каждое имя поля
@@ -209,9 +208,6 @@ func Build(ctx context.Context, repo schedule.Repository, clk *clock.Clock, o Op
 		if err := os.WriteFile(filepath.Join(o.OutDir, e.Name()), body, 0o644); err != nil {
 			return 0, err
 		}
-	}
-	if err := os.WriteFile(filepath.Join(o.OutDir, "style.css"), o.StyleCSS, 0o644); err != nil {
-		return 0, err
 	}
 	if err := writeIcons(o.OutDir); err != nil {
 		return 0, err

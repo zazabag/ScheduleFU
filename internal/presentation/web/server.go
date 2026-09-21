@@ -27,9 +27,6 @@ var templateFS embed.FS
 //go:embed static/*
 var staticFS embed.FS
 
-// StaticFS отдаёт встроенные файлы: тем же стилем пользуется сборка Pages.
-func StaticFS() embed.FS { return staticFS }
-
 // Deps — что нужно страницам.
 type Deps struct {
 	Schedule *schedule.Service
@@ -38,6 +35,9 @@ type Deps struct {
 	// SiteLabel и BuildingLabel — короткие подписи; живут у источника.
 	BuildingLabel func(building string) string
 	Calendar      func(w http.ResponseWriter, r *http.Request) // ручка export
+	// Dev включает параметр ?now=ЧЧ:ММ на экране дня: иначе состояние «пара
+	// идёт» можно увидеть только дождавшись пары. В бою параметр игнорируется.
+	Dev bool
 }
 
 // Server — страницы.
@@ -49,9 +49,9 @@ type Server struct {
 // New разбирает шаблоны: каждая страница вместе с базовым, потому что все
 // определяют блок content и в одном наборе последний затёр бы остальные.
 func New(d Deps) (*Server, error) {
-	funcs := template.FuncMap{"asset": AssetURL}
+	funcs := template.FuncMap{"asset": AssetURL, "skinCSS": func(id string) string { return AssetURL("skins/" + id + ".css") }}
 	pages := map[string]*template.Template{}
-	for _, name := range []string{"rooms", "schedule", "groups", "lecturers"} {
+	for _, name := range []string{"rooms", "schedule", "lecturers", "settings"} {
 		t, err := template.New("base").Funcs(funcs).ParseFS(templateFS, "templates/base.html", "templates/"+name+".html")
 		if err != nil {
 			return nil, fmt.Errorf("web: шаблон %s: %w", name, err)
@@ -65,17 +65,29 @@ func New(d Deps) (*Server, error) {
 func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", staticHandler())
-	mux.HandleFunc("GET /{$}", s.rooms)
+	// Первый раздел — расписание. Старые ссылки на аудитории вели на корень
+	// с параметром site: они переезжают на /rooms, а не ломаются.
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.RawQuery != "" && r.URL.Query().Get("site") != "" {
+			http.Redirect(w, r, "/rooms?"+r.URL.RawQuery, http.StatusMovedPermanently)
+			return
+		}
+		s.schedule(w, r)
+	})
 	mux.HandleFunc("GET /schedule", s.schedule)
+	mux.HandleFunc("GET /rooms", s.rooms)
 	mux.HandleFunc("GET /groups", s.groups)
 	mux.HandleFunc("GET /lecturers", s.lecturers)
+	mux.HandleFunc("GET /settings", s.settings)
+	mux.HandleFunc("POST /settings", s.settings)
 	if s.d.Calendar != nil {
 		mux.HandleFunc("GET /calendar.ics", s.d.Calendar)
 	}
 	return mux
 }
 
-func (s *Server) render(w http.ResponseWriter, page string, data map[string]any) {
+func (s *Server) render(w http.ResponseWriter, r *http.Request, page string, data map[string]any) {
+	data["Look"] = lookFrom(r)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	// Страницы отвечают «что свободно прямо сейчас»: ответ из кэша через
 	// минуту уже врёт.

@@ -1,0 +1,92 @@
+/* Стикеры — коллаж в духе Aviasales (экран 19). Оранжевое поле, наклейки. */
+:root {
+  --bg: #ff8a2e; --bg-hero: transparent; --surface: #ffffff; --surface-2: #fff1e4; --line: #ffd5b3;
+  --text: #1a1208; --text-2: #5a4632; --text-3: #9a7d62;
+  --accent: #7bd142; --accent-ink: #12300a; --accent-2: #4aa3ff; --ok: #7bd142; --warn: #ffe36a; --danger: #ff5c5c;
+  --past: #eadfd3; --busy: #ffd08a; --hero-text: #ffffff; --hero-text-2: rgba(255,255,255,0.85);
+  --nav-bg: #ffffff; --nav-line: #ffd5b3; --nav-text: #9a7d62; --nav-on: #ff6a00;
+  --radius: 14px; --radius-lg: 18px; --font: 'Rubik', system-ui, sans-serif;
+  --shadow: 0 8px 20px rgba(80,30,0,0.18);
+}
+:root[data-theme="dark"] {
+  --bg: #3a1d08; --surface: #2a2118; --surface-2: #3a2e22; --line: #4a3a2c;
+  --text: #fbeee0; --text-2: #d9c4ad; --text-3: #a68c73; --past: #4a3a2c; --busy: #6a4a1c;
+  --nav-bg: #2a2118; --nav-line: #4a3a2c; --nav-text: #a68c73; --nav-on: #ffb36a;
+}
+.top-title, .hero-dow { text-transform: uppercase; letter-spacing: -0.01em; }
+.top { color: #fff; }
+.top-kicker, .top-sub { color: rgba(255,255,255,0.8); }
+.top-title { color: #fff; font-weight: 900; }
+.clock { background: #fff; color: #ff6a00; }
+.act { background: rgba(255,255,255,0.22); color: #fff; }
+.act.on { background: #fff; color: #ff6a00; }
+.weeknav-btn, .weeknav-today { background: rgba(255,255,255,0.22); color: #fff; }
+.weeknav-today.on { color: #fff; text-decoration: underline; }
+.weeknav-label { color: rgba(255,255,255,0.85); }
+.day { background: rgba(255,255,255,0.2); color: #fff; }
+.day.has .day-dot { background: #fff; }
+.day.on { background: #fff; color: #ff6a00; }
+.day.on.has .day-dot { background: #ff6a00; }
+.tab { background: rgba(255,255,255,0.22); color: #fff; }
+.tab.on { background: #fff; color: #ff6a00; }
+.chip { background: rgba(255,255,255,0.22); color: #fff; }
+.chip.on { background: #fff; color: #ff6a00; }
+.chips-label { color: rgba(255,255,255,0.8); }
+.search input { background: #fff; border-color: #fff; }
+.search button { background: #fff; color: #ff6a00; }
+
+/* Заголовок: «ПЯТНИЦА 19/09». */
+.hero { gap: 14px; padding-top: 6px; }
+.hero-date { flex-direction: column; align-items: flex-start; gap: 0; }
+.hero-dow { order: -1; font-size: 40px; font-weight: 900; line-height: 1; }
+.hero-num { font-size: 40px; font-weight: 900; letter-spacing: -0.02em; line-height: 1; }
+.hero-num::after { content: '/' attr(data-mm); }
+.hero-month, .hero-year, .hero-week { display: none; }
+
+/* Текущая пара — зелёная наклейка, повёрнутая на пару градусов. */
+.hero-now { grid-template-columns: 1fr; grid-template-areas: "label" "lesson" "meta"; row-gap: 2px; background: var(--accent); color: var(--accent-ink); padding: 14px 16px; border-radius: 12px; transform: rotate(-2deg); box-shadow: var(--shadow); width: fit-content; max-width: 88%; }
+.hero-label { color: var(--accent-ink); font-size: 10px; letter-spacing: 0.12em; }
+.hero-lesson { font-size: 26px; font-weight: 900; }
+.hero-meta { color: var(--accent-ink); font-size: 12px; }
+.hero-time, .hero-room, .hero-timer { display: none; }
+.hero[data-state="between"] .hero-now, .hero[data-state="before"] .hero-now { background: var(--accent-2); color: #fff; transform: rotate(1.5deg); }
+.hero[data-state="between"] .hero-label, .hero[data-state="before"] .hero-label, .hero[data-state="between"] .hero-meta, .hero[data-state="before"] .hero-meta { color: #fff; }
+.hero[data-state="after"] .hero-now, .hero[data-state="none"] .hero-now, .hero[data-state="day"] .hero-now { background: #fff; color: var(--text); transform: rotate(1deg); }
+.hero[data-state="after"] .hero-label, .hero[data-state="none"] .hero-label, .hero[data-state="day"] .hero-label { color: #ff6a00; }
+.hero-sentence { display: none; }
+.hero-next { display: none; }
+/* Цифры — круглые наклейки. */
+.hero-stats { gap: 10px; flex-wrap: wrap; }
+.stat { width: 68px; height: 68px; border-radius: 999px; background: var(--warn); color: var(--text); align-items: center; justify-content: center; box-shadow: var(--shadow); transform: rotate(4deg); }
+.stat:nth-child(2) { background: #fff; transform: rotate(-5deg); }
+.stat:nth-child(3) { background: var(--accent-2); color: #fff; transform: rotate(3deg); }
+.stat:nth-child(4) { background: #fff; transform: rotate(-3deg); }
+.stat b { font-size: 18px; line-height: 1; }
+.stat i { font-size: 8px; letter-spacing: 0.04em; text-transform: lowercase; color: inherit; opacity: 0.8; }
+.stat:nth-child(3) i { color: #fff; }
+
+/* Пары — стопка наклеек: белые, прошедшие серые, текущая зелёная. */
+.lessons { padding-top: 6px; }
+.lesson-list { gap: 12px; padding: 4px 6px 10px; }
+.lesson { border-radius: 12px; box-shadow: var(--shadow); background: #fff; transform: rotate(-1.2deg); }
+.lesson:nth-child(2n) { transform: rotate(1.4deg); }
+.lesson:nth-child(3n) { transform: rotate(-0.6deg); }
+.lesson[data-status="past"] { opacity: 1; background: var(--past); color: var(--text-3); }
+.lesson[data-status="past"] .lesson-discipline { text-decoration: line-through; }
+.lesson[data-status="now"] { background: var(--accent); color: var(--accent-ink); }
+.lesson[data-status="now"] .lesson-kind, .lesson[data-status="now"] .lesson-to, .lesson[data-status="now"] .lesson-place, .lesson[data-status="now"] .lesson-state { color: var(--accent-ink); }
+.lesson[data-status="next"] { background: var(--accent-2); color: #fff; }
+.lesson[data-status="next"] .lesson-kind, .lesson[data-status="next"] .lesson-to, .lesson[data-status="next"] .lesson-place, .lesson[data-status="next"] .lesson-state { color: rgba(255,255,255,0.85); }
+.lesson-discipline { font-size: 16px; font-weight: 800; }
+.lesson-changed { background: var(--warn); color: var(--text); padding: 2px 7px; border-radius: 6px; transform: rotate(-6deg); display: inline-block; }
+:root[data-theme="dark"] .lesson { background: var(--surface); }
+
+.pick, .room, .now-card, .setting-group { box-shadow: var(--shadow); }
+.picks-count, .legend, .foot { color: rgba(255,255,255,0.85); }
+.foot-link { color: #fff; text-decoration: underline; }
+.empty-title, .empty-sub { color: #fff; }
+.pick-mark { color: #ff6a00; }
+.room-until { color: #3a9a12; }
+.badge { background: var(--accent); color: var(--accent-ink); }
+.btn { background: #ff6a00; color: #fff; }
+.skin-card { background: var(--surface-2); }

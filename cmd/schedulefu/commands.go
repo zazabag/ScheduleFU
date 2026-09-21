@@ -114,7 +114,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger, _ any) erro
 		_, _ = w.Write([]byte(body))
 	}
 
-	site, err := web.New(web.Deps{Schedule: a.schedule, Notify: a.notify, Clock: a.clock, BuildingLabel: buildingLabel, Calendar: calendar})
+	site, err := web.New(web.Deps{Schedule: a.schedule, Notify: a.notify, Clock: a.clock, BuildingLabel: buildingLabel, Calendar: calendar, Dev: cfg.Stand.Env == "dev"})
 	if err != nil {
 		return err
 	}
@@ -294,8 +294,7 @@ func buildStatic(ctx context.Context, cfg config.Config, log *slog.Logger, _ any
 		return err
 	}
 	defer a.close()
-	css, _ := web.StaticFS().ReadFile("static/style.css")
-	n, err := static.Build(ctx, a.schedule.Repo(), a.clock, static.Options{OutDir: cfg.Static.OutDir, APIBase: cfg.Static.APIBase, BuildingLabel: buildingLabel, StyleCSS: css})
+	n, err := static.Build(ctx, a.schedule.Repo(), a.clock, static.Options{OutDir: cfg.Static.OutDir, APIBase: cfg.Static.APIBase, BuildingLabel: buildingLabel})
 	if err != nil {
 		return err
 	}

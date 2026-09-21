@@ -1,75 +1,159 @@
 {{define "content"}}
-<div class="head">
-  <div class="head-row">
+{{if .Picker}}
+<header class="top">
+  <div class="top-row">
     <div>
-      <h1 class="title">{{if .Group}}{{.Group}}{{else}}Расписание{{end}}</h1>
-      <p class="subtitle">{{if .IsLecturer}}преподаватель · {{end}}{{.Subtitle}}</p>
+      <span class="top-kicker">расписание</span>
+      <h1 class="top-title">Твоя группа</h1>
+      <p class="top-sub">Запомним в браузере — без логина и пароля. Преподаватели — в своём разделе.</p>
     </div>
-    {{if .Group}}
-    <div class="head-actions">
-      {{if .Pinned}}
-        <a class="tab" href="/schedule?unpin=1" title="Открепить">Закреплено ✓</a>
-      {{else}}
-        <a class="tab on" href="{{.PinHref}}">Закрепить</a>
-      {{end}}
-      <a class="tab" href="/calendar.ics?{{.SubjectQuery}}" title="Подписаться в календаре">Календарь</a>
-      <a class="tab" href="{{.ChangeHref}}">Сменить</a>
-    </div>
-    {{end}}
   </div>
-
-  {{if .Group}}
-  <div class="days">
+  <form class="search" method="get" action="{{.Action}}">
+    <input type="search" name="q" value="{{.Query}}" placeholder="Например, ПИ24-1" autocomplete="off" autofocus>
+    <button type="submit">Найти</button>
+  </form>
+  <div class="chips">
+    <span class="chips-label">курс</span>
+    {{range .Courses}}<a class="chip {{if .On}}on{{end}}" href="{{.Href}}">{{.Label}}</a>{{end}}
+  </div>
+</header>
+<section class="picks">
+  <div class="picks-count">{{.ResultLabel}}</div>
+  {{range .Groups}}
+  <a class="pick {{if .On}}on{{end}}" href="/schedule?group={{.NameEscaped}}&amp;pin=1">
+    <span class="pick-body"><span class="pick-name">{{.Name}}</span><span class="pick-meta">{{.Meta}}</span></span>
+    <span class="pick-mark">{{if .On}}✓{{else}}›{{end}}</span>
+  </a>
+  {{else}}
+  <div class="empty"><div class="empty-title">Ничего не нашлось</div><div class="empty-sub">Проверьте написание — например, ПИ24-1</div></div>
+  {{end}}
+</section>
+{{else}}
+<header class="top top-schedule">
+  <div class="top-row">
+    <div class="top-subject">
+      <span class="top-kicker">{{if .IsLecturer}}преподаватель{{else}}группа{{end}} · нед. {{.Date.Week}}</span>
+      <h1 class="top-title">{{.Group}}</h1>
+    </div>
+    <div class="top-actions">
+      {{if .Pinned}}<a class="act on" href="/schedule?unpin=1" title="Открепить">Моё ✓</a>{{else}}<a class="act" href="{{.PinHref}}">Закрепить</a>{{end}}
+      <a class="act" href="{{.ChangeHref}}">Сменить</a>
+    </div>
+  </div>
+  <nav class="weeknav" aria-label="Неделя">
+    <a class="weeknav-btn" href="{{.PrevWeekHref}}" aria-label="Предыдущая неделя">‹</a>
+    <a class="weeknav-today {{if .Date.IsToday}}on{{end}}" href="{{.TodayHref}}">сегодня</a>
+    <span class="weeknav-label">{{.Date.Range}}</span>
+    <a class="weeknav-btn" href="{{.NextWeekHref}}" aria-label="Следующая неделя">›</a>
+  </nav>
+  <div class="days" data-prev="{{.PrevDayHref}}" data-next="{{.NextDayHref}}">
     {{range .Days}}
-    <a class="day {{if .On}}on{{end}} {{if .Has}}has{{end}}" href="{{.Href}}">
+    <a class="day {{if .On}}on{{end}} {{if .Has}}has{{end}} {{if .Today}}today{{end}}" href="{{.Href}}" title="{{.Count}} пар">
       <span class="day-dow">{{.Dow}}</span>
       <span class="day-num">{{.Num}}</span>
       <span class="day-dot"></span>
     </a>
     {{end}}
   </div>
-  {{end}}
-</div>
+</header>
 
-<div class="list">
-  {{if not .Group}}
-    <div class="empty">
-      <div class="empty-title">Расписание не выбрано</div>
-      <div class="empty-sub"><a href="/groups">Выбрать группу</a> · <a href="/lecturers">выбрать преподавателя</a></div>
+<section class="hero" data-state="{{.Hero.State}}">
+  <div class="hero-date">
+    <span class="hero-num" data-mm="{{.Date.MM}}">{{.Date.Num}}</span>
+    <span class="hero-dow">{{.Date.Dow}}</span>
+    <span class="hero-month" data-year="{{.Date.Year}}" data-count="{{.Hero.CountLabel}}">{{.Date.Month}}</span>
+    <span class="hero-year">{{.Date.Year}}</span>
+    <span class="hero-week">нед. {{.Date.Week}}</span>
+    <span class="hero-dateline">{{.Date.Label}}</span>
+  </div>
+
+  <div class="hero-now">
+    <span class="hero-label">{{.Hero.Label}}</span>
+    {{with .Hero.Lesson}}
+    <span class="hero-lesson">{{.Discipline}}</span>
+    <span class="hero-room">{{if .Room}}{{.Room}}{{else}}—{{end}}</span>
+    <span class="hero-meta">{{if .Room}}ауд. {{.Room}}{{end}}{{if .LecturerName}} · {{.LecturerName}}{{end}}</span>
+    <span class="hero-time"><span class="hero-from">{{.BeginsAt}}</span><span class="hero-to">{{.EndsAt}}</span></span>
+    {{end}}
+    <div class="hero-timer" data-state="{{.Hero.State}}" data-now="{{.Clock}}"{{with .Hero.Lesson}} data-begins="{{.BeginsAt}}" data-ends="{{.EndsAt}}"{{end}}{{with .Hero.Next}} data-next="{{.BeginsAt}}"{{end}} data-progress="{{.Hero.Progress}}">
+      <svg class="hero-ring" viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="ring-track" cx="60" cy="60" r="52"/>
+        <circle class="ring-bar" cx="60" cy="60" r="52" pathLength="100"/>
+      </svg>
+      <span class="hero-countdown-label">{{if eq .Hero.State "now"}}до конца{{else if eq .Hero.State "between"}}до пары{{else if eq .Hero.State "before"}}до начала{{else}}&nbsp;{{end}}</span>
+      <span class="hero-countdown">{{if .Hero.RemainMin}}{{.Hero.RemainMin}} мин{{else}}—{{end}}</span>
     </div>
-  {{else}}
+    <div class="hero-progress" aria-hidden="true"><span class="hero-progress-bar"></span><span class="hero-progress-knob"></span><span class="hero-progress-left">−{{.Hero.RemainMin}} мин</span></div>
+    <div class="hero-controls">
+      <a class="ctl ctl-prev" href="{{.PrevDayHref}}" aria-label="Предыдущий день"><svg viewBox="0 0 24 24"><path d="M18 5v14L8 12zM6 5v14"/></svg></a>
+      <a class="ctl ctl-main" href="{{.TodayHref}}" aria-label="Сегодня"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></a>
+      <a class="ctl ctl-next" href="{{.NextDayHref}}" aria-label="Следующий день"><svg viewBox="0 0 24 24"><path d="M6 5v14l10-7zM18 5v14"/></svg></a>
+    </div>
+  </div>
+
+  <p class="hero-sentence">{{.Hero.Sentence}}</p>
+  <p class="hero-mood">{{.Hero.Mood}}</p>
+  {{with .Hero.Next}}<p class="hero-next"><span class="hero-next-label">дальше</span> <span class="hero-next-what">{{.BeginsAt}} · {{.Discipline}}</span>{{if .Room}} <span class="hero-next-room">ауд. {{.Room}}</span>{{end}}</p>{{end}}
+  <p class="hero-stops">{{.Hero.Stops}}</p>
+  <div class="hero-stats">
+    <span class="stat"><b>{{.Hero.Count}}</b><i>пар</i></span>
+    {{if .Hero.First}}<span class="stat"><b>{{.Hero.First}}</b><i>начало</i></span><span class="stat"><b>{{.Hero.Last}}</b><i>конец</i></span>{{end}}
+    {{if .Hero.RoomCount}}<span class="stat"><b>{{.Hero.RoomCount}}</b><i>аудит.</i></span>{{end}}
+  </div>
+
+  {{if .Hero.Route.Pins}}
+  <svg class="hero-route" viewBox="0 0 390 400" aria-hidden="true">
+    <path class="route-road" d="{{.Hero.Route.Path}}"/>
+    <path class="route-line" d="{{.Hero.Route.Path}}"/>
+    {{range .Hero.Route.Pins}}
+    <g class="route-pin" data-status="{{.Lesson.Status}}">
+      <circle class="route-halo" cx="{{.X}}" cy="{{.Y}}" r="16"/>
+      <circle class="route-dot" cx="{{.X}}" cy="{{.Y}}" r="8"/>
+      <text class="route-title" x="{{.X}}" y="{{.Y}}" dx="{{if .Right}}-22{{else}}22{{end}}" dy="-2"{{if .Right}} text-anchor="end"{{end}}>{{.Title}}</text>
+      <text class="route-sub" x="{{.X}}" y="{{.Y}}" dx="{{if .Right}}-22{{else}}22{{end}}" dy="14"{{if .Right}} text-anchor="end"{{end}}>{{.Lesson.BeginsAt}}{{if .Lesson.Room}} · ауд. {{.Lesson.Room}}{{end}}{{if eq .Lesson.Status "now"}} · ты здесь{{end}}</text>
+    </g>
+    {{end}}
+  </svg>
+  {{end}}
+
+  {{if .Hero.Plan.Boxes}}
+  <svg class="hero-plan" viewBox="0 0 370 220" aria-hidden="true">
+    {{range .Hero.Plan.Boxes}}
+    <g class="plan-box" data-status="{{.Status}}">
+      <rect x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}" rx="6"/>
+      <text x="{{.X}}" y="{{.Y}}" dx="10" dy="20">{{.Room}}</text>
+    </g>
+    {{end}}
+    <path class="plan-path" d="{{.Hero.Plan.Path}}"/>
+    {{if .Hero.Plan.Now}}<path class="plan-now" d="{{.Hero.Plan.Now}}"/>{{end}}
+    {{with .Hero.Plan.Here}}<g class="plan-here"><circle cx="{{.CX}}" cy="{{.CY}}" r="18"/><circle cx="{{.CX}}" cy="{{.CY}}" r="7"/><text x="{{.CX}}" y="{{.CY}}" dy="32" text-anchor="middle">ты здесь</text></g>{{end}}
+    {{with .Hero.Plan.Next}}<circle class="plan-target" cx="{{.CX}}" cy="{{.CY}}" r="7"/>{{end}}
+  </svg>
+  {{end}}
+</section>
+
+<section class="lessons">
+  <div class="lessons-head"><span>время</span><span>дисциплина</span><span>ауд.</span><span>статус</span></div>
+  <ol class="lesson-list">
     {{range .Lessons}}
-    <div class="lesson">
-      <div class="lesson-time">
-        <span class="lesson-from">{{.BeginsAt}}</span>
-        <span class="lesson-to">{{.EndsAt}}</span>
-      </div>
-      <div class="lesson-rail"></div>
+    <li class="lesson" data-status="{{.Status}}" data-index="{{.Index}}">
+      <div class="lesson-time"><span class="lesson-from">{{.BeginsAt}}</span><span class="lesson-to">{{.EndsAt}}</span></div>
       <div class="lesson-body">
         <div class="lesson-discipline">{{.Discipline}}</div>
         <div class="lesson-kind">{{.KindOfWork}}{{if .LecturerName}} · {{.LecturerName}}{{end}}</div>
-        <div class="lesson-where">
-          <span class="lesson-room">{{.Room}}</span>
-          <span class="lesson-place">{{.Place}}</span>
-        </div>
       </div>
-    </div>
+      <div class="lesson-room{{if .LongRoom}} long{{end}}"><span class="lesson-roomnum">{{if .Room}}{{.Room}}{{else}}—{{end}}</span><span class="lesson-place">{{.Place}}</span></div>
+      <div class="lesson-status"><span class="lesson-state">{{.StatusLabel}}</span>{{if .Changed}}<span class="lesson-changed">изменено</span>{{end}}</div>
+    </li>
     {{else}}
-    <div class="empty">
-      <div class="empty-title">Пар нет</div>
-      <div class="empty-sub">Свободный день</div>
-    </div>
+    <li class="empty"><div class="empty-title">Пар нет</div><div class="empty-sub">Свободный день</div></li>
     {{end}}
-  {{end}}
-</div>
+  </ol>
+</section>
 
-{{if and .SubjectKey .PushEnabled}}
-<div class="notify" id="notify-box" data-subject="{{.SubjectKey}}" hidden>
-  <span class="notify-text">Сообщать об изменениях расписания</span>
-  <button type="button">Включить</button>
-</div>
-<script src="{{asset "push.js"}}" defer></script>
+<footer class="foot">
+  <a class="foot-link" href="/calendar.ics?{{.SubjectQuery}}">Подписаться в календаре</a>
+  <span class="foot-note">{{if .Freshness}}Обновлено {{.Freshness}} · и{{else}}И{{end}}сточник: расписание вуза</span>
+</footer>
 {{end}}
-
-<div class="note">{{if .Freshness}}Обновлено {{.Freshness}} · и{{else}}И{{end}}сточник: расписание вуза</div>
 {{end}}

@@ -1,0 +1,86 @@
+{{define "content"}}
+<header class="top">
+  <div class="top-row">
+    <div>
+      <span class="top-kicker">ScheduleFU</span>
+      <h1 class="top-title">Настройки</h1>
+      <p class="top-sub">Всё хранится в этом браузере. Ни логина, ни пароля.</p>
+    </div>
+  </div>
+</header>
+
+<section class="settings">
+  <form class="setting-group" method="post" action="/settings">
+    <h2 class="setting-title">Тема</h2>
+    <div class="segment">
+      {{range .Themes}}
+      <label class="segment-item"><input type="radio" name="theme" value="{{.ID}}" {{if eq .ID (printf "%s" $.Look.Theme)}}checked{{end}}><span>{{.Label}}</span></label>
+      {{end}}
+    </div>
+    <h2 class="setting-title">Оформление</h2>
+    <p class="setting-note">Разделы и кнопки везде одни — меняется только вид. Выбирайте под настроение.</p>
+    <div class="skins">
+      {{range .Skins}}
+      <label class="skin-card" data-skin="{{.ID}}">
+        <input type="radio" name="skin" value="{{.ID}}" {{if eq .ID $.Look.Skin.ID}}checked{{end}}>
+        <span class="skin-preview" aria-hidden="true"><i class="sp-a"></i><i class="sp-b"></i><i class="sp-c"></i></span>
+        <span class="skin-name">{{.Name}}</span>
+        <span class="skin-note">{{.Note}}</span>
+      </label>
+      {{end}}
+    </div>
+    <button class="btn" type="submit">Применить</button>
+  </form>
+
+  <div class="setting-group">
+    <h2 class="setting-title">Моё расписание</h2>
+    {{if .Pinned}}
+    <div class="setting-row">
+      <span class="setting-value">{{.PinnedLabel}}<i>{{if .PinnedIsLecturer}}преподаватель{{else}}группа{{end}}</i></span>
+      <form method="post" action="/settings"><input type="hidden" name="unpin" value="1"><button class="btn ghost" type="submit">Открепить</button></form>
+    </div>
+    {{else}}
+    <p class="setting-note">Ничего не закреплено. <a href="/groups">Выбрать группу</a> или <a href="/lecturers">преподавателя</a>.</p>
+    {{end}}
+  </div>
+
+  <div class="setting-group">
+    <h2 class="setting-title">Уведомления</h2>
+    {{if and .Pinned .PushEnabled}}
+    <div class="notify" id="notify-box" data-subject="{{.PinnedKey}}">
+      <span class="notify-text">Сообщать об изменениях расписания</span>
+      <button class="btn" type="button">Включить</button>
+    </div>
+    <p class="setting-note">Одно сообщение с итогом за проход, не по письму на каждую правку. На iPhone нужно сначала установить приложение на экран «Домой».</p>
+    <script src="{{asset "push.js"}}" defer></script>
+    {{else if .Pinned}}
+    <p class="setting-note">На этом сервере уведомления выключены.</p>
+    {{else}}
+    <p class="setting-note">Сначала закрепите расписание — уведомления приходят только о нём.</p>
+    {{end}}
+  </div>
+
+  <div class="setting-group">
+    <h2 class="setting-title">Календарь</h2>
+    {{if .Pinned}}
+    <p class="setting-note">Подписка, а не разовый файл: изменения вуза сами доедут до календаря.</p>
+    <div class="setting-row">
+      <code class="setting-code" id="ics-url">webcal://{{.Host}}/calendar.ics?{{.PinnedQuery}}</code>
+      <button class="btn ghost" type="button" data-copy="webcal://{{.Host}}/calendar.ics?{{.PinnedQuery}}">Скопировать</button>
+    </div>
+    <div class="setting-actions">
+      <a class="btn" href="webcal://{{.Host}}/calendar.ics?{{.PinnedQuery}}">Открыть в календаре</a>
+      <a class="btn ghost" href="/calendar.ics?{{.PinnedQuery}}" download>Скачать .ics</a>
+    </div>
+    <p class="setting-note">iPhone: ссылка откроет «Календарь» с предложением подписаться. Google Календарь: «Другие календари → По URL» и вставить адрес.</p>
+    {{else}}
+    <p class="setting-note">Закрепите расписание — появится ссылка для подписки.</p>
+    {{end}}
+  </div>
+
+  <div class="setting-group">
+    <h2 class="setting-title">О сервисе</h2>
+    <p class="setting-note">Неофициальный. Данные — из открытого расписания Финансового университета, обновляются раз в час.{{if .Freshness}} Последняя сверка: {{.Freshness}}.{{end}} Брони вне расписания вуз не публикует.</p>
+  </div>
+</section>
+{{end}}

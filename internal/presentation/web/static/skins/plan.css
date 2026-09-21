@@ -1,0 +1,54 @@
+/* План корпуса — куда идти (экран 30). Схема аудиторий и маршрут. */
+:root {
+  --bg: #ffffff; --bg-hero: #f6f8fc; --surface: #f3f5f9; --surface-2: #e6eaf2; --line: #e3e7ef;
+  --text: #1a1d29; --text-2: #4b5266; --text-3: #8890a3;
+  --accent: #2f6bff; --accent-ink: #fff; --accent-2: #ff7a1a; --ok: #2fb56a; --warn: #ff7a1a;
+  --past: #dfe3ea; --busy: #ffdcc2; --radius: 12px; --radius-lg: 16px; --font: 'Inter', system-ui, sans-serif;
+}
+:root[data-theme="dark"] {
+  --bg: #0f1117; --bg-hero: #151823; --surface: #1a1e2a; --surface-2: #262b3a; --line: #262b3a;
+  --text: #eef0f6; --text-2: #b7bccb; --text-3: #7d8496; --accent: #5b8dff;
+  --past: #2c3140; --busy: #4a3626;
+}
+.hero { border-radius: var(--radius-lg); margin: 0 var(--pad); padding: 14px; gap: 10px; }
+.hero-date { gap: 6px; }
+.hero-num, .hero-year, .hero-week, .hero-dow, .hero-month { display: none; }
+.hero-dateline { display: block; font-size: 12px; color: var(--text-3); }
+.hero-dateline::first-letter { text-transform: uppercase; }
+.hero-date::after { content: 'Где ты сегодня'; display: block; width: 100%; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); margin-top: 2px; }
+.hero[data-state="day"] .hero-date::after { content: 'Куда идти'; }
+.hero[data-state="none"] .hero-date::after { content: 'Никуда идти не надо'; }
+
+.hero-plan { display: block; order: 2; }
+.plan-box rect { fill: var(--bg); stroke: var(--line); stroke-width: 1.5; }
+.plan-box text { font-size: 12px; fill: var(--text-3); font-weight: 600; }
+.plan-box[data-status="now"] rect { stroke: var(--accent); stroke-width: 2; fill: color-mix(in srgb, var(--accent) 8%, var(--bg)); }
+.plan-box[data-status="now"] text { fill: var(--accent); }
+.plan-box[data-status="next"] rect { stroke: var(--accent-2); stroke-width: 2; }
+.plan-box[data-status="next"] text { fill: var(--accent-2); }
+.plan-path { fill: none; stroke: var(--past); stroke-width: 3; stroke-dasharray: 6 6; stroke-linejoin: round; }
+.plan-now { fill: none; stroke: var(--accent-2); stroke-width: 3; stroke-dasharray: 6 6; }
+.plan-here circle:first-child { fill: var(--accent); opacity: 0.18; }
+.plan-here circle:nth-child(2) { fill: var(--accent); }
+.plan-here text { font-size: 10px; fill: var(--accent); font-weight: 700; }
+.plan-target { fill: var(--accent-2); }
+
+.hero-now { order: 3; grid-template-columns: auto 1fr; grid-template-areas: "room lesson" "room meta" "label label"; column-gap: 12px; align-items: baseline; padding-top: 12px; border-top: 1px solid var(--line); }
+.hero-room { display: block; font-size: 34px; font-weight: 900; letter-spacing: -0.03em; line-height: 1; }
+.hero-lesson { font-size: 15px; font-weight: 700; }
+.hero-meta { font-size: 12px; color: var(--text-3); }
+.hero-label { font-size: 12px; text-transform: none; letter-spacing: 0; color: var(--accent); font-weight: 600; margin-top: 4px; }
+.hero-time, .hero-timer { display: none; }
+.hero-next { display: flex; order: 4; align-items: baseline; gap: 6px; font-size: 13px; color: var(--text); }
+.hero-next-label { color: var(--accent-2); }
+.hero-next-label::before { content: '🚶 '; }
+.hero-next-what { font-weight: 600; }
+.hero-sentence { order: 5; font-size: 12px; color: var(--text-3); }
+.hero-stats { display: none; }
+.hero[data-state="none"] .hero-now, .hero[data-state="none"] .hero-sentence { display: none; }
+
+.lesson { background: var(--surface); }
+.lesson[data-status="now"] { box-shadow: inset 3px 0 0 var(--accent); }
+.lesson[data-status="next"] { box-shadow: inset 3px 0 0 var(--accent-2); }
+.lesson[data-status="next"] .lesson-state { color: var(--accent-2); }
+.lesson-changed { color: var(--accent-2); }

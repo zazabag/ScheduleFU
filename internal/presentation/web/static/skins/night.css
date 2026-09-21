@@ -1,0 +1,63 @@
+/* Ночной таймер — тёмная тема, обратный отсчёт (экран 24). */
+:root {
+  --bg: #0b0f24; --bg-hero: transparent; --surface: rgba(255,255,255,0.06); --surface-2: rgba(255,255,255,0.12); --line: rgba(255,255,255,0.1);
+  --text: #eaedff; --text-2: #b3b9df; --text-3: #7a82ad;
+  --accent: #8b7bff; --accent-ink: #ffffff; --accent-2: #ff9f5a; --ok: #6fdc8c; --warn: #ff9f5a;
+  --past: rgba(255,255,255,0.1); --busy: rgba(255,159,90,0.35);
+  --nav-bg: #0b0f24; --nav-line: rgba(255,255,255,0.08); --nav-on: #8b7bff;
+  --radius: 12px; --radius-lg: 16px; --font: 'Inter', system-ui, sans-serif;
+}
+:root[data-theme="light"] {
+  --bg: #eef0fb; --surface: #ffffff; --surface-2: #e2e5f7; --line: #dde0f0;
+  --text: #101433; --text-2: #3f4670; --text-3: #7b82a8; --accent: #5b4bff; --accent-ink: #fff;
+  --past: #d6d9ea; --busy: #ffd7bd; --nav-bg: #ffffff; --nav-line: #e2e5f7;
+}
+:root[data-theme="dark"] body { background: radial-gradient(120% 60% at 50% -10%, #1d2452 0%, #0b0f24 60%) fixed; }
+
+.top-kicker { color: var(--text-3); }
+.hero { align-items: center; text-align: center; gap: 8px; padding-top: 4px; }
+.hero-date { justify-content: center; gap: 6px; }
+.hero-num, .hero-year, .hero-week, .hero-dow, .hero-month { display: none; }
+.hero-dateline { display: block; font-size: 12px; color: var(--text-3); }
+/* Фраза-настроение — заголовок экрана: «держись — половина позади». */
+.hero-mood { display: block; order: -1; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; max-width: 22ch; }
+.hero-mood::first-letter { text-transform: uppercase; }
+
+.hero-now { grid-template-columns: 1fr; grid-template-areas: "timer" "label" "lesson" "meta" "time"; justify-items: center; row-gap: 4px; margin: 6px 0 4px; }
+.hero-timer { display: grid; width: 220px; height: 220px; margin: 4px 0 10px; }
+.ring-track { stroke: rgba(255,255,255,0.08); stroke-width: 6; }
+:root[data-theme="light"] .ring-track { stroke: #dde0f0; }
+.ring-bar { stroke: var(--accent); stroke-width: 6; filter: drop-shadow(0 0 10px rgba(139,123,255,0.7)); }
+.hero-countdown { font-size: 46px; font-weight: 800; letter-spacing: -0.03em; }
+.hero-countdown-label { font-size: 10px; letter-spacing: 0.2em; color: var(--accent); margin-bottom: 8px; }
+.hero-label { font-size: 10px; color: var(--text-3); }
+.hero-lesson { font-size: 17px; font-weight: 700; }
+.hero-meta { font-size: 12px; }
+.hero-time { display: none; }
+.hero-room { display: none; }
+.hero[data-state="none"] .hero-timer, .hero[data-state="after"] .hero-timer, .hero[data-state="day"] .hero-timer { visibility: visible; }
+.hero[data-state="none"] .hero-countdown, .hero[data-state="after"] .hero-countdown, .hero[data-state="day"] .hero-countdown { font-size: 22px; }
+.hero-sentence { display: none; }
+.hero-next { display: none; }
+.hero-stats { gap: 18px; justify-content: center; }
+.stat { align-items: center; }
+.stat b { font-size: 15px; }
+
+.lessons { padding-top: 10px; }
+.lesson-list { gap: 0; }
+.lesson { grid-template-columns: 56px 1fr auto; grid-template-areas: "time body status" "time body room"; padding: 12px 4px; background: transparent; border-radius: 0; border-top: 1px solid var(--line); }
+.lesson-from { font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+.lesson-to { display: none; }
+.lesson-discipline { font-size: 14px; }
+.lesson-room { text-align: right; }
+.lesson-roomnum { font-size: 12px; font-weight: 600; color: var(--text-2); }
+.lesson-place { display: none; }
+.lesson-status { font-size: 10px; }
+.lesson[data-status="past"] { opacity: 1; color: var(--text-3); }
+.lesson[data-status="past"] .lesson-discipline { color: var(--text-3); font-weight: 400; text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.3); }
+.lesson[data-status="now"] .lesson-state, .lesson[data-status="next"] .lesson-state { color: var(--accent); }
+.lesson-changed { color: var(--accent-2); }
+
+.day.on { background: var(--accent); box-shadow: 0 0 18px rgba(139,123,255,0.45); }
+.act.on, .tab.on, .chip.on { box-shadow: 0 0 14px rgba(139,123,255,0.35); }
+.nav-item.on .nav-icon { filter: drop-shadow(0 0 6px rgba(139,123,255,0.8)); }

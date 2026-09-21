@@ -1,0 +1,77 @@
+/* Табло — отправления с вокзала (экран 27).
+   Чёрное поле, жёлтые моноширинные буквы, статусы рейсов. */
+:root {
+  --bg: #0a0a0a; --surface: #141414; --surface-2: #1e1e1e; --line: #232323;
+  --text: #f2f2f2; --text-2: #bdbdbd; --text-3: #7a7a7a;
+  --accent: #ffc83d; --accent-ink: #111; --accent-2: #ff8a3d; --ok: #4ade80; --warn: #ff8a3d; --danger: #ff5c5c;
+  --past: #2a2a2a; --busy: #4a3a17; --nav-bg: #0a0a0a; --nav-line: #232323; --nav-on: #ffc83d;
+  --radius: 4px; --radius-lg: 6px;
+  --font: 'JetBrains Mono', ui-monospace, Menlo, monospace; --font-display: 'Inter', system-ui, sans-serif; --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+:root[data-theme="light"] {
+  --bg: #f3efe4; --surface: #e9e3d3; --surface-2: #ddd5c0; --line: #d6cfbb;
+  --text: #171512; --text-2: #4a453b; --text-3: #8a8272; --accent: #b8860b; --accent-ink: #fff;
+  --past: #d1cab6; --busy: #f2d6a8; --nav-bg: #f3efe4; --nav-line: #d6cfbb; --nav-on: #8a6508;
+}
+body { font-size: 13px; text-transform: none; }
+.top-kicker { font-size: 10px; letter-spacing: 0.2em; }
+.top-title { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; }
+.act, .tab, .chip, .weeknav-today, .btn, .badge { text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
+.day-dow { letter-spacing: 0.1em; }
+
+/* Заголовок табло. */
+.hero { gap: 12px; padding-top: 10px; }
+.hero-date { display: block; }
+.hero-date::before { content: 'Отправления'; display: block; font-family: var(--font-display); font-size: 36px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; line-height: 1; margin-bottom: 8px; }
+.hero-num, .hero-year, .hero-week, .hero-dow { display: none; }
+.hero-month { font-size: 0; color: var(--text-2); }
+.hero-month::after { content: attr(data-count); font-size: 12px; }
+.hero-dateline { display: inline; font-size: 12px; color: var(--text-2); }
+.hero-dateline::first-letter { text-transform: uppercase; }
+.hero-dateline::after { content: ' · '; }
+.hero-sentence { display: none; }
+.hero-next { display: none; }
+.hero-stats { order: -1; display: none; }
+
+/* «Ваш выход»: большой жёлтый номер аудитории. */
+.hero-now { order: 10; grid-template-columns: 1fr; grid-template-areas: "label" "room" "lesson" "meta" "time"; row-gap: 4px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.hero-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-3); font-weight: 500; }
+.hero-label::before { content: 'Ваш выход · '; }
+.hero-room { display: block; font-family: var(--font-display); font-size: 56px; font-weight: 800; color: var(--accent); letter-spacing: -0.03em; line-height: 1; overflow-wrap: anywhere; }
+.hero-lesson { font-family: var(--font-display); font-size: 15px; font-weight: 700; }
+.hero-meta { font-size: 11px; color: var(--text-2); }
+.hero-time { font-size: 11px; color: var(--text-3); }
+.hero-timer { display: none; }
+.hero[data-state="none"] .hero-now { display: none; }
+
+/* Строки табло: буквы вразрядку, статус со светодиодом под строкой. */
+.lessons-head { display: grid; grid-template-columns: 62px 1fr 64px; gap: 12px; font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-3); padding-bottom: 8px; }
+.lessons-head span:nth-child(3) { text-align: right; }
+.lessons-head span:nth-child(4) { display: none; }
+.lesson-list { gap: 0; }
+.lesson { grid-template-columns: 62px 1fr 64px; grid-template-areas: "time body room" "status status status"; column-gap: 12px; row-gap: 6px; padding: 12px 0; background: transparent; border-radius: 0; border-bottom: 1px dashed var(--line); text-transform: uppercase; letter-spacing: 0.18em; }
+.lesson-from { font-size: 14px; font-weight: 700; color: var(--accent); }
+.lesson-to { display: none; }
+.lesson-discipline { font-size: 13px; font-weight: 700; color: var(--accent); }
+.lesson-kind { display: none; }
+.lesson-roomnum { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; overflow-wrap: anywhere; }
+.lesson-place { display: none; }
+.lesson-status { text-align: left; font-size: 9px; letter-spacing: 0.2em; }
+.lesson-state::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 999px; background: var(--text-3); margin-right: 8px; vertical-align: middle; }
+.lesson[data-status="past"] { opacity: 1; }
+.lesson[data-status="past"] .lesson-from, .lesson[data-status="past"] .lesson-discipline, .lesson[data-status="past"] .lesson-roomnum { color: var(--text-3); }
+.lesson[data-status="past"] .lesson-state::after { content: 'прибыл'; }
+.lesson[data-status="now"] .lesson-state { color: var(--ok); }
+.lesson[data-status="now"] .lesson-state::before { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.lesson[data-status="now"] .lesson-state::after { content: 'идёт'; }
+.lesson[data-status="next"] .lesson-state { color: var(--accent); }
+.lesson[data-status="next"] .lesson-state::before { background: var(--accent); }
+.lesson[data-status="next"] .lesson-state::after { content: 'посадка'; }
+.lesson[data-status="later"] .lesson-state::after { content: 'по расписанию'; }
+.lesson-state { font-size: 0; }
+.lesson-state::after { font-size: 9px; }
+.lesson-changed { color: var(--accent-2); }
+.lesson-changed::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 999px; background: var(--accent-2); margin-right: 8px; vertical-align: middle; }
+
+.room-num, .now-room { font-family: var(--font-display); color: var(--accent); }
+.nav-label { text-transform: uppercase; letter-spacing: 0.1em; font-size: 9px; }

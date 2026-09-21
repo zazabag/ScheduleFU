@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "schedulefu-dev",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "set -a; . \"$HOME/.schedulefu/env\"; set +a; SCHEDULEFU_CONFIG=\"$HOME/.schedulefu/config.yaml\" exec go run ./cmd/schedulefu serve"],
+      "port": 8090
+    }
+  ]
+}
