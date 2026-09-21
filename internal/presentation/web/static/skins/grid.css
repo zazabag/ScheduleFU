@@ -123,3 +123,8 @@
 .btn { border-radius: 0; }
 .setting-code { border-radius: 0; }
 .notify { border-top: 1px solid var(--line); padding-top: 12px; }
+
+/* ─── настройки: нумерованные рубрики, как оглавление ─────────────────── */
+.settings { counter-reset: section; }
+.setting-title::before { counter-increment: section; content: counter(section, decimal-leading-zero) " / "; color: var(--accent); }
+.skin-current { color: var(--accent); }

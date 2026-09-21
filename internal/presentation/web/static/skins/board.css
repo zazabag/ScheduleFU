@@ -154,3 +154,10 @@ body { font-size: 13px; text-transform: none; }
 .skin-name { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.1em; font-size: 11px; }
 .setting-code { background: transparent; border: 1px solid var(--line); color: var(--accent); }
 .setting-value { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.1em; }
+
+/* ─── настройки: пульт с номерами каналов ─────────────────────────────── */
+.settings { counter-reset: section; }
+.setting-title::before { counter-increment: section; content: "[" counter(section, decimal-leading-zero) "] "; color: var(--text-3); }
+.skin-current { color: var(--ok); }
+.skin-current::before { content: '● '; }
+.top-kicker { color: var(--accent); }

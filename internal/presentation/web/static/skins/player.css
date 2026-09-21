@@ -157,3 +157,10 @@
 .btn.ghost { background: var(--surface-2); color: var(--text-2); }
 .setting-code { background: rgba(0,0,0,0.3); }
 :root[data-theme="light"] .setting-code { background: var(--surface-2); }
+
+/* ─── настройки: как экран плеера ─────────────────────────────────────── */
+.setting-title::before { content: '♪ '; color: var(--accent); }
+.skin-preview { border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.35); }
+.skin-current { color: #fff; }
+:root[data-theme="light"] .skin-current { color: var(--accent); }
+.skin-current::before { content: '▶ '; }

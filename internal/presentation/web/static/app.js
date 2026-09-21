@@ -77,6 +77,18 @@
     }, { passive: true });
   }
 
+  // ─── настройки: оформление и тема применяются сразу ──────────────────────
+  // Без скрипта работает кнопка «Применить»; со скриптом она не нужна —
+  // выбор отправляется сам, страница перерисовывается в новом виде.
+  var lookForm = document.getElementById('look-form');
+  if (lookForm) {
+    var applyBtn = lookForm.querySelector('[data-autosubmit-hide]');
+    if (applyBtn) applyBtn.hidden = true;
+    lookForm.addEventListener('change', function (e) {
+      if (e.target && e.target.name && (e.target.name === 'skin' || e.target.name === 'theme')) lookForm.submit();
+    });
+  }
+
   // ─── копирование адреса календаря ────────────────────────────────────────
   document.querySelectorAll('[data-copy]').forEach(function (btn) {
     btn.addEventListener('click', function () {

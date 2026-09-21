@@ -148,3 +148,10 @@
 .skin-card:has(input:checked) { border-color: #ff6a00; }
 .btn { background: #ff6a00; color: #fff; }
 .btn.ghost { background: var(--surface-2); color: var(--text-2); }
+
+/* ─── настройки: заголовки-ярлычки ────────────────────────────────────── */
+.setting-title { align-self: flex-start; background: var(--warn); color: var(--text); padding: 4px 10px; border-radius: 7px; transform: rotate(-2deg); box-shadow: 0 3px 8px rgba(80,30,0,0.15); }
+.setting-group[data-section="notify"] .setting-title { background: var(--accent-2); color: #fff; transform: rotate(1.5deg); }
+.setting-group[data-section="calendar"] .setting-title { background: var(--accent); color: var(--accent-ink); transform: rotate(-1deg); }
+.skin-current { color: #ff6a00; }
+.skin-preview { border-radius: 10px; box-shadow: 0 3px 8px rgba(80,30,0,0.15); }

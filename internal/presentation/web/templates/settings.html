@@ -2,7 +2,7 @@
 <header class="top">
   <div class="top-row">
     <div>
-      <span class="top-kicker">ScheduleFU</span>
+      <span class="top-kicker">Сейчас · {{.Look.Skin.Name}} · {{if eq (printf "%s" .Look.Theme) "dark"}}тёмная{{else if eq (printf "%s" .Look.Theme) "light"}}светлая{{else}}как в системе{{end}}</span>
       <h1 class="top-title">Настройки</h1>
       <p class="top-sub">Всё хранится в этом браузере. Ни логина, ни пароля.</p>
     </div>
@@ -10,7 +10,7 @@
 </header>
 
 <section class="settings">
-  <form class="setting-group" method="post" action="/settings">
+  <form class="setting-group" id="look-form" data-section="look" method="post" action="/settings">
     <h2 class="setting-title">Тема</h2>
     <div class="segment">
       {{range .Themes}}
@@ -23,16 +23,16 @@
       {{range .Skins}}
       <label class="skin-card" data-skin="{{.ID}}">
         <input type="radio" name="skin" value="{{.ID}}" {{if eq .ID $.Look.Skin.ID}}checked{{end}}>
-        <span class="skin-preview" aria-hidden="true"><i class="sp-a"></i><i class="sp-b"></i><i class="sp-c"></i></span>
-        <span class="skin-name">{{.Name}}</span>
+        <span class="skin-preview" aria-hidden="true"><i class="sp-a"></i><i class="sp-b"></i><i class="sp-c"></i><i class="sp-d"></i><i class="sp-e"></i></span>
+        <span class="skin-name">{{.Name}}{{if eq .ID $.Look.Skin.ID}} <b class="skin-current">выбрано</b>{{end}}</span>
         <span class="skin-note">{{.Note}}</span>
       </label>
       {{end}}
     </div>
-    <button class="btn" type="submit">Применить</button>
+    <button class="btn" type="submit" data-autosubmit-hide>Применить</button>
   </form>
 
-  <div class="setting-group">
+  <div class="setting-group" data-section="pinned">
     <h2 class="setting-title">Моё расписание</h2>
     {{if .Pinned}}
     <div class="setting-row">
@@ -44,7 +44,7 @@
     {{end}}
   </div>
 
-  <div class="setting-group">
+  <div class="setting-group" data-section="notify">
     <h2 class="setting-title">Уведомления</h2>
     {{if and .Pinned .PushEnabled}}
     <div class="notify" id="notify-box" data-subject="{{.PinnedKey}}">
@@ -60,7 +60,7 @@
     {{end}}
   </div>
 
-  <div class="setting-group">
+  <div class="setting-group" data-section="calendar">
     <h2 class="setting-title">Календарь</h2>
     {{if .Pinned}}
     <p class="setting-note">Подписка, а не разовый файл: изменения вуза сами доедут до календаря.</p>
@@ -78,7 +78,7 @@
     {{end}}
   </div>
 
-  <div class="setting-group">
+  <div class="setting-group" data-section="about">
     <h2 class="setting-title">О сервисе</h2>
     <p class="setting-note">Неофициальный. Данные — из открытого расписания Финансового университета, обновляются раз в час.{{if .Freshness}} Последняя сверка: {{.Freshness}}.{{end}} Брони вне расписания вуз не публикует.</p>
   </div>

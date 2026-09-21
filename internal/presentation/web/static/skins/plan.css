@@ -99,3 +99,8 @@
 .segment { background: var(--surface-2); }
 .skin-card { background: var(--bg); border-color: var(--line); }
 .skin-card:has(input:checked) { border-color: var(--accent); }
+
+/* ─── настройки: легенда схемы ─────────────────────────────────────────── */
+.setting-title::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); margin-right: 8px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.setting-group[data-section="pinned"] .setting-title::before { background: var(--accent-2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 18%, transparent); }
+.skin-preview { border: 1.5px solid var(--line); }

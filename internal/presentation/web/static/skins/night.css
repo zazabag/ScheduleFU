@@ -102,3 +102,7 @@
 .skin-card:has(input:checked) { box-shadow: 0 0 18px rgba(139,123,255,0.35); }
 .setting-code { background: rgba(0,0,0,0.3); }
 :root[data-theme="light"] .setting-code { background: var(--surface-2); }
+
+/* ─── настройки: светящаяся точка у раздела ────────────────────────────── */
+.setting-title::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 8px var(--accent); margin-right: 8px; vertical-align: middle; }
+.skin-preview { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }

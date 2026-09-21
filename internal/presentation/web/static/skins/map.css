@@ -122,3 +122,9 @@
 .segment-item input:checked + span { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
 .skin-card { background: var(--surface-2); }
 .skin-card:has(input:checked) { border-color: var(--accent); }
+
+/* ─── настройки: остановки с флажками ─────────────────────────────────── */
+.setting-title::before { content: '⚑ '; color: var(--accent); }
+.setting-group[data-section="pinned"] .setting-title::before { color: var(--accent-2); }
+.skin-preview { border-radius: 12px; box-shadow: var(--shadow); }
+.skin-current { color: var(--accent); }

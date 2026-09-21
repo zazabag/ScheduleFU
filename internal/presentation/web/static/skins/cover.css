@@ -138,3 +138,9 @@
 .btn { border-radius: 0; }
 .btn.ghost { background: transparent; border: 1px solid var(--line); color: #fff; }
 .setting-code { border-radius: 0; }
+
+/* ─── настройки: выходные данные журнала ───────────────────────────────── */
+.settings::before { content: 'Выходные данные'; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent); padding-bottom: 6px; border-bottom: 3px double var(--text); }
+.setting-group:first-of-type { border-top: 0; }
+.skin-current { color: var(--accent); font-family: var(--font); }
+.skin-preview { border: 1px solid rgba(255,255,255,0.15); }

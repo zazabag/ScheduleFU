@@ -38,6 +38,9 @@
 }
 
 * { box-sizing: border-box; }
+/* Атрибут hidden сильнее любого display из классов: иначе кнопка с
+   display:inline-block оставалась бы видимой после скрытия скриптом. */
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
@@ -315,3 +318,53 @@ svg { display: block; }
   .nav-label { font-size: 9px; }
   .hero-num { font-size: 40px; }
 }
+
+/* ─── превью оформлений: маленький «герой» каждого ──────────────────────── */
+/* Пять элементов внутри карточки, у каждого оформления — своя композиция.
+   Цвета фиксированы здесь, а не в skins/: карточка обязана выглядеть
+   одинаково при любом активном оформлении. */
+.skin-preview { height: 84px; }
+.skin-preview i { position: absolute; display: block; border-radius: 3px; }
+.sp-a, .sp-b, .sp-c, .sp-d, .sp-e { display: none; }
+.skin-current { font-weight: 700; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-left: 6px; }
+
+/* Сетка: гигантская цифра и таблица */
+.skin-card[data-skin="grid"] .sp-a { display: block; left: 10px; top: 6px; width: 34px; height: 40px; background: #111; border-radius: 4px; clip-path: polygon(0 0, 100% 0, 100% 100%, 60% 100%, 60% 30%, 0 30%); }
+.skin-card[data-skin="grid"] .sp-b { display: block; left: 52px; top: 12px; width: 44px; height: 6px; background: #111; }
+.skin-card[data-skin="grid"] .sp-c { display: block; left: 52px; top: 24px; width: 30px; height: 4px; background: #999; }
+.skin-card[data-skin="grid"] .sp-d { display: block; left: 10px; top: 58px; right: 10px; height: 2px; background: #111; }
+.skin-card[data-skin="grid"] .sp-e { display: block; left: 10px; top: 68px; right: 30px; height: 4px; background: #2f6bff; }
+/* Ночной таймер: кольцо */
+.skin-card[data-skin="night"] .skin-preview { background: radial-gradient(80% 60% at 50% 0%, #1d2452, #0b1024); }
+.skin-card[data-skin="night"] .sp-a { display: block; left: 50%; top: 50%; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 999px; border: 5px solid rgba(255,255,255,0.1); border-top-color: #8b7bff; border-right-color: #8b7bff; box-shadow: 0 0 14px rgba(139,123,255,0.5); }
+.skin-card[data-skin="night"] .sp-b { display: block; left: 50%; top: 50%; width: 14px; height: 6px; margin: -3px 0 0 -7px; background: #e6e9f5; border-radius: 2px; }
+/* Табло: жёлтые моно-строки со светодиодами */
+.skin-card[data-skin="board"] .sp-a { display: block; left: 10px; top: 10px; width: 60px; height: 9px; background: #f2f2f2; }
+.skin-card[data-skin="board"] .sp-b { display: block; left: 10px; top: 32px; width: 70%; height: 5px; background: #ffc83d; box-shadow: 0 14px 0 #ffc83d, 0 28px 0 #ffc83d; }
+.skin-card[data-skin="board"] .sp-c { display: block; right: 12px; top: 31px; width: 7px; height: 7px; border-radius: 999px; background: #4ade80; box-shadow: 0 0 6px #4ade80, 0 14px 0 #ffc83d, 0 28px 0 #555; }
+/* Обложка: антиква и жёлтый круг */
+.skin-card[data-skin="cover"] .sp-a { display: block; left: 10px; top: 8px; width: 64px; height: 18px; background: #fff; border-radius: 2px; clip-path: polygon(0 0, 100% 0, 100% 40%, 0 40%, 0 60%, 70% 60%, 70% 100%, 0 100%); }
+.skin-card[data-skin="cover"] .sp-b { display: block; right: -14px; top: 30px; width: 60px; height: 60px; border-radius: 999px; background: #ffd35c; }
+.skin-card[data-skin="cover"] .sp-c { display: block; left: 10px; top: 40px; width: 50px; height: 5px; background: #fff; box-shadow: 0 10px 0 #fff, 0 20px 0 rgba(255,255,255,0.6); }
+/* Плеер: пластинка и полоса */
+.skin-card[data-skin="player"] .skin-preview { background: linear-gradient(180deg, #0d1330, #1a2352); }
+.skin-card[data-skin="player"] .sp-a { display: block; left: 50%; top: 8px; width: 44px; height: 44px; margin-left: -22px; border-radius: 999px; background: repeating-radial-gradient(circle, #0a0e24 0 1.5px, #161c40 1.5px 3px); }
+.skin-card[data-skin="player"] .sp-b { display: block; left: 50%; top: 22px; width: 16px; height: 16px; margin-left: -8px; border-radius: 999px; background: #3b7bff; }
+.skin-card[data-skin="player"] .sp-c { display: block; left: 12px; right: 12px; top: 64px; height: 3px; background: rgba(255,255,255,0.2); }
+.skin-card[data-skin="player"] .sp-d { display: block; left: 12px; top: 64px; width: 40%; height: 3px; background: #fff; }
+/* План корпуса: комнаты и маршрут */
+.skin-card[data-skin="plan"] .sp-a { display: block; left: 10px; top: 10px; width: 34px; height: 28px; border: 1.5px solid #dfe3ea; background: #fff; box-shadow: 40px 0 0 -1.5px #fff, 40px 0 0 0 #2f6bff, 80px 0 0 -1.5px #fff, 80px 0 0 0 #ff7a1a; }
+.skin-card[data-skin="plan"] .sp-b { display: block; left: 10px; top: 46px; width: 34px; height: 28px; border: 1.5px solid #dfe3ea; background: #fff; box-shadow: 40px 0 0 -1.5px #fff, 40px 0 0 0 #dfe3ea; }
+.skin-card[data-skin="plan"] .sp-c { display: block; left: 62px; top: 22px; width: 10px; height: 10px; border-radius: 999px; background: #2f6bff; box-shadow: 0 0 0 4px rgba(47,107,255,0.2); }
+.skin-card[data-skin="plan"] .sp-d { display: block; left: 72px; top: 26px; width: 34px; height: 0; border-top: 2px dashed #ff7a1a; }
+/* Стикеры: наклейки под углом */
+.skin-card[data-skin="stickers"] .sp-a { display: block; left: 10px; top: 10px; width: 62px; height: 22px; background: #7bd142; border-radius: 5px; transform: rotate(-4deg); }
+.skin-card[data-skin="stickers"] .sp-b { display: block; left: 30px; top: 38px; width: 62px; height: 22px; background: #fff; border-radius: 5px; transform: rotate(3deg); }
+.skin-card[data-skin="stickers"] .sp-c { display: block; right: 10px; top: 8px; width: 24px; height: 24px; border-radius: 999px; background: #ffe36a; transform: rotate(8deg); }
+.skin-card[data-skin="stickers"] .sp-d { display: block; left: 12px; top: 62px; width: 40px; height: 14px; background: #4aa3ff; border-radius: 4px; transform: rotate(-2deg); }
+/* Карта дня: дорога и остановки */
+.skin-card[data-skin="map"] .skin-preview { background: linear-gradient(180deg, #cfe9ff 0%, #d9efc1 40%, #cfe7b3 100%); }
+.skin-card[data-skin="map"] .sp-a { display: block; left: 30px; top: -10px; width: 60px; height: 110px; border: 8px solid #fff; border-radius: 40px 0 40px 0; border-left-color: transparent; border-bottom-color: transparent; transform: rotate(20deg); }
+.skin-card[data-skin="map"] .sp-b { display: block; left: 44px; top: 18px; width: 10px; height: 10px; border-radius: 999px; background: #fff; border: 3px solid #7f9a78; }
+.skin-card[data-skin="map"] .sp-c { display: block; left: 74px; top: 44px; width: 12px; height: 12px; border-radius: 999px; background: #57b03a; border: 3px solid #fff; box-shadow: 0 0 0 4px rgba(87,176,58,0.25); }
+.skin-card[data-skin="map"] .sp-d { display: block; left: 52px; top: 66px; width: 10px; height: 10px; border-radius: 999px; background: #2f8cff; border: 3px solid #fff; }
