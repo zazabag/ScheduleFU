@@ -238,19 +238,12 @@ func (s *Server) schedule(w http.ResponseWriter, r *http.Request) {
 		now, todayKey = v, dateKey
 	}
 	markStatuses(rows, dateKey, todayKey, now)
-	h := s.buildHero(rows, dateKey == todayKey, now)
+	h := s.buildHero(rows, dateKey == todayKey, now, subj.Kind == sched.SubjectLecturer)
 
 	pinned := SubjectFromCookie(r)
-	_, week := date.ISOWeek()
-	weekEnd := weekStart.AddDate(0, 0, 6)
 	data["Group"], data["IsLecturer"] = label, subj.Kind == sched.SubjectLecturer
-	data["Date"] = map[string]any{
-		"Num": strconv.Itoa(date.Day()), "Dow": clock.WeekdayRu(date), "DowShort": clock.WeekdayShortRu(date),
-		"Month": clock.MonthRu(date), "MonthGen": strings.TrimPrefix(clock.DateRu(date), strconv.Itoa(date.Day())+" "),
-		"Year": strconv.Itoa(date.Year()), "Week": strconv.Itoa(week), "Key": dateKey, "MM": date.Format("01"),
-		"IsToday": dateKey == today.Format("2006-01-02"), "Label": clock.DateRu(date) + " · " + clock.WeekdayRu(date),
-		"Range": weekRange(weekStart, weekEnd),
-	}
+	data["Who"] = map[bool]string{true: "lecturer", false: "student"}[subj.Kind == sched.SubjectLecturer]
+	data["Date"] = dateInfo(date, today)
 	data["Subtitle"] = clock.DateRu(date) + " · " + clock.WeekdayRu(date)
 	data["Days"], data["Lessons"], data["Hero"] = days, rows, h
 	data["PrevWeekHref"], data["NextWeekHref"], data["TodayHref"] = hrefFor(weekStart.AddDate(0, 0, -7)), hrefFor(weekStart.AddDate(0, 0, 7)), hrefFor(today)
@@ -268,6 +261,20 @@ func weekRange(from, to time.Time) string {
 		return strconv.Itoa(from.Day()) + "—" + clock.DateRu(to)
 	}
 	return clock.DateRu(from) + " — " + clock.DateRu(to)
+}
+
+// dateInfo — дата по частям для шаблонов: оформления собирают из них
+// разное («19 / Пятница / сентябрь / 2026», «№ 38 · неделя», «24/09»).
+func dateInfo(date, today time.Time) map[string]any {
+	_, week := date.ISOWeek()
+	weekStart := clock.StartOfWeek(date)
+	return map[string]any{
+		"Num": strconv.Itoa(date.Day()), "Dow": clock.WeekdayRu(date), "DowShort": clock.WeekdayShortRu(date),
+		"Month": clock.MonthRu(date), "MonthGen": strings.TrimPrefix(clock.DateRu(date), strconv.Itoa(date.Day())+" "),
+		"Year": strconv.Itoa(date.Year()), "Week": strconv.Itoa(week), "Key": date.Format("2006-01-02"), "MM": date.Format("01"),
+		"IsToday": date.Format("2006-01-02") == today.Format("2006-01-02"), "Label": clock.DateRu(date) + " · " + clock.WeekdayRu(date),
+		"Range": weekRange(weekStart, weekStart.AddDate(0, 0, 6)),
+	}
 }
 
 // markStatuses расставляет прошла/идёт/следующая/позже. Для другого дня
@@ -291,7 +298,7 @@ func markStatuses(rows []lessonRow, dateKey, todayKey, now string) {
 
 // Результат именованный: отложенная пометка остановки персонажа должна
 // попасть в возвращаемое значение, а не в его копию.
-func (s *Server) buildHero(rows []lessonRow, isToday bool, now string) (h hero) {
+func (s *Server) buildHero(rows []lessonRow, isToday bool, now string, lecturer bool) (h hero) {
 	h = hero{Count: len(rows), CountLabel: "пар нет", State: "none", Label: "пар нет", Mood: "выходной", Sentence: "Сегодня пар нет."}
 	if len(rows) == 0 {
 		if !isToday {
@@ -319,7 +326,7 @@ func (s *Server) buildHero(rows []lessonRow, isToday bool, now string) (h hero) 
 	h.Route = buildRoute(rows)
 	h.Plan = buildPlan(rows)
 	h.CountLabel = plural(len(rows))
-	h.Stops = stopsLabel(len(rows), 0)
+	h.Stops = stopsLabel(len(rows), 0, lecturer)
 	defer func() {
 		// Персонаж стоит у пары героя: идущей, а в перерыве — ближайшей.
 		if h.Lesson != nil && h.State != "after" && h.State != "day" {
@@ -359,28 +366,20 @@ func (s *Server) buildHero(rows []lessonRow, isToday bool, now string) (h hero) 
 		}
 		h.State, h.Lesson, h.Next = "now", cur, next
 		h.Label = "сейчас · до " + cur.EndsAt
-		h.Stops = stopsLabel(len(rows), cur.Index)
+		h.Stops = stopsLabel(len(rows), cur.Index, lecturer)
 		h.Progress, h.RemainMin = progress(cur.BeginsAt, cur.EndsAt, now)
 		h.Sentence = fmt.Sprintf("%s идёт до %s, %s.", cur.Discipline, cur.EndsAt, roomPhrase(*cur))
 		if next != nil {
 			h.Sentence += " Дальше " + next.Discipline + " в " + next.BeginsAt
-			if next.LecturerName != "" {
+			switch {
+			case lecturer && next.Groups != "":
+				h.Sentence += " у " + next.Groups
+			case !lecturer && next.LecturerName != "":
 				h.Sentence += ", ведёт " + strings.TrimSuffix(next.LecturerName, ".")
 			}
 			h.Sentence += "."
 		}
-		switch {
-		case len(rows) == 1:
-			h.Mood = "единственная пара — и свободен"
-		case cur.Index == 1:
-			h.Mood = "первая пошла — разгон"
-		case cur.Index == len(rows):
-			h.Mood = "последняя — почти всё"
-		case float64(cur.Index) >= float64(len(rows))/2:
-			h.Mood = "держись — половина позади"
-		default:
-			h.Mood = "набираем ход"
-		}
+		h.Mood = mood(cur.Index, len(rows), lecturer)
 		return h
 	}
 	if next != nil {
@@ -388,10 +387,13 @@ func (s *Server) buildHero(rows []lessonRow, isToday bool, now string) (h hero) 
 		if next.Index < len(rows) {
 			h.Next = &rows[next.Index]
 		}
-		h.Stops = stopsLabel(len(rows), next.Index)
+		h.Stops = stopsLabel(len(rows), next.Index, lecturer)
 		if done == 0 {
 			h.State, h.Label = "before", "первая в "+next.BeginsAt
 			h.Mood = "день впереди — " + plural(len(rows))
+			if lecturer {
+				h.Mood = plural(len(rows)) + " впереди"
+			}
 			h.Sentence = fmt.Sprintf("Первая пара в %s — %s, %s.", next.BeginsAt, next.Discipline, roomPhrase(*next))
 		} else {
 			h.State, h.Label = "between", "перерыв · следующая в "+next.BeginsAt
@@ -402,9 +404,41 @@ func (s *Server) buildHero(rows []lessonRow, isToday bool, now string) (h hero) 
 		return h
 	}
 	h.State, h.Label, h.Mood = "after", "пары закончились", "всё, свободен"
+	if lecturer {
+		h.Mood = "пары на сегодня закончились"
+	}
 	h.Lesson = &rows[len(rows)-1]
 	h.Sentence = fmt.Sprintf("Пары закончились в %s. Было %s.", h.Last, plural(len(rows)))
 	return h
+}
+
+// mood — фраза-настроение над кольцом: студенту — про выносливость,
+// преподавателю — нейтральный счёт пар, без «держись».
+func mood(index, total int, lecturer bool) string {
+	if lecturer {
+		switch {
+		case total == 1:
+			return "одна пара — и свободен"
+		case index == 1:
+			return "первая пара идёт"
+		case index == total:
+			return "последняя пара"
+		case float64(index) >= float64(total)/2:
+			return "половина дня позади"
+		}
+		return "вторая пара идёт"
+	}
+	switch {
+	case total == 1:
+		return "единственная пара — и свободен"
+	case index == 1:
+		return "первая пошла — разгон"
+	case index == total:
+		return "последняя — почти всё"
+	case float64(index) >= float64(total)/2:
+		return "держись — половина позади"
+	}
+	return "набираем ход"
 }
 
 // roomPhrase: «аудитория 204» для номера, само название — для «Зала
@@ -588,8 +622,9 @@ func shorten(s string, max int) string {
 	return strings.TrimSpace(string(r[:cut])) + "…"
 }
 
-// stopsLabel: «4 остановки · ты на второй» — для оформления «Карта дня».
-func stopsLabel(n, at int) string {
+// stopsLabel: «4 остановки · ты на второй» — для оформления «Карта дня»;
+// про преподавателя — «4 остановки · сейчас на второй».
+func stopsLabel(n, at int, lecturer bool) string {
 	stops := strconv.Itoa(n) + " остановок"
 	switch {
 	case n%10 == 1 && n%100 != 11:
@@ -599,6 +634,9 @@ func stopsLabel(n, at int) string {
 	}
 	ord := []string{"", "первой", "второй", "третьей", "четвёртой", "пятой", "шестой", "седьмой", "восьмой"}
 	if at >= 1 && at < len(ord) {
+		if lecturer {
+			return stops + " · сейчас на " + ord[at]
+		}
 		return stops + " · ты на " + ord[at]
 	}
 	return stops
@@ -703,7 +741,7 @@ func (s *Server) lecturers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "некорректный идентификатор преподавателя", http.StatusBadRequest)
 		return
 	}
-	current, lessons, err := s.d.Schedule.WhereIsLecturer(r.Context(), oid, now)
+	_, lessons, err := s.d.Schedule.WhereIsLecturer(r.Context(), oid, now)
 	if err != nil {
 		http.Error(w, "не удалось получить расписание", http.StatusInternalServerError)
 		return
@@ -713,8 +751,19 @@ func (s *Server) lecturers(w http.ResponseWriter, r *http.Request) {
 	for _, l := range lessons {
 		rows = append(rows, s.lessonRow(l, subj))
 	}
-	todayKey := s.d.Clock.Today().Format("2006-01-02")
-	markStatuses(rows, todayKey, todayKey, s.d.Clock.HHMM())
+	today := s.d.Clock.Today()
+	todayKey := today.Format("2006-01-02")
+	hhmm := s.d.Clock.HHMM()
+	if v := r.URL.Query().Get("now"); s.d.Dev && len(v) == 5 {
+		hhmm = v
+	}
+	markStatuses(rows, todayKey, todayKey, hhmm)
+	// Тот же «герой», что на экране дня, но про преподавателя: оформления
+	// рисуют его кольцом, табло, дорогой — как умеют.
+	data["Hero"] = s.buildHero(rows, true, hhmm, true)
+	data["Date"], data["Who"], data["Clock"] = dateInfo(today, today), "lecturer", hhmm
+	weekHref := func(d time.Time) string { return "/schedule?lecturer=" + oidParam + "&date=" + d.Format("2006-01-02") }
+	data["PrevDayHref"], data["NextDayHref"], data["TodayHref"] = weekHref(today.AddDate(0, 0, -1)), weekHref(today.AddDate(0, 0, 1)), weekHref(today)
 	name := s.d.Schedule.LecturerName(r.Context(), oid, lessons)
 	data["Selected"] = sched.Lecturer{Oid: oid, Name: name}
 	// Инициал для оформлений, рисующих «аватар» — кружок с первой буквой.
@@ -722,26 +771,15 @@ func (s *Server) lecturers(w http.ResponseWriter, r *http.Request) {
 		data["SelectedInitial"] = string(rs[0])
 	}
 	data["SelectedPinned"] = pinned.Key() == subj.Key()
-	data["Lessons"], data["InClass"] = rows, current != nil
-	if current != nil {
-		data["NowRoom"], data["NowPlace"] = roomShort(current.Auditorium), s.d.BuildingLabel(current.Building)
-		data["NowTime"], data["NowWhat"] = current.BeginsAt+"—"+current.EndsAt, current.Discipline
-		data["NowGroups"] = strings.Join(current.GroupNames, ", ")
-		p, rem := progress(current.BeginsAt, current.EndsAt, s.d.Clock.HHMM())
-		data["NowProgress"], data["NowRemain"], data["NowEnds"], data["NowBegins"] = p, rem, current.EndsAt, current.BeginsAt
-	} else {
-		// Честный ответ важнее красивого: вне пар источник ничего не знает.
-		text := "Сегодня пар нет."
-		hhmm := s.d.Clock.HHMM()
-		for _, l := range lessons {
-			if l.BeginsAt > hhmm {
-				text = "Сейчас пары нет. Ближайшая в " + l.BeginsAt + "."
-				break
-			}
-			text = "Пары на сегодня закончились."
+	// «На паре» — по тем же статусам, что и герой: иначе значок и кольцо
+	// могли бы разойтись на границе пары.
+	inClass := false
+	for _, row := range rows {
+		if row.Status == "now" {
+			inClass = true
 		}
-		data["IdleText"] = text
 	}
+	data["Lessons"], data["InClass"] = rows, inClass
 	s.render(w, r, "lecturers", data)
 }
 

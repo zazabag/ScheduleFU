@@ -52,7 +52,9 @@ func New(d Deps) (*Server, error) {
 	funcs := template.FuncMap{"asset": AssetURL, "skinCSS": func(id string) string { return AssetURL("skins/" + id + ".css") }}
 	pages := map[string]*template.Template{}
 	for _, name := range []string{"rooms", "schedule", "lecturers", "settings"} {
-		t, err := template.New("base").Funcs(funcs).ParseFS(templateFS, "templates/base.html", "templates/"+name+".html")
+		// hero.html — общий верхний блок дня: его рисуют и экран расписания,
+		// и экран «где преподаватель».
+		t, err := template.New("base").Funcs(funcs).ParseFS(templateFS, "templates/base.html", "templates/hero.html", "templates/"+name+".html")
 		if err != nil {
 			return nil, fmt.Errorf("web: шаблон %s: %w", name, err)
 		}

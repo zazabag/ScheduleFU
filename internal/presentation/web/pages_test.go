@@ -46,7 +46,7 @@ func TestGeroyVPereryveZnaetSleduyushchuyu(t *testing.T) {
 	s := &Server{}
 	rs := rows("08:30", "10:00", "10:10", "11:40", "14:00", "15:30")
 	markStatuses(rs, "2026-09-24", "2026-09-24", "12:00")
-	h := s.buildHero(rs, true, "12:00")
+	h := s.buildHero(rs, true, "12:00", false)
 	if h.State != "between" || h.Lesson == nil || h.Lesson.BeginsAt != "14:00" {
 		t.Fatalf("перерыв должен показывать пару 14:00, получили %+v", h)
 	}
@@ -62,7 +62,7 @@ func TestGeroyVoVremyaParySchitaetProgress(t *testing.T) {
 	s := &Server{}
 	rs := rows("10:10", "11:40")
 	markStatuses(rs, "2026-09-24", "2026-09-24", "10:55")
-	h := s.buildHero(rs, true, "10:55")
+	h := s.buildHero(rs, true, "10:55", false)
 	if h.State != "now" || h.Progress != 50 || h.RemainMin != 45 {
 		t.Errorf("на середине пары ожидали now/50/45, получили %s/%d/%d", h.State, h.Progress, h.RemainMin)
 	}
@@ -86,9 +86,12 @@ func TestDiapazonNedeliVOdnomMesyace(t *testing.T) {
 func TestPodpisiOstanovok(t *testing.T) {
 	cases := map[[2]int]string{{1, 1}: "1 остановка · ты на первой", {4, 2}: "4 остановки · ты на второй", {5, 0}: "5 остановок"}
 	for in, want := range cases {
-		if got := stopsLabel(in[0], in[1]); got != want {
+		if got := stopsLabel(in[0], in[1], false); got != want {
 			t.Errorf("%v: %q, ожидалось %q", in, got, want)
 		}
+	}
+	if got := stopsLabel(4, 2, true); got != "4 остановки · сейчас на второй" {
+		t.Errorf("преподаватель: %q", got)
 	}
 }
 
@@ -122,7 +125,7 @@ func TestPersonazhStoitUTekushcheyOstanovki(t *testing.T) {
 	s := &Server{}
 	rs := rows("08:30", "10:00", "10:10", "11:40", "14:00", "15:30")
 	markStatuses(rs, "2026-09-24", "2026-09-24", "10:30")
-	h := s.buildHero(rs, true, "10:30")
+	h := s.buildHero(rs, true, "10:30", false)
 	var here []int
 	for _, p := range h.Route.Pins {
 		if p.Here {
@@ -131,5 +134,19 @@ func TestPersonazhStoitUTekushcheyOstanovki(t *testing.T) {
 	}
 	if len(here) != 1 || here[0] != 2 {
 		t.Errorf("персонаж должен стоять у второй пары, получили %v", here)
+	}
+}
+
+func TestGeroyPrepodavatelyaGovoritProGruppy(t *testing.T) {
+	s := &Server{}
+	rs := rows("10:10", "11:40", "11:50", "13:20")
+	rs[1].Groups = "ПИ24-1"
+	markStatuses(rs, "2026-09-24", "2026-09-24", "10:30")
+	h := s.buildHero(rs, true, "10:30", true)
+	if !strings.Contains(h.Sentence, "у ПИ24-1") || strings.Contains(h.Sentence, "ведёт") {
+		t.Errorf("фраза преподавателя: %q", h.Sentence)
+	}
+	if h.Mood != "первая пара идёт" {
+		t.Errorf("настроение преподавателя: %q", h.Mood)
 	}
 }

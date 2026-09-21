@@ -21,28 +21,16 @@
       <div><div class="now-name" data-initial="{{.SelectedInitial}}">{{.Selected.Name}}</div><div class="now-date">{{.Today}}</div></div>
       <span class="badge {{if not .InClass}}idle{{end}}">{{if .InClass}}на паре{{else}}вне пар{{end}}</span>
     </div>
-    {{if .InClass}}
-    <div class="now-where">
-      <div class="now-room">{{.NowRoom}}</div>
-      <div class="now-what">
-        <div class="now-time">{{.NowTime}}</div>
-        <div class="now-disc">{{.NowWhat}}</div>
-        <div class="now-groups">{{.NowGroups}} · {{.NowPlace}}</div>
-      </div>
-      <div class="hero-timer now-timer" data-state="now" data-now="{{.Clock}}" data-begins="{{.NowBegins}}" data-ends="{{.NowEnds}}" data-progress="{{.NowProgress}}">
-        <svg class="hero-ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-track" cx="60" cy="60" r="52"/><circle class="ring-bar" cx="60" cy="60" r="52" pathLength="100"/></svg>
-        <span class="hero-countdown-label">до конца</span>
-        <span class="hero-countdown">{{.NowRemain}} мин</span>
-      </div>
-    </div>
-    {{else}}
-    <div class="now-where idle"><span class="now-idle">{{.IdleText}}</span></div>
-    {{end}}
     <div class="now-actions">
       <a class="act" href="/schedule?lecturer={{.Selected.Oid}}">Расписание на неделю</a>
       {{if .SelectedPinned}}<a class="act on" href="/schedule?unpin=1">Моё ✓</a>{{else}}<a class="act" href="/schedule?lecturer={{.Selected.Oid}}&amp;pin=1">Это моё расписание</a>{{end}}
     </div>
   </article>
+</section>
+
+{{template "hero" .}}
+
+<section class="picks">
 
   <ol class="lesson-list">
     {{range .Lessons}}
