@@ -57,26 +57,26 @@ ScheduleFU — собственный сервис расписания Фина
 
 ## Структура
 
-Ниже — **текущая** раскладка. Целевая — в § 3 канона; переезд идёт по
-плану § 10, шаг за шагом, и этот раздел обновляется по мере переезда.
+Совпадает с § 3 канона — переезд завершён 21.09.2026, старый код снесён.
 
 | Путь | Назначение |
 |---|---|
-| `internal/ruz/` | клиент `ruz.fa.ru`: запросы, типы, разбор имён аудиторий |
-| `internal/store/` | хранилище |
-| `internal/web/` | веб-интерфейс: шаблоны, стили, сетка пар |
-| `internal/httpapi/` | JSON-API и ручки подписки |
-| `internal/push/` | уведомления: группировка, очередь, отправка |
-| `internal/httpx/` | заголовки безопасности и ограничение частоты |
-| `internal/ical/` | выгрузка расписания в календарь |
+| `cmd/schedulefu/` | единственный бинарник: `serve · collect · seed · static · vapid · migrate`; composition root |
+| `internal/presentation/web/` | HTML-страницы, шаблоны, стили, cookie закрепления |
+| `internal/presentation/api/` | JSON `/api/v1` и ручки подписки |
+| `internal/presentation/static/` | сборка версии для GitHub Pages |
+| `internal/modules/source/` | порт `Source`; `ruz/` — адаптер РУЗ ФУ: клиент, разбор аудиторий, площадки |
+| `internal/modules/schedule/` | ядро: `domain/` (пара, аудитория, `Subject`, сетка пар), сервис сбора и запросов, `infrastructure/postgres/` |
+| `internal/modules/notify/` | подписки, очередь, планировщик, порт `Transport`; `transport/webpush/` |
+| `internal/modules/export/` | календарь ICS |
+| `internal/platform/` | `config` (YAML + `SCHEDULEFU_*`), `db` (пул, миграции таймстемпами), `clock` (пояс вуза, русские даты), `httpx` |
+| `internal/archtest/` | тест графа зависимостей — держит § 6 канона |
 | `deploy/local/` | установка служб на macOS |
-| `cmd/staticgen/` | сборка статической версии для GitHub Pages |
-| `cmd/vapid/` | генерация ключей для уведомлений |
-| `cmd/collector/` | фоновый сборщик |
-| `cmd/api/` | HTTP-сервер |
-| `tools/` | разовые скрипты сбора справочников (Python) |
-| `data/` | собранные справочники: 773 аудитории, 479 групп |
-| `docs/` | исследование и технические находки |
+| `tools/`, `data/` | разовые скрипты сбора справочников (Python) и их результат |
+| `docs/` | канон, исследование источника, юридические риски |
+
+Правила зависимостей проверяет `go test ./internal/archtest/`: нарушение
+валит сборку.
 
 ## Где искать контекст перед работой
 

@@ -1,0 +1,32 @@
+package web
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	sched "github.com/zazabag/schedulefu/internal/modules/schedule/domain"
+)
+
+// В cookie допустим только ASCII; без кодирования «Ю24-5» превращалось в «24-5».
+func TestCookiePerezhivaetKirillicu(t *testing.T) {
+	rec := httptest.NewRecorder()
+	SetSubjectCookie(rec, sched.GroupSubject("Ю24-5"), false)
+	r := httptest.NewRequest("GET", "/", nil)
+	for _, c := range rec.Result().Cookies() {
+		r.AddCookie(c)
+	}
+	if got := SubjectFromCookie(r); got.Group != "Ю24-5" {
+		t.Fatalf("из cookie вернулось %q", got.Group)
+	}
+}
+
+func TestCookieIgnoriruetPoddelku(t *testing.T) {
+	for _, bad := range []string{"lecturer:d6607672-25a6", "person:1", "%%%", ""} {
+		r := httptest.NewRequest("GET", "/", nil)
+		r.AddCookie(&http.Cookie{Name: subjectCookie, Value: bad})
+		if !SubjectFromCookie(r).IsZero() {
+			t.Errorf("подделка %q принята", bad)
+		}
+	}
+}

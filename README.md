@@ -35,60 +35,44 @@
 
 ## Запуск
 
+Один бинарник, настройки — YAML плюс переменные `SCHEDULEFU_*` поверх
+(секреты только в окружении):
+
 ```bash
-# база и справочники
-createdb schedulefu_dev
-go run ./cmd/collector -seed                     # 773 аудитории, 479 групп
-go run ./cmd/collector -once -days 7 -no-notify  # первое наполнение, без уведомлений
-
-# сайт с сервером
-go run ./cmd/api -addr :8090
-
-# выложить статическую версию на Pages
-./scripts/deploy-pages.sh
+createdb schedulefu
+go build -o schedulefu ./cmd/schedulefu
+./schedulefu migrate
+./schedulefu seed -data data                 # 773 аудитории, 479 групп
+./schedulefu collect -once -no-notify        # первое наполнение
+./schedulefu serve                           # http://localhost:8090
 ```
+
+Сборщик в цикле: `./schedulefu collect` (интервал из конфига). Пример
+конфига пишет `deploy/local/install.sh`; на macOS он же ставит службы.
 
 ### Уведомления
 
 Ключи создаются один раз; при их смене все подписки перестают работать.
 
 ```bash
-go run ./cmd/vapid > .env   # приватный ключ в репозиторий не коммитить
-export $(cat .env | xargs)
-go run ./cmd/api -addr :8090
+./schedulefu vapid > ~/.schedulefu/env       # приватный ключ не коммитить
+export $(cat ~/.schedulefu/env | xargs)
+./schedulefu serve
 ```
 
-Сборщик кладёт письма в очередь при каждом проходе, сервер разбирает её
-раз в полминуты. Статическая версия на Pages принимать подписки не может —
-там нет сервера; собрать её со ссылкой на работающий сервер:
+Статическая версия для Pages подписки принимать не может — там нет
+сервера; собрать её с адресом работающего:
 
 ```bash
-go run ./cmd/staticgen -out site -api-base https://адрес-сервера
+SCHEDULEFU_STATIC_API_BASE=https://адрес ./schedulefu static
 ```
 
 ## Устройство
 
-| Путь | Что |
-|---|---|
-| `internal/ruz/` | клиент `ruz.fa.ru`: запросы, разбор имён аудиторий |
-| `internal/store/` | PostgreSQL: слепки расписания, журнал изменений |
-| `internal/collector/` | сбор расписания обходом аудиторий |
-| `internal/web/` | веб-интерфейс: шаблоны, стили, сетка пар |
-| `internal/httpapi/` | JSON-API и ручки подписки |
-| `internal/push/` | уведомления: группировка, очередь, отправка |
-| `internal/httpx/` | заголовки безопасности и ограничение частоты |
-| `internal/ical/` | выгрузка расписания в календарь |
-| `cmd/staticgen/` | сборка версии для Pages |
-| `design/` | исходники экранов дизайн-канваса |
-| `docs/` | исследование источника и юридические риски |
-| `tools/` | разовые скрипты сбора справочников (Python) |
-
-Два документа, с которых начинать:
-
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — как система устроена,
-  кому что разрешено знать, куда растёт и как стыкуется с Akeda ERP;
-- [`docs/06-api-findings.md`](docs/06-api-findings.md) — что у источника
-  открыто, где он врёт и какие у него ловушки.
+Модульный монолит по [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md):
+`presentation → modules → platform`, модули `source · schedule · notify ·
+export` с портами между ними, один писатель у таблицы. Граф зависимостей
+держит тест `internal/archtest`.
 
 ## Известные ограничения
 

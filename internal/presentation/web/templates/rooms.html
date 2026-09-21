@@ -1,0 +1,76 @@
+{{define "content"}}
+<div class="head">
+  <div class="head-row">
+    <div>
+      <h1 class="title">Свободно сейчас</h1>
+      <p class="subtitle">{{.SiteLabel}} · {{.FreeCount}} из {{.TotalCount}}</p>
+    </div>
+    <div class="clock">{{.Clock}}</div>
+  </div>
+
+  <div class="tabs">
+    {{range .Sites}}
+    <a class="tab {{if .On}}on{{end}}" href="{{.Href}}">{{.Label}}</a>
+    {{end}}
+  </div>
+
+  {{if .Floors}}
+  <div class="chips">
+    <span class="chips-label">этаж</span>
+    {{range .Floors}}
+    <a class="chip {{if .On}}on{{end}}" href="{{.Href}}">{{.Label}}</a>
+    {{end}}
+  </div>
+  {{end}}
+</div>
+
+<div class="list">
+  {{range .Rooms}}
+  <details class="room">
+    <summary>
+      <div class="room-head">
+        <div class="room-id">
+          <span class="room-num">{{.Room}}</span>
+          <span class="room-meta">{{.Meta}}</span>
+        </div>
+        <span class="room-until {{.UntilClass}}">{{.Until}}</span>
+      </div>
+      <div class="rail">
+        {{range .Cells}}
+        <div class="rail-cell {{.State}}"{{if .Title}} title="{{.Title}}"{{end}}>
+          <div class="rail-box"></div>
+          <div class="rail-time">{{.Label}}</div>
+        </div>
+        {{end}}
+      </div>
+    </summary>
+    <div class="room-lessons">
+      {{if .Lessons}}
+        {{range .Lessons}}
+        <div class="room-lesson">
+          <span class="room-lesson-time">{{.BeginsAt}}—{{.EndsAt}}</span>
+          <span class="room-lesson-what">{{.Discipline}}{{if .LecturerName}} · {{.LecturerName}}{{end}}</span>
+        </div>
+        {{end}}
+      {{else}}
+        <div class="room-empty">Сегодня пар нет</div>
+      {{end}}
+    </div>
+  </details>
+  {{else}}
+  <div class="empty">
+    <div class="empty-title">Свободных нет</div>
+    <div class="empty-sub">Попробуйте другой корпус или этаж</div>
+  </div>
+  {{end}}
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-box free"></div><span class="legend-text">свободна</span></div>
+  <div class="legend-item"><div class="legend-box busy"></div><span class="legend-text">пара</span></div>
+  <div class="legend-item"><div class="legend-box past"></div><span class="legend-text">прошло</span></div>
+</div>
+<div class="note">
+  Брони вне расписания (мероприятия, экзамены) вуз не публикует — аудитория может быть занята.{{if .Freshness}} Обновлено {{.Freshness}}.{{end}}
+</div>
+{{end}}
