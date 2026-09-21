@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	sched "github.com/zazabag/schedulefu/internal/modules/schedule/domain"
@@ -77,5 +78,57 @@ func RememberRecent(w http.ResponseWriter, r *http.Request, group string, secure
 		}
 	}
 	http.SetCookie(w, &http.Cookie{Name: recentCookie, Value: url.QueryEscape(strings.Join(names, "|")), Path: "/",
+		MaxAge: 180 * 24 * 60 * 60, HttpOnly: true, Secure: secure, SameSite: http.SameSiteLaxMode})
+}
+
+// recentLecturersCookie — последние открытые преподаватели: «oid:имя», имя
+// хранится рядом, чтобы показать список без похода в базу.
+const recentLecturersCookie = "schedulefu_recent_lecturers"
+
+// RecentLecturer — запись из cookie недавних преподавателей.
+type RecentLecturer struct {
+	Oid  int64
+	Name string
+}
+
+// RecentLecturersFromCookie — недавние преподаватели, свежие первыми.
+// Значение приходит от браузера: oid проверяется как число, имя — только
+// для показа и экранируется шаблоном.
+func RecentLecturersFromCookie(r *http.Request) []RecentLecturer {
+	c, err := r.Cookie(recentLecturersCookie)
+	if err != nil || c.Value == "" {
+		return nil
+	}
+	v, err := url.QueryUnescape(c.Value)
+	if err != nil {
+		return nil
+	}
+	var out []RecentLecturer
+	for _, item := range strings.Split(v, "|") {
+		oidText, name, ok := strings.Cut(item, ":")
+		if !ok {
+			continue
+		}
+		oid, err := strconv.ParseInt(oidText, 10, 64)
+		if err != nil || oid <= 0 || strings.TrimSpace(name) == "" || len(out) >= 5 {
+			continue
+		}
+		out = append(out, RecentLecturer{Oid: oid, Name: strings.TrimSpace(name)})
+	}
+	return out
+}
+
+// RememberRecentLecturer ставит преподавателя первым в списке недавних.
+func RememberRecentLecturer(w http.ResponseWriter, r *http.Request, oid int64, name string, secure bool) {
+	if strings.TrimSpace(name) == "" {
+		return
+	}
+	items := []string{strconv.FormatInt(oid, 10) + ":" + strings.ReplaceAll(name, "|", " ")}
+	for _, rl := range RecentLecturersFromCookie(r) {
+		if rl.Oid != oid && len(items) < 5 {
+			items = append(items, strconv.FormatInt(rl.Oid, 10)+":"+rl.Name)
+		}
+	}
+	http.SetCookie(w, &http.Cookie{Name: recentLecturersCookie, Value: url.QueryEscape(strings.Join(items, "|")), Path: "/",
 		MaxAge: 180 * 24 * 60 * 60, HttpOnly: true, Secure: secure, SameSite: http.SameSiteLaxMode})
 }

@@ -861,6 +861,7 @@ func (s *Server) lecturers(w http.ResponseWriter, r *http.Request) {
 			}
 			data["Found"] = found
 		}
+		s.lecturerEntryData(r, data, pinned, now)
 		s.render(w, r, "lecturers", data)
 		return
 	}
@@ -893,6 +894,7 @@ func (s *Server) lecturers(w http.ResponseWriter, r *http.Request) {
 	weekHref := func(d time.Time) string { return "/schedule?lecturer=" + oidParam + "&date=" + d.Format("2006-01-02") }
 	data["PrevDayHref"], data["NextDayHref"], data["TodayHref"] = weekHref(today.AddDate(0, 0, -1)), weekHref(today.AddDate(0, 0, 1)), weekHref(today)
 	name := s.d.Schedule.LecturerName(r.Context(), oid, lessons)
+	RememberRecentLecturer(w, r, oid, name, r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https")
 	data["Selected"] = sched.Lecturer{Oid: oid, Name: name}
 	// Инициал для оформлений, рисующих «аватар» — кружок с первой буквой.
 	if rs := []rune(strings.TrimSpace(name)); len(rs) > 0 {
@@ -909,6 +911,83 @@ func (s *Server) lecturers(w http.ResponseWriter, r *http.Request) {
 	}
 	data["Lessons"], data["InClass"] = rows, inClass
 	s.render(w, r, "lecturers", data)
+}
+
+// lecturerEntryData — входы на экран поиска: преподаватели закреплённой
+// группы на этой неделе с ближайшей парой, недавно открытые, закреплённый.
+// Всё считается из уже загружаемого расписания группы — без обхода базы
+// по каждому преподавателю.
+func (s *Server) lecturerEntryData(r *http.Request, data map[string]any, pinned sched.Subject, now time.Time) {
+	type mine struct {
+		Oid                               int64
+		Name, When, What, Groups, Initial string
+		Today, Past                       bool
+		sortKey                           string
+	}
+	if pinned.Kind == sched.SubjectGroup {
+		weekStart := clock.StartOfWeek(now)
+		lessons, err := s.d.Schedule.ScheduleFor(r.Context(), pinned, weekStart, weekStart.AddDate(0, 0, 6))
+		if err == nil {
+			todayKey, hhmm := now.Format("2006-01-02"), now.Format("15:04")
+			byOid := map[int64]*mine{}
+			for _, l := range lessons {
+				// «Преподаватели ВП» и подобное — заглушки источника, не люди.
+				if l.LecturerOid == nil || l.LecturerName == "" || strings.HasPrefix(l.LecturerName, "Преподавател") {
+					continue
+				}
+				key := l.DateKey()
+				upcoming := key > todayKey || key == todayKey && l.EndsAt > hhmm
+				m, ok := byOid[*l.LecturerOid]
+				if !ok {
+					m = &mine{Oid: *l.LecturerOid, Name: l.LecturerName, Initial: string([]rune(l.LecturerName)[:1]), Past: true}
+					byOid[*l.LecturerOid] = m
+				}
+				// Ближайшая ещё не прошедшая пара; если все прошли — последняя.
+				sortKey := key + " " + l.BeginsAt
+				take := false
+				switch {
+				case upcoming && m.Past:
+					take = true // первая непрошедшая вытесняет прошедшую
+				case upcoming && !m.Past:
+					take = sortKey < m.sortKey
+				case !upcoming && m.Past:
+					take = sortKey > m.sortKey
+				}
+				if take {
+					m.sortKey, m.What, m.Past = sortKey, l.Discipline, !upcoming
+					m.Today = upcoming && key == todayKey
+					m.When = clock.WeekdayShortRu(l.Date) + " " + l.BeginsAt
+					if m.Today {
+						m.When = "сегодня " + l.BeginsAt
+					} else if !upcoming {
+						m.When = "было " + m.When
+					}
+				}
+			}
+			var list []mine
+			for _, m := range byOid {
+				list = append(list, *m)
+			}
+			// Сегодняшние первыми, затем впереди по времени, прошедшие — в конец.
+			sort.Slice(list, func(i, j int) bool {
+				if list[i].Past != list[j].Past {
+					return !list[i].Past
+				}
+				return list[i].sortKey < list[j].sortKey
+			})
+			if len(list) > 12 {
+				list = list[:12]
+			}
+			data["Mine"], data["MineGroup"] = list, pinned.Group
+		}
+	}
+	var recents []RecentLecturer
+	for _, rl := range RecentLecturersFromCookie(r) {
+		if rl.Oid != pinned.LecturerOid {
+			recents = append(recents, rl)
+		}
+	}
+	data["RecentLecturers"] = recents
 }
 
 // ─── подписи ─────────────────────────────────────────────────────────────────

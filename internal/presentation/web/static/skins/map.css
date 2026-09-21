@@ -158,3 +158,11 @@
 .ph-dir.on b::before { background: #fff; }
 .ph-recent-item { box-shadow: var(--shadow); }
 .ph-dirs { grid-template-columns: repeat(3, 1fr); }
+
+/* ─── поиск преподавателя: попутчики ──────────────────────────────────── */
+.lh-pinned { box-shadow: var(--shadow); border-radius: var(--radius-lg); }
+.lh-pinned-label::before { content: '⚑ '; }
+.lh-teacher { box-shadow: var(--shadow); border-radius: 12px; }
+.lh-teacher-name::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 999px 999px 999px 0; transform: rotate(-45deg); background: var(--text-3); margin-right: 8px; vertical-align: 1px; }
+.lh-teacher.today .lh-teacher-name::before { background: var(--accent); }
+.lh-recent-item { box-shadow: var(--shadow); }

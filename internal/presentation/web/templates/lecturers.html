@@ -45,13 +45,45 @@
     {{end}}
   </ol>
 {{else}}
+</section>
+
+<section class="lhero">
   {{if .PinnedOid}}
-  <a class="pick on" href="/lecturers?oid={{.PinnedOid}}"><span class="pick-body"><span class="pick-name">{{.PinnedName}}</span><span class="pick-meta">моё расписание</span></span><span class="pick-mark">✓</span></a>
+  <a class="lh-pinned" href="/lecturers?oid={{.PinnedOid}}">
+    <span class="lh-pinned-label">моё расписание</span>
+    <span class="lh-pinned-name">{{.PinnedName}}</span>
+    <span class="lh-pinned-go">где сейчас ›</span>
+  </a>
   {{end}}
+  {{if .RecentLecturers}}
+  <div class="lh-recent">
+    <span class="lh-recent-label">недавно</span>
+    {{range .RecentLecturers}}<a class="lh-recent-item" href="/lecturers?oid={{.Oid}}">{{.Name}}</a>{{end}}
+  </div>
+  {{end}}
+  {{if and .Mine (not .Query)}}
+  <div class="lh-mine-head"><span>преподаватели {{.MineGroup}}</span><i>на этой неделе</i></div>
+  <div class="lh-mine">
+    {{range .Mine}}
+    <a class="lh-teacher {{if .Today}}today{{end}}" href="/lecturers?oid={{.Oid}}" data-initial="{{.Initial}}">
+      <span class="lh-teacher-name">{{.Name}}</span>
+      <span class="lh-teacher-when">{{.When}}</span>
+      <span class="lh-teacher-what">{{.What}}</span>
+    </a>
+    {{end}}
+  </div>
+  {{end}}
+</section>
+
+<section class="picks">
+  {{if .Query}}
   {{range .Found}}
   <a class="pick" href="/lecturers?q={{$.Query}}&amp;oid={{.Oid}}"><span class="pick-body"><span class="pick-name">{{.Name}}</span></span><span class="pick-mark">›</span></a>
   {{else}}
-  <div class="empty"><div class="empty-title">{{if .Query}}Никого не нашлось{{else}}Найдите преподавателя{{end}}</div><div class="empty-sub">{{if .Query}}Проверьте написание фамилии{{else}}Введите фамилию в поиск{{end}}</div></div>
+  <div class="empty"><div class="empty-title">Никого не нашлось</div><div class="empty-sub">Проверьте написание фамилии</div></div>
+  {{end}}
+  {{else if not .Mine}}
+  <div class="empty"><div class="empty-title">Найдите преподавателя</div><div class="empty-sub">Введите фамилию в поиск{{if not .PinnedOid}} — или <a href="/groups">закрепите группу</a>, и здесь появятся её преподаватели{{end}}</div></div>
   {{end}}
 {{end}}
 </section>

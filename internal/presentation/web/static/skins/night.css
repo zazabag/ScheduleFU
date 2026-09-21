@@ -132,3 +132,9 @@
 .ph-dir { border: 1px solid var(--line); }
 .ph-dir.on { box-shadow: 0 0 16px rgba(139,123,255,0.45); }
 .ph-recent-item { border: 1px solid var(--line); }
+
+/* ─── поиск преподавателя: стекло ─────────────────────────────────────── */
+.lh-pinned { box-shadow: 0 0 22px rgba(139,123,255,0.45); }
+.lh-teacher { border: 1px solid var(--line); }
+.lh-teacher.today { border-color: var(--accent); box-shadow: 0 0 14px rgba(139,123,255,0.3); }
+.lh-recent-item { border: 1px solid var(--line); }

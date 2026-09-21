@@ -191,3 +191,15 @@
 .ph-recent-label { color: rgba(255,255,255,0.85); }
 .ph-recent-item { background: #fff; box-shadow: var(--shadow); transform: rotate(-1deg); }
 .ph-recent-item:nth-child(2n) { transform: rotate(1.5deg); }
+
+/* ─── поиск преподавателя: наклейки с именами ─────────────────────────── */
+.lh-pinned { transform: rotate(-1.5deg); box-shadow: var(--shadow); border-radius: 12px; }
+.lh-mine-head, .lh-recent-label { color: rgba(255,255,255,0.9); }
+.lh-mine { gap: 10px; padding: 2px 6px; }
+.lh-teacher { background: #fff; border-radius: 10px; box-shadow: var(--shadow); transform: rotate(-1deg); }
+.lh-teacher:nth-child(2n) { transform: rotate(1.2deg); }
+.lh-teacher.today { background: var(--accent); color: var(--accent-ink); }
+.lh-teacher.today .lh-teacher-what, .lh-teacher.today .lh-teacher-when { color: var(--accent-ink); }
+:root[data-theme="dark"] .lh-teacher { background: var(--surface); }
+.lh-recent-item { background: #fff; box-shadow: var(--shadow); transform: rotate(-1deg); }
+.lh-recent-item:nth-child(2n) { transform: rotate(1.5deg); }

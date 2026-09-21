@@ -132,3 +132,12 @@
 .ph-dir.on::after { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
 .ph-dir.on i { color: var(--text-3); }
 .ph-recent-item { border: 1.5px solid var(--line); background: var(--bg); }
+
+/* ─── поиск преподавателя: метки на схеме ─────────────────────────────── */
+.lh-pinned { border: 1.5px solid var(--accent); background: var(--bg-hero); color: var(--text); }
+.lh-pinned-label, .lh-pinned-go { color: var(--accent); }
+.lh-teacher { background: var(--bg); border: 1.5px solid var(--line); border-radius: 6px; }
+.lh-teacher.today { border-color: var(--accent); }
+.lh-teacher-name::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: var(--past); margin-right: 8px; vertical-align: 1px; }
+.lh-teacher.today .lh-teacher-name::before { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.lh-recent-item { border: 1.5px solid var(--line); background: var(--bg); }

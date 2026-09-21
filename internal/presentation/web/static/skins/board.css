@@ -198,3 +198,17 @@ body { font-size: 13px; text-transform: none; }
 .ph-dir.on { background: var(--accent); }
 .ph-dir.on b { color: var(--accent-ink); }
 .ph-recent-item { border-radius: 0; background: transparent; border: 1px solid var(--line); font-family: var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; }
+
+/* ─── поиск преподавателя: экипажи ────────────────────────────────────── */
+.lh-pinned { border-radius: 0; background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+.lh-pinned-label, .lh-pinned-go { letter-spacing: 0.2em; text-transform: uppercase; font-size: 9px; }
+.lh-pinned-name { font-family: var(--font-display); text-transform: uppercase; font-size: 18px; }
+.lh-mine-head { letter-spacing: 0.25em; }
+.lh-mine { gap: 0; }
+.lh-teacher { background: transparent; border-radius: 0; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.lh-teacher-name { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.02em; }
+.lh-teacher-when { font-family: var(--font-mono); color: var(--accent); letter-spacing: 0.05em; text-transform: uppercase; font-size: 10px; }
+.lh-teacher.today .lh-teacher-when { color: var(--ok); }
+.lh-teacher.today .lh-teacher-when::before { content: '● '; }
+.lh-teacher-what { text-transform: uppercase; letter-spacing: 0.1em; font-size: 9px; }
+.lh-recent-item { border-radius: 0; background: transparent; border: 1px solid var(--line); text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; }

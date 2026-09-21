@@ -176,3 +176,14 @@
 .ph-dir.on i { color: var(--accent); }
 .ph-recent-item { border-radius: 0; border: 1px solid var(--line); background: transparent; color: #fff; font-family: var(--font-display); }
 .ph-dirs { grid-template-columns: repeat(3, 1fr); }
+
+/* ─── поиск преподавателя: авторы номера ──────────────────────────────── */
+.lh-pinned { border-radius: 0; background: var(--accent); }
+.lh-pinned-name { font-family: var(--font-display); font-style: italic; font-size: 24px; }
+.lh-mine-head { font-family: var(--font-display); font-style: italic; text-transform: none; letter-spacing: 0; font-size: 15px; color: #fff; border-bottom: 3px double var(--text); padding-bottom: 6px; }
+.lh-mine { gap: 0; }
+.lh-teacher { background: transparent; border-radius: 0; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.lh-teacher-name { font-family: var(--font-display); font-size: 18px; }
+.lh-teacher-when { color: var(--accent); }
+.lh-teacher-what { color: var(--text-2); font-style: italic; }
+.lh-recent-item { border-radius: 0; border: 1px solid var(--line); background: transparent; color: #fff; font-family: var(--font-display); }

@@ -161,3 +161,12 @@
 .ph-dir.on i { color: var(--accent); }
 .ph-recent-item { border-radius: 0; background: transparent; border-bottom: 2px solid var(--accent); padding: 4px 0; }
 .ph-dirs { grid-template-columns: repeat(3, 1fr); }
+
+/* ─── поиск преподавателя: строки указателя ───────────────────────────── */
+.lh-pinned { border-radius: 0; background: var(--text); color: var(--bg); }
+.lh-mine-head { border-bottom: 2px solid var(--text); padding-bottom: 6px; color: var(--text); }
+:root[data-theme="dark"] .lh-mine-head { border-bottom-color: var(--line); }
+.lh-mine { gap: 0; }
+.lh-teacher { background: transparent; border-radius: 0; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.lh-teacher-name { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+.lh-recent-item { border-radius: 0; background: transparent; border-bottom: 2px solid var(--accent); padding: 4px 0; }

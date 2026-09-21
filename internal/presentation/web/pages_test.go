@@ -1,6 +1,9 @@
 package web
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -156,5 +159,14 @@ func TestNapravlenieIzNazvaniyaGruppy(t *testing.T) {
 		if got := dirCode(name); got != want {
 			t.Errorf("%q: %q, ожидалось %q", name, got, want)
 		}
+	}
+}
+
+func TestNedavniePrepodavateliIzCookieProveryayutsya(t *testing.T) {
+	r := httptest.NewRequest("GET", "/lecturers", nil)
+	r.AddCookie(&http.Cookie{Name: recentLecturersCookie, Value: url.QueryEscape("46479:Кушнир Д.Ю.|abc:Мусор|-5:Отриц|48536:Пустохин Д.А.")})
+	got := RecentLecturersFromCookie(r)
+	if len(got) != 2 || got[0].Oid != 46479 || got[1].Name != "Пустохин Д.А." {
+		t.Errorf("получили %+v", got)
 	}
 }

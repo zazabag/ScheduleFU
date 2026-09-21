@@ -427,3 +427,21 @@ svg { display: block; }
 .ph-dir.more { border: 1px dashed var(--line); background: transparent; }
 .ph-dir.more b { color: var(--accent); }
 .picks-reset { margin-left: 6px; font-weight: 600; }
+
+/* ─── поиск преподавателя: закреплённый, недавние, преподаватели группы ─ */
+.lhero { padding: 0 var(--pad) 8px; display: flex; flex-direction: column; gap: 12px; }
+.lh-pinned { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "label go" "name go"; align-items: center; padding: 12px 14px; border-radius: var(--radius); background: var(--accent); color: var(--accent-ink); }
+.lh-pinned-label { grid-area: label; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.8; }
+.lh-pinned-name { grid-area: name; font-family: var(--font-display); font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+.lh-pinned-go { grid-area: go; font-size: 12px; font-weight: 600; }
+.lh-recent { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.lh-recent-label { font-size: 11px; color: var(--text-3); }
+.lh-recent-item { padding: 6px 11px; border-radius: 999px; background: var(--surface); color: var(--text); font-size: 12px; font-weight: 600; }
+.lh-mine-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); font-weight: 700; }
+.lh-mine-head i { font-style: normal; font-weight: 500; }
+.lh-mine { display: flex; flex-direction: column; gap: 6px; }
+.lh-teacher { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "name when" "what when"; column-gap: 12px; padding: 10px 14px; border-radius: var(--radius); background: var(--surface); color: var(--text); align-items: center; }
+.lh-teacher-name { grid-area: name; font-size: 14px; font-weight: 700; }
+.lh-teacher-what { grid-area: what; font-size: 11px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lh-teacher-when { grid-area: when; font-size: 12px; font-weight: 600; color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lh-teacher.today .lh-teacher-when { color: var(--accent); }
