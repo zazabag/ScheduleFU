@@ -1,64 +1,90 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
-  <!-- Манул ScheduleFU: свой персонаж, не копия символа вуза. Студент между
-       парами — с рюкзаком. Рисуется в коде, чтобы жить в одном файле и
-       перекрашиваться под оформление через currentColor не приходилось. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" aria-hidden="true">
+  <!-- Манул-космонавт — символ Финансового университета, перерисованный
+       по образцу вуза (использование согласовано, по словам автора проекта,
+       21.09.2026). Векторная копия: шлем, синий скафандр с розовым значком,
+       нашивка-лапка, полосатый хвост, ботинки с розовыми подошвами. -->
   <defs>
-    <linearGradient id="fur" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#cdb99a"/>
-      <stop offset="1" stop-color="#b09a7c"/>
-    </linearGradient>
+    <clipPath id="helmet"><circle cx="112" cy="70" r="52"/></clipPath>
   </defs>
-  <!-- хвост: толстый, полосатый, лежит слева -->
-  <path d="M34 92 C14 96 6 84 10 70 C12 62 20 60 24 66 C27 72 22 78 18 78 C16 86 26 88 36 84Z" fill="#b8a385" stroke="#4a3f33" stroke-width="2.4" stroke-linejoin="round"/>
-  <path d="M13 72 C15 69 19 69 21 71" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
-  <path d="M11 78 C14 76 18 77 20 79" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
-  <path d="M17 85 C20 83 25 84 27 86" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
-  <!-- рюкзак за спиной -->
-  <rect x="70" y="52" width="30" height="36" rx="10" fill="#4aa3ff" stroke="#1f5fa8" stroke-width="2.4"/>
-  <rect x="76" y="58" width="18" height="10" rx="4" fill="#7fc0ff" stroke="#1f5fa8" stroke-width="2"/>
-  <!-- тело -->
-  <ellipse cx="58" cy="86" rx="32" ry="24" fill="url(#fur)" stroke="#4a3f33" stroke-width="2.4"/>
-  <ellipse cx="58" cy="92" rx="18" ry="14" fill="#e6dac4"/>
-  <!-- лямка рюкзака -->
-  <path d="M42 70 C48 82 52 92 50 108" stroke="#1f5fa8" stroke-width="4" stroke-linecap="round" fill="none"/>
-  <!-- лапы с розовыми подушечками -->
-  <ellipse cx="44" cy="106" rx="11" ry="7" fill="#c8b596" stroke="#4a3f33" stroke-width="2.4"/>
-  <ellipse cx="72" cy="106" rx="11" ry="7" fill="#c8b596" stroke="#4a3f33" stroke-width="2.4"/>
-  <g fill="#f29aa5">
-    <circle cx="40" cy="107" r="1.8"/><circle cx="44" cy="105" r="1.8"/><circle cx="48" cy="107" r="1.8"/>
-    <circle cx="68" cy="107" r="1.8"/><circle cx="72" cy="105" r="1.8"/><circle cx="76" cy="107" r="1.8"/>
-  </g>
-  <!-- голова: широкая и плоская, как у манула; уши низко по бокам -->
-  <path d="M22 44 C18 34 26 30 32 36 Z" fill="#c8b596" stroke="#4a3f33" stroke-width="2.4" stroke-linejoin="round"/>
-  <path d="M94 44 C98 34 90 30 84 36 Z" fill="#c8b596" stroke="#4a3f33" stroke-width="2.4" stroke-linejoin="round"/>
-  <ellipse cx="58" cy="52" rx="38" ry="30" fill="url(#fur)" stroke="#4a3f33" stroke-width="2.4"/>
-  <!-- щёки: пушистые, с двумя тёмными полосами с каждой стороны -->
-  <path d="M24 56 C20 62 22 70 28 72" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
-  <path d="M30 60 C27 65 28 70 32 73" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
-  <path d="M92 56 C96 62 94 70 88 72" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
-  <path d="M86 60 C89 65 88 70 84 73" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
-  <!-- пятна на лбу -->
-  <g fill="#4a3f33">
-    <circle cx="50" cy="30" r="1.8"/><circle cx="58" cy="27" r="1.8"/><circle cx="66" cy="30" r="1.8"/>
-    <circle cx="54" cy="34" r="1.4"/><circle cx="62" cy="34" r="1.4"/>
-  </g>
-  <!-- глаза: большие, жёлто-зелёные; брови делают выражение слегка ворчливым -->
-  <circle cx="46" cy="50" r="8.5" fill="#fff" stroke="#4a3f33" stroke-width="2.2"/>
-  <circle cx="70" cy="50" r="8.5" fill="#fff" stroke="#4a3f33" stroke-width="2.2"/>
-  <circle cx="46.5" cy="50.5" r="5.6" fill="#c9d13b"/>
-  <circle cx="70.5" cy="50.5" r="5.6" fill="#c9d13b"/>
-  <circle cx="47" cy="51" r="3" fill="#1c1a17"/>
-  <circle cx="71" cy="51" r="3" fill="#1c1a17"/>
-  <circle cx="49" cy="48.5" r="1.3" fill="#fff"/>
-  <circle cx="73" cy="48.5" r="1.3" fill="#fff"/>
-  <path d="M37 40 C41 38 46 39 50 42" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
-  <path d="M79 40 C75 38 70 39 66 42" stroke="#4a3f33" stroke-width="3" stroke-linecap="round" fill="none"/>
-  <!-- нос и рот -->
-  <path d="M55 60 L61 60 L58 64 Z" fill="#e58a95" stroke="#4a3f33" stroke-width="1.8" stroke-linejoin="round"/>
-  <path d="M58 64 C58 67 54 68 52 66 M58 64 C58 67 62 68 64 66" stroke="#4a3f33" stroke-width="2" stroke-linecap="round" fill="none"/>
-  <!-- усы -->
-  <g stroke="#4a3f33" stroke-width="1.6" stroke-linecap="round">
-    <path d="M40 62 L28 60"/><path d="M40 66 L29 67"/>
-    <path d="M76 62 L88 60"/><path d="M76 66 L87 67"/>
+  <g stroke="#2b3550" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <!-- хвост: серый с тёмными шевронами, поднят слева -->
+    <path d="M62 170 C40 168 22 150 24 122 C25 108 32 96 46 94 C54 93 60 98 62 106 C64 116 56 122 48 122 C44 132 46 146 58 152Z" fill="#9c9691"/>
+    <path d="M44 98 C40 104 38 110 38 116" fill="none" stroke="#4c4a4c" stroke-width="9"/>
+    <path d="M30 126 C32 134 36 140 40 144" fill="none" stroke="#4c4a4c" stroke-width="9"/>
+    <path d="M40 152 C46 158 52 162 60 164" fill="none" stroke="#4c4a4c" stroke-width="9"/>
+    <path d="M56 106 C58 114 56 120 50 122" fill="none" stroke="#4c4a4c" stroke-width="6"/>
+    <!-- тело: серо-бежевое, пушистое -->
+    <path d="M62 178 C56 150 60 122 82 108 C96 100 120 100 138 108 C160 118 170 146 168 178 Z" fill="#a89b8a"/>
+    <!-- скафандр: синий комбинезон, тёмные плечи -->
+    <path d="M78 116 C88 106 132 106 146 116 C160 126 164 150 160 168 L124 166 L118 178 L100 178 L96 166 L74 166 C70 150 70 128 78 116 Z" fill="#4b6db1"/>
+    <path d="M78 116 C86 108 132 108 146 116 C150 122 152 130 150 134 L74 134 C72 128 74 120 78 116 Z" fill="#3a5490" stroke="none"/>
+    <!-- воротник -->
+    <path d="M86 116 C96 110 128 110 140 116 C134 124 92 124 86 116 Z" fill="#2e4478" stroke="none"/>
+    <!-- молния -->
+    <path d="M118 128 L118 150" stroke="#2b3550" stroke-width="4"/>
+    <path d="M116 132 L120 132 M116 138 L120 138 M116 144 L120 144" stroke="#7f9bd6" stroke-width="2"/>
+    <!-- розовый значок на груди -->
+    <rect x="102" y="120" width="26" height="14" rx="3" fill="#ec8489"/>
+    <!-- нашивка-лапка на плече -->
+    <circle cx="150" cy="140" r="9" fill="#2e4478"/>
+    <g fill="#ec8489" stroke="none">
+      <circle cx="150" cy="142" r="3.2"/><circle cx="146" cy="138" r="1.6"/><circle cx="150" cy="136" r="1.6"/><circle cx="154" cy="138" r="1.6"/>
+    </g>
+    <!-- передние лапы в рукавах с полосатыми манжетами -->
+    <rect x="96" y="150" width="20" height="26" rx="6" fill="#4b6db1"/>
+    <rect x="122" y="150" width="20" height="26" rx="6" fill="#4b6db1"/>
+    <path d="M96 158 H116 M96 166 H116 M122 158 H142 M122 166 H142" stroke="#c7d6ee" stroke-width="4"/>
+    <!-- ботинки с розовой подошвой -->
+    <path d="M94 176 C92 186 96 190 106 190 C116 190 120 186 118 176 Z" fill="#3d4a8e"/>
+    <path d="M120 176 C118 186 122 190 132 190 C142 190 146 186 144 176 Z" fill="#3d4a8e"/>
+    <path d="M96 186 C100 190 112 190 116 186" fill="none" stroke="#ec8489" stroke-width="4"/>
+    <path d="M122 186 C126 190 138 190 142 186" fill="none" stroke="#ec8489" stroke-width="4"/>
+    <!-- задние лапы с розовыми подушечками -->
+    <ellipse cx="76" cy="182" rx="16" ry="10" fill="#4b5fa0"/>
+    <ellipse cx="156" cy="180" rx="16" ry="10" fill="#4b5fa0"/>
+    <g fill="#ec8489" stroke="none">
+      <ellipse cx="76" cy="184" rx="5" ry="3.5"/><circle cx="70" cy="179" r="1.8"/><circle cx="76" cy="177" r="1.8"/><circle cx="82" cy="179" r="1.8"/>
+      <ellipse cx="156" cy="182" rx="5" ry="3.5"/><circle cx="150" cy="177" r="1.8"/><circle cx="156" cy="175" r="1.8"/><circle cx="162" cy="177" r="1.8"/>
+    </g>
+    <!-- голова внутри шлема -->
+    <g clip-path="url(#helmet)">
+      <ellipse cx="112" cy="84" rx="41" ry="32" fill="#b9ab98"/>
+      <!-- уши -->
+      <path d="M78 68 C74 56 84 52 92 60 Z" fill="#b9ab98"/>
+      <path d="M146 68 C150 56 140 52 132 60 Z" fill="#b9ab98"/>
+      <path d="M80 66 C79 60 84 58 89 62 Z" fill="#d9c8b2" stroke="none"/>
+      <path d="M144 66 C145 60 140 58 135 62 Z" fill="#d9c8b2" stroke="none"/>
+      <!-- пятна на лбу -->
+      <g fill="#4a5470" stroke="none">
+        <circle cx="104" cy="62" r="2.4"/><circle cx="112" cy="58" r="2.4"/><circle cx="120" cy="62" r="2.4"/>
+        <circle cx="108" cy="67" r="1.8"/><circle cx="116" cy="67" r="1.8"/><circle cx="112" cy="72" r="1.6"/>
+      </g>
+      <!-- тёмные штрихи под глазами и на щеках -->
+      <path d="M88 84 C92 82 96 82 100 84" fill="none" stroke="#4a5470" stroke-width="4"/>
+      <path d="M124 84 C128 82 132 82 136 84" fill="none" stroke="#4a5470" stroke-width="4"/>
+      <path d="M80 96 C82 100 84 104 88 106 M84 92 C86 96 88 100 92 102" fill="none" stroke="#4a5470" stroke-width="3"/>
+      <path d="M144 96 C142 100 140 104 136 106 M140 92 C138 96 136 100 132 102" fill="none" stroke="#4a5470" stroke-width="3"/>
+      <!-- глаза: зеленовато-серые, с бликом -->
+      <ellipse cx="98" cy="88" rx="7" ry="8" fill="#fff" stroke-width="2.4"/>
+      <ellipse cx="126" cy="88" rx="7" ry="8" fill="#fff" stroke-width="2.4"/>
+      <ellipse cx="98.5" cy="89" rx="4.6" ry="5.6" fill="#8fa37a" stroke="none"/>
+      <ellipse cx="126.5" cy="89" rx="4.6" ry="5.6" fill="#8fa37a" stroke="none"/>
+      <circle cx="99" cy="90" r="2.4" fill="#1b2230" stroke="none"/>
+      <circle cx="127" cy="90" r="2.4" fill="#1b2230" stroke="none"/>
+      <circle cx="101" cy="86.5" r="1.3" fill="#fff" stroke="none"/>
+      <circle cx="129" cy="86.5" r="1.3" fill="#fff" stroke="none"/>
+      <!-- нос и улыбка -->
+      <path d="M109 98 L115 98 L112 102 Z" fill="#2b3550"/>
+      <path d="M112 102 C112 106 106 108 102 106 M112 102 C112 106 118 108 122 106" fill="none" stroke-width="2.6"/>
+      <!-- усы -->
+      <path d="M92 94 L78 90 M92 99 L78 100 M132 94 L146 90 M132 99 L146 100" stroke-width="1.8"/>
+    </g>
+    <!-- шлем: стеклянный купол с ушками и бликами -->
+    <circle cx="112" cy="70" r="52" fill="#dfe7ee" fill-opacity="0.55"/>
+    <path d="M66 46 C60 34 72 28 80 38 Z" fill="#e9eef3"/>
+    <path d="M158 46 C164 34 152 28 144 38 Z" fill="#e9eef3"/>
+    <path d="M80 36 C92 24 128 22 146 40" fill="none" stroke="#fff" stroke-width="5" stroke-opacity="0.9"/>
+    <circle cx="150" cy="54" r="5" fill="#fff" stroke="none"/>
+    <path d="M76 108 C84 122 140 122 148 108" fill="#3a5490" stroke="#2b3550" stroke-width="3"/>
   </g>
 </svg>
