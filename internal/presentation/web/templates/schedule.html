@@ -65,7 +65,7 @@
     <span class="hero-year">{{.Date.Year}}</span>
     <span class="hero-week">нед. {{.Date.Week}}</span>
     <span class="hero-dateline">{{.Date.Label}}</span>
-    <img class="hero-mascot" src="{{asset "manul.svg"}}" alt="" width="120" height="120">
+    <img class="hero-mascot" src="{{asset "manul.webp"}}" alt="" width="120" height="120">
   </div>
 
   <div class="hero-now">
@@ -112,7 +112,7 @@
       <circle class="route-dot" cx="{{.X}}" cy="{{.Y}}" r="8"/>
       <text class="route-title" x="{{.X}}" y="{{.Y}}" dx="{{if .Right}}-22{{else}}22{{end}}" dy="-2"{{if .Right}} text-anchor="end"{{end}}>{{.Title}}</text>
       <text class="route-sub" x="{{.X}}" y="{{.Y}}" dx="{{if .Right}}-22{{else}}22{{end}}" dy="14"{{if .Right}} text-anchor="end"{{end}}>{{.Lesson.BeginsAt}}{{if .Lesson.Room}} · ауд. {{.Lesson.Room}}{{end}}{{if eq .Lesson.Status "now"}} · ты здесь{{end}}</text>
-      {{if .Here}}<image class="route-mascot" href="{{asset "manul.svg"}}" x="{{if .Right}}{{.X}}{{else}}{{.X}}{{end}}" y="{{.Y}}" width="64" height="64" transform="translate({{if .Right}}18{{else}}-82{{end}} -20)"/>{{end}}
+      {{if .Here}}<image class="route-mascot" href="{{asset "manul.webp"}}" x="{{if .Right}}{{.X}}{{else}}{{.X}}{{end}}" y="{{.Y}}" width="64" height="64" transform="translate({{if .Right}}18{{else}}-82{{end}} -20)"/>{{end}}
     </g>
     {{end}}
   </svg>
