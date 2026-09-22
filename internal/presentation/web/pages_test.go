@@ -199,3 +199,13 @@ func TestStopkaPodgruppVOdnomSlote(t *testing.T) {
 		t.Errorf("разные дисциплины: %q", mixed[0].StackLabel)
 	}
 }
+
+func TestSostavGruppBezImenPotokov(t *testing.T) {
+	// Имя языкового потока группой не является: в подписи ему не место.
+	if got := baseGroups([]string{"005296_3 Иностранный язык в профессиона (КАЯиПК)-1"}); len(got) != 0 {
+		t.Errorf("поток попал в состав групп: %v", got)
+	}
+	if got := baseGroups([]string{"006073_2 Иностранный язык (КАЯиПК)-10 СОЦ25-6_7", "СОЦ25-6", "СОЦ25-7"}); len(got) != 2 || got[0] != "СОЦ25-6" {
+		t.Errorf("ожидали две базовые группы, получили %v", got)
+	}
+}

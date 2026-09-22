@@ -58,6 +58,14 @@
     var handle = setInterval(tick, 1000);
   });
 
+  // ─── доля на кольцах, посчитанная сервером ───────────────────────────────
+  // Инлайновый style запрещён политикой безопасности, поэтому процент
+  // приезжает атрибутом, а в CSS-переменную его переносит скрипт.
+  document.querySelectorAll('[data-progress]').forEach(function (el) {
+    if (el.classList.contains('hero-timer')) return; // у таймера свой счёт
+    el.style.setProperty('--progress', el.getAttribute('data-progress'));
+  });
+
   // ─── листание дней свайпом ───────────────────────────────────────────────
   var days = document.querySelector('.days');
   var screen = document.getElementById('screen');

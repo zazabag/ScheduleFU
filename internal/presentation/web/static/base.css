@@ -69,6 +69,10 @@ body { touch-action: pan-y; }
   flex-direction: column;
 }
 .screen { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; display: flex; flex-direction: column; padding-bottom: 12px; touch-action: pan-y; }
+/* Секции экрана не сжимаются: у блока с overflow:hidden (жёлтый круг
+   «Обложки») min-height в колонке считается нулём, и содержимое
+   обрезалось — на живой паре текущая пара пропадала целиком. */
+.screen > * { flex-shrink: 0; }
 .ptr { display: flex; align-items: center; justify-content: center; height: 0; overflow: hidden; font-size: 11px; color: var(--text-3); transition: height 0.15s; flex-shrink: 0; }
 .ptr.armed { color: var(--accent); font-weight: 700; }
 .ptr.busy { height: 36px; }

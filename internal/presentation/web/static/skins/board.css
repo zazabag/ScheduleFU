@@ -25,10 +25,12 @@ body { font-size: 13px; text-transform: none; }
 .hero-date::before { content: 'Отправления'; display: block; font-family: var(--font-display); font-size: 36px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; line-height: 1; margin-bottom: 8px; }
 .hero-num, .hero-year, .hero-week, .hero-dow { display: none; }
 .hero-month { font-size: 0; color: var(--text-2); }
-.hero-month::after { content: attr(data-count); font-size: 12px; }
+/* Разделитель принадлежит первому куску строки, а не последнему: иначе
+   одинокая точка висела в конце (блок здесь не флекс, порядком не
+   переставить). */
+.hero-month::after { content: attr(data-count) ' · '; font-size: 12px; }
 .hero-dateline { display: inline; font-size: 12px; color: var(--text-2); }
 .hero-dateline::first-letter { text-transform: uppercase; }
-.hero-dateline::after { content: ' · '; }
 .hero-sentence { display: none; }
 .hero-next { display: none; }
 .hero-stats { order: -1; display: none; }

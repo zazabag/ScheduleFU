@@ -187,8 +187,13 @@ func (s *Server) lessonRow(l sched.Lesson, subj sched.Subject) lessonRow {
 	row.Place = s.d.BuildingLabel(l.Building)
 	row.LongRoom = len([]rune(row.Room)) > 6
 	// У преподавателя в строке пары полезен состав групп, а не его имя.
+	// Языковой поток группы не называет — тогда честнее подгруппа, чем
+	// «005296_3 Иностранный язык в профессиона (КАЯиПК)-1» во всю строку.
 	if subj.Kind == sched.SubjectLecturer {
 		row.LecturerName = row.Groups
+		if row.LecturerName == "" {
+			row.LecturerName = l.Subgroup
+		}
 	}
 	// «Изменено» держится три дня: за это время человек успевает увидеть
 	// правку, а дальше она уже просто расписание.
@@ -207,9 +212,6 @@ func baseGroups(names []string) []string {
 		if groupNameRe.MatchString(n) {
 			out = append(out, n)
 		}
-	}
-	if len(out) == 0 {
-		return names
 	}
 	return out
 }
@@ -773,6 +775,9 @@ type planView struct {
 	Now   string // маршрут от текущей к следующей
 	Here  *planBox
 	Next  *planBox
+	// Height — высота поля под фактическое число строк: при трёх аудиториях
+	// поле на шесть оставляло полэкрана пустоты.
+	Height int
 }
 type planBox struct {
 	X, Y, W, H int
@@ -852,6 +857,8 @@ func buildPlan(rows []lessonRow) planView {
 		x2, y2 := center(*v.Next)
 		v.Now = fmt.Sprintf("M%d,%d C%d,%d %d,%d %d,%d", x1, y1, x1, (y1+y2)/2+30, x2, (y1+y2)/2-30, x2, y2)
 	}
+	lines := (len(v.Boxes) + cols - 1) / cols
+	v.Height = oy*2 + lines*h + (lines-1)*gap
 	return v
 }
 
