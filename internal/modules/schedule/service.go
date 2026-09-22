@@ -279,6 +279,58 @@ func (s *Service) SiteNow(ctx context.Context, site string, at time.Time) ([]dom
 	return free, domain.BuildSiteSummary(all, now), nil
 }
 
+// EnsureGroupLinks дотягивает расписание группы у вуза — не чаще раза в
+// день и только для группы, которую кто-то открыл. Слепок по аудиториям
+// не знает, чьи языковые подгруппы (88 % пар английского шли мимо групп);
+// расписание самой группы у источника знает. Один запрос на группу в
+// сутки — сотые доли процента от обхода аудиторий.
+//
+// Ошибка источника не ломает экран: без связей расписание показывается
+// как раньше, а попытка повторится при следующем открытии.
+func (s *Service) EnsureGroupLinks(ctx context.Context, group string, from, to time.Time) error {
+	if group == "" {
+		return nil
+	}
+	today := s.clock.Today()
+	if on, ok, err := s.repo.GroupFetchedOn(ctx, group); err != nil {
+		return err
+	} else if ok && !on.Before(today) {
+		return nil
+	}
+	id, ok, err := s.repo.GroupID(ctx, group)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		// Справочник групп — из посева; новой группы в нём может не быть.
+		found, err := s.src.Search(ctx, source.SearchGroup, group)
+		if err != nil {
+			return err
+		}
+		for _, f := range found {
+			if f.Label == group {
+				if id, ok = parseID(f.ID); ok {
+					break
+				}
+			}
+		}
+		if !ok {
+			// Отмечаем день и без результата: не спрашивать вуз по кругу.
+			return s.repo.ApplyGroupLinks(ctx, group, nil, today)
+		}
+	}
+	lessons, err := s.src.Schedule(ctx, source.KindGroup, id, from, to)
+	if err != nil {
+		return err
+	}
+	oids := make([]int64, 0, len(lessons))
+	for _, l := range lessons {
+		oids = append(oids, l.LessonOid)
+	}
+	s.log.Info("дотянуто расписание группы", "группа", group, "пар", len(oids))
+	return s.repo.ApplyGroupLinks(ctx, group, oids, today)
+}
+
 // Sites — площадки для переключателя.
 func (s *Service) Sites(ctx context.Context) ([]SiteRow, error) { return s.repo.Sites(ctx) }
 

@@ -382,6 +382,15 @@ func (s *Server) schedule(w http.ResponseWriter, r *http.Request) {
 	}
 	// Неделя целиком от понедельника: и сегодня, и дальше без переходов.
 	weekStart := clock.StartOfWeek(date)
+	if subj.Kind == sched.SubjectGroup {
+		// Языковые подгруппы приходят только из расписания самой группы;
+		// дотягиваем раз в день. Не получилось — показываем что есть.
+		linkCtx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
+		if err := s.d.Schedule.EnsureGroupLinks(linkCtx, subj.Group, today, today.AddDate(0, 0, 13)); err != nil {
+			fmt.Printf("web: привязка группы %s: %v\n", subj.Group, err)
+		}
+		cancel()
+	}
 	lessons, err := s.d.Schedule.ScheduleFor(r.Context(), subj, weekStart, weekStart.AddDate(0, 0, 6))
 	if err != nil {
 		http.Error(w, "не удалось получить расписание", http.StatusInternalServerError)

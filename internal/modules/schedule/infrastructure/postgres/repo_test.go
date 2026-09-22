@@ -9,7 +9,7 @@ import (
 	"github.com/zazabag/schedulefu/internal/platform/db"
 )
 
-var tables = []string{"lessons", "lesson_changes", "auditoriums", "groups", "lecturers", "collector_runs"}
+var tables = []string{"lessons", "lesson_changes", "auditoriums", "groups", "lecturers", "collector_runs", "group_links", "group_fetches"}
 
 func testRepo(t *testing.T) (*Repo, context.Context) {
 	t.Helper()
@@ -257,4 +257,31 @@ func TestSkorostPovtornogoProhoda(t *testing.T) {
 		t.Fatalf("%+v %v", res, err)
 	}
 	t.Logf("повторный проход 11 000 пар: %s", time.Since(start).Round(time.Millisecond))
+}
+
+func TestSvyaziGruppyDobavlyayutPary(t *testing.T) {
+	repo, ctx := testRepo(t)
+	day := time.Date(2026, 9, 24, 0, 0, 0, 0, time.UTC)
+	stream := domain.Lesson{LessonOid: 901, Date: day, BeginsAt: "11:50", EndsAt: "13:20", Discipline: "Иностранный язык",
+		GroupNames: []string{"006126_2 Иностранный язык (КАЯиПК)-3"}}
+	own := domain.Lesson{LessonOid: 902, Date: day, BeginsAt: "14:00", EndsAt: "15:30", Discipline: "Философия", GroupNames: []string{"ПИ24-1"}}
+	if _, err := repo.ApplySnapshot(ctx, day, day, []domain.Lesson{stream, own}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := repo.ScheduleFor(ctx, domain.GroupSubject("ПИ24-1"), day, day); len(got) != 1 {
+		t.Fatalf("до привязки ожидали одну пару, получили %d", len(got))
+	}
+	if _, ok, _ := repo.GroupFetchedOn(ctx, "ПИ24-1"); ok {
+		t.Fatal("группу ещё не дотягивали")
+	}
+	if err := repo.ApplyGroupLinks(ctx, "ПИ24-1", []int64{901, 999}, day); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := repo.ScheduleFor(ctx, domain.GroupSubject("ПИ24-1"), day, day)
+	if len(got) != 2 || got[0].Discipline != "Иностранный язык" {
+		t.Errorf("после привязки ожидали английский и философию, получили %+v", got)
+	}
+	if on, ok, _ := repo.GroupFetchedOn(ctx, "ПИ24-1"); !ok || !on.Equal(day) {
+		t.Errorf("дата дотягивания: %v %v", on, ok)
+	}
 }

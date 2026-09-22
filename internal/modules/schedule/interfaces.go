@@ -41,6 +41,12 @@ type Repository interface {
 	GroupNames(ctx context.Context) ([]string, error)
 	Lecturers(ctx context.Context) ([]domain.Lecturer, error)
 
+	// Ленивая привязка языковых подгрупп: когда группу дотягивали в последний
+	// раз, и запись связей «пара → группа» из ответа вуза.
+	GroupFetchedOn(ctx context.Context, group string) (time.Time, bool, error)
+	ApplyGroupLinks(ctx context.Context, group string, lessonOids []int64, on time.Time) error
+	GroupID(ctx context.Context, name string) (int64, bool, error)
+
 	StartRun(ctx context.Context, from, to time.Time) (int64, error)
 	FinishRun(ctx context.Context, id int64, requests, errs, lessons, changes int, failure error) error
 	LastSuccessfulRun(ctx context.Context) (time.Time, bool, error)

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -96,8 +97,11 @@ func (r *Repo) ScheduleFor(ctx context.Context, s domain.Subject, from, to time.
 	var err error
 	switch s.Kind {
 	case domain.SubjectGroup:
+		// Пары группы — из состава потока плюс дотянутые связи group_links
+		// (языковые подгруппы, чьё имя базовой группы не содержит).
 		rows, err = r.pool.Query(ctx, `SELECT `+lessonColumns+` FROM lessons
-			WHERE $1 = ANY(group_names) AND lesson_date BETWEEN $2 AND $3 ORDER BY lesson_date, begins_at`,
+			WHERE ($1 = ANY(group_names) OR lesson_oid IN (SELECT lesson_oid FROM group_links WHERE group_name = $1))
+			  AND lesson_date BETWEEN $2 AND $3 ORDER BY lesson_date, begins_at`,
 			s.Group, from, to)
 	case domain.SubjectLecturer:
 		rows, err = r.pool.Query(ctx, `SELECT `+lessonColumns+` FROM lessons
@@ -357,4 +361,53 @@ func (r *Repo) Lecturers(ctx context.Context) ([]domain.Lecturer, error) {
 		out = append(out, l)
 	}
 	return out, rows.Err()
+}
+
+// GroupFetchedOn — когда для группы в последний раз дотягивали расписание.
+func (r *Repo) GroupFetchedOn(ctx context.Context, group string) (time.Time, bool, error) {
+	var on time.Time
+	err := r.pool.QueryRow(ctx, `SELECT fetched_on FROM group_fetches WHERE group_name = $1`, group).Scan(&on)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return time.Time{}, false, nil
+	}
+	if err != nil {
+		return time.Time{}, false, fmt.Errorf("group_fetches: %w", err)
+	}
+	return on, true, nil
+}
+
+// ApplyGroupLinks заменяет связи группы ответом вуза и отмечает дату.
+// Одной транзакцией: полусвязанная группа хуже несвязанной.
+func (r *Repo) ApplyGroupLinks(ctx context.Context, group string, lessonOids []int64, on time.Time) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `DELETE FROM group_links WHERE group_name = $1`, group); err != nil {
+		return fmt.Errorf("group_links: %w", err)
+	}
+	if len(lessonOids) > 0 {
+		if _, err := tx.Exec(ctx, `INSERT INTO group_links (group_name, lesson_oid) SELECT $1, unnest($2::bigint[]) ON CONFLICT DO NOTHING`, group, lessonOids); err != nil {
+			return fmt.Errorf("group_links: %w", err)
+		}
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO group_fetches (group_name, fetched_on) VALUES ($1, $2)
+		ON CONFLICT (group_name) DO UPDATE SET fetched_on = EXCLUDED.fetched_on`, group, on); err != nil {
+		return fmt.Errorf("group_fetches: %w", err)
+	}
+	return tx.Commit(ctx)
+}
+
+// GroupID — числовой id группы у источника из справочника.
+func (r *Repo) GroupID(ctx context.Context, name string) (int64, bool, error) {
+	var id int64
+	err := r.pool.QueryRow(ctx, `SELECT id FROM groups WHERE name = $1 LIMIT 1`, name).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, false, nil
+	}
+	if err != nil {
+		return 0, false, fmt.Errorf("groups: %w", err)
+	}
+	return id, true, nil
 }

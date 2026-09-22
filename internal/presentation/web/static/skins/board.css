@@ -230,7 +230,7 @@ body { font-size: 13px; text-transform: none; }
 .stack-item-room { color: var(--accent); }
 
 /* ─── онбординг: жёлтая рамка табло ───────────────────────────────────── */
-.onb { border-radius: 0; background: transparent; color: var(--text); border: 2px solid var(--accent); box-shadow: none; }
+.onb { border-radius: 0; background: var(--bg); color: var(--text); border: 2px solid var(--accent); box-shadow: none; }
 .onb-kicker { color: var(--accent); letter-spacing: 0.25em; }
 .onb-kicker::before { content: '[!] '; }
 .onb-step { background: transparent; border-radius: 0; border-top: 1px dashed var(--line); padding: 10px 0; }
