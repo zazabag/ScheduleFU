@@ -74,9 +74,11 @@ func (s *Sherpa) defaultArgs() []string {
 	dir := strings.TrimRight(s.opts.ModelDir, "/\\")
 	return []string{
 		"--silero-vad-model=" + dir + "/silero_vad.onnx",
+		// Квантован только энкодер — он и весит 225 МБ из 230; декодер и
+		// джойнер в модели лежат обычные, без int8.
 		"--encoder=" + dir + "/encoder.int8.onnx",
-		"--decoder=" + dir + "/decoder.int8.onnx",
-		"--joiner=" + dir + "/joiner.int8.onnx",
+		"--decoder=" + dir + "/decoder.onnx",
+		"--joiner=" + dir + "/joiner.onnx",
 		"--tokens=" + dir + "/tokens.txt",
 		"--model-type=nemo_transducer",
 		"--num-threads={threads}",
@@ -173,7 +175,13 @@ func parseJSON(line string) (domain.Segment, bool) {
 	}, true
 }
 
-// parseTimed разбирает «0.000 -- 5.120 текст».
+// parseTimed разбирает строку со временем.
+//
+// sherpa-onnx 1.13 печатает «0.102 -- 8.556: текст» — с двоеточием после
+// конца отрезка. Двоеточие здесь не украшение: без его отсечения время не
+// разбирается как число, строка уходит в запасную ветку целиком, и
+// таймкоды оказываются внутри конспекта. Другие сборки печатают то же
+// самое без двоеточия, поэтому оно необязательное.
 func parseTimed(line string) (domain.Segment, bool) {
 	i := strings.Index(line, "--")
 	if i <= 0 {
@@ -188,11 +196,11 @@ func parseTimed(line string) (domain.Segment, bool) {
 	if j < 0 {
 		return domain.Segment{}, false
 	}
-	end, err := strconv.ParseFloat(strings.TrimSpace(rest[:j]), 64)
+	end, err := strconv.ParseFloat(strings.TrimRight(strings.TrimSpace(rest[:j]), ":"), 64)
 	if err != nil {
 		return domain.Segment{}, false
 	}
-	text := strings.TrimSpace(rest[j:])
+	text := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(rest[j:]), ":"))
 	if text == "" {
 		return domain.Segment{}, false
 	}

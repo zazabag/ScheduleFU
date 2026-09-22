@@ -107,9 +107,13 @@ type NotesLLM struct {
 	BaseURL string `yaml:"base_url"`
 	Model   string `yaml:"model"`
 	// APIKey живёт только в окружении: SCHEDULEFU_NOTES_LLM_API_KEY.
-	APIKey   string        `yaml:"api_key"`
-	MaxChars int           `yaml:"max_chars"`
-	Timeout  time.Duration `yaml:"timeout"`
+	APIKey string `yaml:"api_key"`
+	// NoThinking выключает «размышления»: думающая модель на промпте в
+	// тридцать тысяч токенов рассуждает минутами. Для GLM обязательно, для
+	// провайдера, который такого поля не знает, — выключить.
+	NoThinking bool          `yaml:"no_thinking"`
+	MaxChars   int           `yaml:"max_chars"`
+	Timeout    time.Duration `yaml:"timeout"`
 }
 
 // NotesWorker — поведение обработчика очереди.
@@ -156,10 +160,14 @@ func Default() Config {
 				Timeout:  2 * time.Hour,
 			},
 			LLM: NotesLLM{
-				BaseURL:  "https://api.z.ai/api/paas/v4",
-				Model:    "glm-4.6",
-				MaxChars: 240000,
-				Timeout:  5 * time.Minute,
+				// Китайские модели отвечают на российские адреса, в отличие
+				// от западных; бесплатная glm-4.5-flash с окном 128k берёт
+				// полуторачасовую пару одним запросом.
+				BaseURL:    "https://open.bigmodel.cn/api/paas/v4",
+				Model:      "glm-4.5-flash",
+				NoThinking: true,
+				MaxChars:   150000,
+				Timeout:    10 * time.Minute,
 			},
 			Worker: NotesWorker{Idle: 20 * time.Second, Retry: 10 * time.Minute, Attempts: 3, DraftDays: 14},
 		},

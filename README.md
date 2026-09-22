@@ -61,7 +61,9 @@ go build -o schedulefu ./cmd/schedulefu
 ```
 
 Раздел «Пары» выключен по умолчанию: ему нужны ffmpeg, модель распознавания
-и ключ модели конспекта. Что именно положить и куда — `docs/07-notes-module.md`.
+и ключ модели конспекта. На сервере всё это ставит один скрипт —
+`deploy/server/install-notes.sh` (около 250 МБ: sherpa-onnx и GigaAM v3);
+подробности — `docs/07-notes-module.md`.
 
 ```bash
 export SCHEDULEFU_NOTES_LLM_API_KEY=...

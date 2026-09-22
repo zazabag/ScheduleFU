@@ -109,7 +109,8 @@ func wireNotes(cfg config.Config, pool *pgxpool.Pool, clk *clock.Clock, log *slo
 		recognizer = sh
 	}
 	chat := noteschat.New(noteschat.Options{BaseURL: cfg.Notes.LLM.BaseURL, APIKey: cfg.Notes.LLM.APIKey,
-		Model: cfg.Notes.LLM.Model, MaxChars: cfg.Notes.LLM.MaxChars, Timeout: cfg.Notes.LLM.Timeout})
+		Model: cfg.Notes.LLM.Model, NoThinking: cfg.Notes.LLM.NoThinking,
+		MaxChars: cfg.Notes.LLM.MaxChars, Timeout: cfg.Notes.LLM.Timeout})
 	if !chat.Configured() {
 		log.Warn("записи: конспектирование не настроено", "причина", "нет ключа или адреса модели")
 	} else {
