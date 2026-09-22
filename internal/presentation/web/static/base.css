@@ -527,3 +527,86 @@ body { touch-action: pan-y; }
 .onb.folded .onb-fold::before { content: '+'; font-size: 16px; display: block; transform: rotate(-45deg); }
 .onb.folded .onb-kicker::after { content: ' · осталось шагов: ' attr(data-left); }
 .onb { top: 0; }
+
+/* ─── раздел «Пары»: предметы, записи, конспекты, задания ─────────────────
+   Как и везде в каркасе, здесь только расположение и размеры касания:
+   цвет берётся переменными, поэтому раздел одинаково живёт во всех восьми
+   оформлениях, и ни один skins/*.css трогать не пришлось. */
+.subjects { padding: 0 var(--pad); display: flex; flex-direction: column; gap: 8px; }
+.subject { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--text); min-height: 56px; }
+.subject-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.subject-name { font-size: 14px; font-weight: 700; line-height: 1.25; }
+.subject-meta { font-size: 11px; color: var(--text-3); }
+.subject-soon { font-size: 11px; color: var(--accent); font-weight: 600; }
+.subject-marks { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.mark { font-style: normal; font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 999px; }
+.mark-hw { background: var(--busy); color: var(--text); }
+.mark-note { background: var(--surface-2); color: var(--text-2); }
+.mark-go { font-style: normal; color: var(--text-3); font-size: 16px; }
+
+.top-back { display: inline-block; font-size: 11px; color: var(--text-3); margin-bottom: 6px; }
+.sum { display: flex; flex-wrap: wrap; gap: 8px; }
+.sum-item { display: flex; flex-direction: column; gap: 1px; padding: 6px 10px; border-radius: 10px; background: var(--surface); font-size: 12px; }
+.sum-item i { font-style: normal; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); }
+
+.card { margin: 10px var(--pad) 0; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.card-title { margin: 0; font-family: var(--font-display); font-size: 15px; font-weight: 700; }
+.card-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* Кнопки: высота 44 — это минимальная цель касания, ниже палец промахивается. */
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border: 1px solid transparent; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; background: var(--surface-2); color: var(--text); }
+.btn-main { background: var(--accent); color: var(--accent-ink); }
+.btn-ghost { background: transparent; border-color: var(--line); color: var(--text); }
+.btn-quiet { background: transparent; color: var(--text-3); font-weight: 600; }
+.btn-stop { background: var(--danger); color: #fff; }
+.btn-small { min-height: 34px; padding: 0 12px; font-size: 12px; }
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field-label { font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); }
+.card select, .card input[type="text"] { min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); font-size: 14px; max-width: 100%; }
+
+.rec-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.rec-live { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); animation: rec-pulse 1.4s infinite; }
+@keyframes rec-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .rec-dot { animation: none; } }
+.rec-time { font-family: var(--font-mono); font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rec-sent, .rec-note { font-size: 11px; color: var(--text-3); margin: 0; }
+.rec-hint { margin: 0; font-size: 12px; color: var(--text-2); }
+.rec-warn { margin: 0; font-size: 11px; color: var(--text-3); line-height: 1.45; }
+.rec-fail { margin: 0; font-size: 12px; color: var(--danger); }
+.rec-state { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); white-space: nowrap; }
+.rec-state.ready { background: var(--ok); color: #fff; }
+.rec-state.failed { background: var(--danger); color: #fff; }
+.rec-state.transcribing, .rec-state.summarizing, .rec-state.decoding, .rec-state.queued { background: var(--accent); color: var(--accent-ink); }
+.rec-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); color: var(--text); }
+.rec-row-date { font-size: 13px; font-weight: 600; flex: 1 1 auto; }
+.rec-row-dur { font-size: 11px; color: var(--text-3); }
+
+.theses { padding: 10px 12px; border-radius: 10px; background: var(--bg); }
+.theses-label { font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); margin-bottom: 4px; }
+.theses ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.theses li { font-size: 13px; line-height: 1.4; }
+.note-body { font-size: 14px; line-height: 1.55; }
+.note-body h3 { margin: 14px 0 6px; font-size: 13px; font-weight: 700; letter-spacing: -0.01em; }
+.note-body p { margin: 0 0 8px; }
+.note-body ul { margin: 0 0 8px; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.note-date { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.note-item { border-top: 1px solid var(--line); padding: 10px 0; }
+.note-item summary { display: flex; align-items: baseline; gap: 8px; cursor: pointer; list-style: none; }
+.note-item summary::-webkit-details-marker { display: none; }
+.note-item-date { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.note-item-title { font-size: 13px; font-weight: 600; }
+.saved-mark { font-size: 11px; font-weight: 700; color: var(--ok); }
+
+.hw { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.hw-body { flex: 1 1 auto; min-width: 0; font-size: 13px; line-height: 1.45; display: flex; flex-direction: column; gap: 2px; }
+.hw-due { display: inline-block; font-size: 11px; font-weight: 700; color: var(--warn); }
+.hw-meta { font-size: 10px; color: var(--text-3); }
+.hw-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.hw.done .hw-body { text-decoration: line-through; color: var(--text-3); }
+.hw-hint { margin: 0; font-size: 11px; color: var(--text-3); }
+.hw-add { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+.hw-add input[type="text"] { flex: 1 1 140px; }
+.empty-inline { margin: 0; font-size: 12px; color: var(--text-3); }

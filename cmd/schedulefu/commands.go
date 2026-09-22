@@ -14,6 +14,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/zazabag/schedulefu/internal/modules/export"
+	"github.com/zazabag/schedulefu/internal/modules/notes"
+	notesasr "github.com/zazabag/schedulefu/internal/modules/notes/infrastructure/asr"
+	noteschat "github.com/zazabag/schedulefu/internal/modules/notes/infrastructure/llm"
+	notesmedia "github.com/zazabag/schedulefu/internal/modules/notes/infrastructure/media"
+	notespg "github.com/zazabag/schedulefu/internal/modules/notes/infrastructure/postgres"
 	"github.com/zazabag/schedulefu/internal/modules/notify"
 	notifypg "github.com/zazabag/schedulefu/internal/modules/notify/infrastructure/postgres"
 	"github.com/zazabag/schedulefu/internal/modules/notify/transport/webpush"
@@ -37,6 +42,7 @@ var commands = map[string]command{
 	"seed":    {help: "справочники из data/*.json", flags: seedFlags, do: seed},
 	"static":  {help: "сборка версии для GitHub Pages", flags: noFlags, do: buildStatic},
 	"vapid":   {help: "новая пара ключей уведомлений", flags: noFlags, do: vapid},
+	"notes":   {help: "обработка записей пар: расшифровка и конспект", flags: noFlags, do: notesWorker},
 	"migrate": {help: "применить миграции и выйти", flags: noFlags, do: migrate},
 }
 
@@ -49,6 +55,7 @@ type app struct {
 	src      source.Source
 	schedule *schedule.Service
 	notify   *notify.Service
+	notes    *notes.Service
 	keys     webpush.Keys
 }
 
@@ -71,7 +78,52 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger) (*app, error
 		a.notify = notify.New(notifypg.New(pool), schedRepo, clk.Location(), log, webpush.New(a.keys))
 		schedSvc.Notifier = a.notify
 	}
+	if cfg.Notes.Enabled {
+		a.notes = wireNotes(cfg, pool, clk, log)
+	}
 	return a, nil
+}
+
+// wireNotes связывает модуль записей с его портами.
+//
+// Распознавание и конспект подключаются по отдельности и молча
+// отключаются, если не настроены: раздел с готовыми конспектами работает и
+// без них, а принимать новые записи в таком стенде мы не станем
+// (Config.NotesReady). Иначе человек проговорит полтора часа впустую.
+func wireNotes(cfg config.Config, pool *pgxpool.Pool, clk *clock.Clock, log *slog.Logger) *notes.Service {
+	var recognizer notes.Recognizer
+	var summarizer notes.Summarizer
+	var decoder notes.Media
+
+	ff := notesmedia.New(cfg.Notes.FFmpeg)
+	if err := ff.Available(); err != nil {
+		log.Warn("записи: подготовка звука недоступна", "причина", err)
+	} else {
+		decoder = ff
+	}
+	sh := notesasr.New(notesasr.Options{Command: cfg.Notes.ASR.Command, ModelDir: cfg.Notes.ASR.ModelDir,
+		Threads: cfg.Notes.ASR.Threads, Timeout: cfg.Notes.ASR.Timeout})
+	if err := sh.Available(); err != nil {
+		log.Warn("записи: распознавание недоступно", "причина", err)
+	} else {
+		recognizer = sh
+	}
+	chat := noteschat.New(noteschat.Options{BaseURL: cfg.Notes.LLM.BaseURL, APIKey: cfg.Notes.LLM.APIKey,
+		Model: cfg.Notes.LLM.Model, MaxChars: cfg.Notes.LLM.MaxChars, Timeout: cfg.Notes.LLM.Timeout})
+	if !chat.Configured() {
+		log.Warn("записи: конспектирование не настроено", "причина", "нет ключа или адреса модели")
+	} else {
+		summarizer = chat
+	}
+	return notes.New(notespg.New(pool), recognizer, summarizer, decoder, clk, log, notes.Options{
+		AudioDir:   cfg.Notes.AudioDir,
+		MaxBytes:   cfg.Notes.MaxMB << 20,
+		MaxMinutes: cfg.Notes.MaxMinutes,
+		Retry:      cfg.Notes.Worker.Retry,
+		Attempts:   cfg.Notes.Worker.Attempts,
+		DraftTTL:   time.Duration(cfg.Notes.Worker.DraftDays) * 24 * time.Hour,
+		KeepAudio:  cfg.Notes.KeepAudio,
+	})
 }
 
 func (a *app) close() { a.pool.Close() }
@@ -114,11 +166,16 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger, _ any) erro
 		_, _ = w.Write([]byte(body))
 	}
 
-	site, err := web.New(web.Deps{Schedule: a.schedule, Notify: a.notify, Clock: a.clock, BuildingLabel: buildingLabel, Calendar: calendar, Dev: cfg.Stand.Env == "dev"})
+	site, err := web.New(web.Deps{Schedule: a.schedule, Notify: a.notify, Notes: a.notes, NotesReady: cfg.NotesReady(),
+		Clock: a.clock, BuildingLabel: buildingLabel, Calendar: calendar, Dev: cfg.Stand.Env == "dev"})
 	if err != nil {
 		return err
 	}
-	jsonAPI := api.New(api.Deps{Schedule: a.schedule, Notify: a.notify, Clock: a.clock, PushKey: a.keys.Public, StandEnv: cfg.Stand.Env, Calendar: calendar})
+	// ResolveLesson живёт в web, а нужна и JSON-ручке записи: транспорт
+	// транспорт не импортирует, поэтому их связывает composition root.
+	jsonAPI := api.New(api.Deps{Schedule: a.schedule, Notify: a.notify, Notes: a.notes, NotesReady: cfg.NotesReady(),
+		Clock: a.clock, PushKey: a.keys.Public, StandEnv: cfg.Stand.Env, Calendar: calendar,
+		ResolveLesson: site.ResolveLesson})
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/", jsonAPI.Routes())
@@ -150,6 +207,34 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger, _ any) erro
 	shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	return srv.Shutdown(shutdown)
+}
+
+// ─── notes ───────────────────────────────────────────────────────────────────
+
+// notesWorker — отдельная служба обработки записей.
+//
+// Не горутина внутри serve: расшифровка занимает все ядра на десяток минут,
+// и страницы рядом с ней начинают отвечать секундами. Служб становится три
+// (serve, collect, notes), и разносить их по машинам теперь можно.
+func notesWorker(ctx context.Context, cfg config.Config, log *slog.Logger, _ any) error {
+	if !cfg.Notes.Enabled {
+		return errors.New("раздел записей выключен: notes.enabled")
+	}
+	a, err := wire(ctx, cfg, log)
+	if err != nil {
+		return err
+	}
+	defer a.close()
+	if a.notes == nil || !a.notes.CanProcess() {
+		return errors.New("обработка записей не настроена: нужны ffmpeg, модель распознавания и ключ модели конспекта")
+	}
+	idle := cfg.Notes.Worker.Idle
+	if idle <= 0 {
+		idle = 20 * time.Second
+	}
+	log.Info("обработка записей запущена", "каталог", cfg.Notes.AudioDir, "модель", cfg.Notes.LLM.Model)
+	a.notes.Run(ctx, idle)
+	return nil
 }
 
 // ─── collect ─────────────────────────────────────────────────────────────────

@@ -1,0 +1,346 @@
+package notes
+
+import (
+	"context"
+	"errors"
+	"io"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/zazabag/schedulefu/internal/modules/notes/domain"
+	"github.com/zazabag/schedulefu/internal/platform/clock"
+)
+
+// fakeRepo — хранилище в памяти. Ровно столько, сколько нужно сервису:
+// настоящее проверяется тестами с базой, а здесь важны решения сервиса.
+type fakeRepo struct {
+	rec       domain.Recording
+	notes     []domain.Note
+	homeworks []domain.Homework
+	failed    string
+	gaveUp    bool
+	completed bool
+}
+
+func (f *fakeRepo) CreateRecording(_ context.Context, rec domain.Recording) (int64, error) {
+	f.rec = rec
+	f.rec.ID = 7
+	return 7, nil
+}
+
+func (f *fakeRepo) Recording(_ context.Context, owner string, id int64) (domain.Recording, bool, error) {
+	if f.rec.ID != id || f.rec.OwnerKey != owner {
+		return domain.Recording{}, false, nil
+	}
+	return f.rec, true, nil
+}
+
+func (f *fakeRepo) CountChunk(_ context.Context, _ int64, seq int, size int64, path string) error {
+	if seq != f.rec.Chunks {
+		return errors.New("кусок не по порядку дошёл до хранилища")
+	}
+	f.rec.Chunks, f.rec.Bytes, f.rec.AudioPath = seq+1, f.rec.Bytes+size, path
+	return nil
+}
+
+func (f *fakeRepo) Enqueue(_ context.Context, _ int64) error {
+	f.rec.Status = domain.StatusQueued
+	return nil
+}
+
+func (f *fakeRepo) Recordings(context.Context, string, string, string) ([]domain.Recording, error) {
+	return nil, nil
+}
+
+func (f *fakeRepo) DeleteRecording(_ context.Context, _ string, _ int64) (string, error) {
+	path := f.rec.AudioPath
+	f.rec = domain.Recording{}
+	return path, nil
+}
+
+func (f *fakeRepo) Claim(context.Context, time.Time) (domain.Recording, bool, error) {
+	if f.rec.Status != domain.StatusQueued {
+		return domain.Recording{}, false, nil
+	}
+	f.rec.Status = domain.StatusDecoding
+	return f.rec, true, nil
+}
+
+func (f *fakeRepo) SetStatus(_ context.Context, _ int64, st domain.Status) error {
+	f.rec.Status = st
+	return nil
+}
+
+func (f *fakeRepo) SetTranscript(_ context.Context, _ int64, transcript string, dur int) error {
+	f.rec.Transcript, f.rec.DurationSec = transcript, dur
+	return nil
+}
+
+func (f *fakeRepo) Complete(_ context.Context, _ int64) error {
+	f.completed = true
+	f.rec.Status = domain.StatusReady
+	return nil
+}
+
+func (f *fakeRepo) Fail(_ context.Context, _ int64, reason string, _ time.Time, giveUp bool) error {
+	f.failed, f.gaveUp = reason, giveUp
+	return nil
+}
+
+func (f *fakeRepo) CreateNote(_ context.Context, n domain.Note) (int64, error) {
+	n.ID = int64(len(f.notes) + 1)
+	f.notes = append(f.notes, n)
+	return n.ID, nil
+}
+
+func (f *fakeRepo) Note(context.Context, string, int64) (domain.Note, bool, error) {
+	return domain.Note{}, false, nil
+}
+
+func (f *fakeRepo) NoteByRecording(context.Context, string, int64) (domain.Note, bool, error) {
+	if len(f.notes) == 0 {
+		return domain.Note{}, false, nil
+	}
+	return f.notes[0], true, nil
+}
+
+func (f *fakeRepo) Notes(context.Context, string, string, string) ([]domain.Note, error) {
+	return nil, nil
+}
+
+func (f *fakeRepo) SaveNote(context.Context, string, int64, time.Time) error { return nil }
+
+func (f *fakeRepo) DeleteNote(_ context.Context, _ string, id int64) error {
+	var kept []domain.Note
+	for _, n := range f.notes {
+		if n.ID != id {
+			kept = append(kept, n)
+		}
+	}
+	f.notes = kept
+	return nil
+}
+
+func (f *fakeRepo) CreateHomework(_ context.Context, h domain.Homework) (int64, error) {
+	h.ID = int64(len(f.homeworks) + 1)
+	f.homeworks = append(f.homeworks, h)
+	return h.ID, nil
+}
+
+func (f *fakeRepo) Homeworks(context.Context, string, string, string, bool) ([]domain.Homework, error) {
+	return f.homeworks, nil
+}
+
+func (f *fakeRepo) HomeworksByNote(context.Context, string, int64) ([]domain.Homework, error) {
+	return f.homeworks, nil
+}
+
+func (f *fakeRepo) SaveHomework(_ context.Context, _ string, id int64, at time.Time) error {
+	for i := range f.homeworks {
+		if f.homeworks[i].ID == id {
+			f.homeworks[i].SavedAt = &at
+		}
+	}
+	return nil
+}
+
+func (f *fakeRepo) SetHomeworkDone(context.Context, string, int64, *time.Time) error { return nil }
+func (f *fakeRepo) DeleteHomework(context.Context, string, int64) error              { return nil }
+func (f *fakeRepo) Disciplines(context.Context, string, string) ([]Discipline, error) {
+	return nil, nil
+}
+func (f *fakeRepo) CleanupDrafts(context.Context, time.Duration) (int64, error) { return 0, nil }
+func (f *fakeRepo) StuckAudio(context.Context, time.Duration) ([]domain.Recording, error) {
+	return nil, nil
+}
+
+type fakeMedia struct{ err error }
+
+func (m fakeMedia) ToWav(_ context.Context, _, dst string) (int, error) {
+	if m.err != nil {
+		return 0, m.err
+	}
+	return 5400, os.WriteFile(dst, []byte("wav"), 0o600)
+}
+
+type fakeASR struct {
+	segs []domain.Segment
+	err  error
+}
+
+func (a fakeASR) Transcribe(context.Context, string) ([]domain.Segment, error) {
+	return a.segs, a.err
+}
+
+type fakeLLM struct {
+	recap domain.Recap
+	err   error
+	seen  SummaryInput
+}
+
+func (l *fakeLLM) Summarize(_ context.Context, in SummaryInput) (domain.Recap, error) {
+	l.seen = in
+	return l.recap, l.err
+}
+
+func newService(t *testing.T, repo *fakeRepo, asr Recognizer, sum Summarizer, media Media) *Service {
+	t.Helper()
+	clk, err := clock.New("Europe/Moscow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	return New(repo, asr, sum, media, clk, log, Options{AudioDir: t.TempDir(), Attempts: 2})
+}
+
+func lesson() domain.LessonRef {
+	return domain.LessonRef{SubjectKey: "group:ПИ24-1", Discipline: "История",
+		Date: time.Date(2026, 9, 22, 0, 0, 0, 0, time.UTC), BeginsAt: "10:10", LecturerName: "Иванов И.И."}
+}
+
+func TestKuskiPrinimayutsyaTolkoPoPoryadku(t *testing.T) {
+	repo := &fakeRepo{}
+	s := newService(t, repo, fakeASR{}, &fakeLLM{}, fakeMedia{})
+	ctx := context.Background()
+	rec, err := s.Start(ctx, "owner", lesson(), domain.OriginRecord)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Append(ctx, "owner", rec.ID, 0, strings.NewReader("раз")); err != nil {
+		t.Fatal(err)
+	}
+	// Кусок из будущего означает, что предыдущий потерялся: принять его —
+	// молча склеить запись с дырой.
+	if _, err := s.Append(ctx, "owner", rec.ID, 5, strings.NewReader("пять")); err == nil {
+		t.Error("кусок с пропуском принят")
+	}
+	// А повтор уже принятого — обычное дело при обрыве связи, и он должен
+	// пройти тихо, не удвоив запись.
+	if _, err := s.Append(ctx, "owner", rec.ID, 0, strings.NewReader("раз")); err != nil {
+		t.Errorf("повтор куска отвергнут: %v", err)
+	}
+	if want := int64(len("раз")); repo.rec.Bytes != want {
+		t.Errorf("в записи %d байт вместо %d: повтор куска её удвоил", repo.rec.Bytes, want)
+	}
+}
+
+func TestChuzhuyuZapisNeDopolnit(t *testing.T) {
+	repo := &fakeRepo{}
+	s := newService(t, repo, fakeASR{}, &fakeLLM{}, fakeMedia{})
+	ctx := context.Background()
+	rec, err := s.Start(ctx, "owner", lesson(), domain.OriginRecord)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Append(ctx, "другой", rec.ID, 0, strings.NewReader("раз")); err == nil {
+		t.Fatal("чужая запись дополнена по номеру")
+	}
+}
+
+func TestPustayaZapisNeIdyotVOchered(t *testing.T) {
+	repo := &fakeRepo{}
+	s := newService(t, repo, fakeASR{}, &fakeLLM{}, fakeMedia{})
+	ctx := context.Background()
+	rec, _ := s.Start(ctx, "owner", lesson(), domain.OriginRecord)
+	if _, err := s.Finish(ctx, "owner", rec.ID); err == nil {
+		t.Fatal("запись без звука принята в обработку")
+	}
+}
+
+func TestObrabotkaDayotChernovikKonspektaIZadaniy(t *testing.T) {
+	repo := &fakeRepo{}
+	llm := &fakeLLM{recap: domain.Recap{Title: "Пётр I", Body: "## Реформы\nтекст", Theses: []string{"тезис"},
+		Homework: []domain.RecapHomework{{Text: "главу 3", DueNote: "к четвергу"}}}}
+	s := newService(t, repo, fakeASR{segs: []domain.Segment{{Text: "сегодня о Петре"}}}, llm, fakeMedia{})
+	ctx := context.Background()
+
+	rec, _ := s.Start(ctx, "owner", lesson(), domain.OriginRecord)
+	if _, err := s.Append(ctx, "owner", rec.ID, 0, strings.NewReader("звук")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Finish(ctx, "owner", rec.ID); err != nil {
+		t.Fatal(err)
+	}
+	if done, err := s.ProcessOne(ctx); err != nil || !done {
+		t.Fatalf("обработка: сделано=%v, ошибка=%v", done, err)
+	}
+
+	if !repo.completed {
+		t.Error("обработка не закрыта")
+	}
+	if len(repo.notes) != 1 || repo.notes[0].Title != "Пётр I" {
+		t.Fatalf("конспекты: %+v", repo.notes)
+	}
+	if repo.notes[0].Saved() {
+		t.Error("конспект сохранён сам: человек должен нажать «Сохранить»")
+	}
+	if len(repo.homeworks) != 1 || repo.homeworks[0].DueNote != "к четвергу" {
+		t.Fatalf("задания: %+v", repo.homeworks)
+	}
+	if repo.homeworks[0].Saved() {
+		t.Error("задание сохранено само")
+	}
+	// Имя преподавателя есть в слепке пары, но наружу, в модель, не уходит.
+	if strings.Contains(llm.seen.Transcript, "Иванов") || llm.seen.Discipline != "История" {
+		t.Errorf("модели ушло лишнее: %+v", llm.seen)
+	}
+}
+
+func TestZapisUdalyaetsyaSrazuPosleRasshifrovki(t *testing.T) {
+	repo := &fakeRepo{}
+	dir := t.TempDir()
+	clk, _ := clock.New("Europe/Moscow")
+	s := New(repo, fakeASR{segs: []domain.Segment{{Text: "речь"}}},
+		&fakeLLM{recap: domain.Recap{Body: "конспект"}}, fakeMedia{},
+		clk, slog.New(slog.NewTextHandler(io.Discard, nil)), Options{AudioDir: dir, Attempts: 2})
+	ctx := context.Background()
+
+	rec, _ := s.Start(ctx, "owner", lesson(), domain.OriginRecord)
+	_, _ = s.Append(ctx, "owner", rec.ID, 0, strings.NewReader("звук"))
+	_, _ = s.Finish(ctx, "owner", rec.ID)
+	if _, err := s.ProcessOne(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "rec-7.bin")); !os.IsNotExist(err) {
+		t.Fatal("голос преподавателя остался на диске после расшифровки")
+	}
+	if repo.rec.Transcript == "" {
+		t.Error("расшифровка не сохранена, пересобрать конспект будет не из чего")
+	}
+}
+
+func TestPoslePopytokSdayomsyaINeDerzhimZvuk(t *testing.T) {
+	repo := &fakeRepo{}
+	dir := t.TempDir()
+	clk, _ := clock.New("Europe/Moscow")
+	s := New(repo, fakeASR{err: errors.New("модель не отвечает")}, &fakeLLM{}, fakeMedia{},
+		clk, slog.New(slog.NewTextHandler(io.Discard, nil)), Options{AudioDir: dir, Attempts: 1})
+	ctx := context.Background()
+
+	rec, _ := s.Start(ctx, "owner", lesson(), domain.OriginRecord)
+	_, _ = s.Append(ctx, "owner", rec.ID, 0, strings.NewReader("звук"))
+	_, _ = s.Finish(ctx, "owner", rec.ID)
+	if _, err := s.ProcessOne(ctx); err == nil {
+		t.Fatal("ошибка распознавания не всплыла")
+	}
+	if !repo.gaveUp {
+		t.Error("после последней попытки надо сдаваться, а не крутить очередь")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "rec-7.bin")); !os.IsNotExist(err) {
+		t.Error("сдались, а запись голоса оставили")
+	}
+}
+
+func TestBezModeleyZapisNeBeryotsya(t *testing.T) {
+	s := newService(t, &fakeRepo{}, nil, nil, nil)
+	if s.CanProcess() {
+		t.Fatal("сервис без распознавания считает себя готовым")
+	}
+	if done, err := s.ProcessOne(context.Background()); done || err != nil {
+		t.Fatalf("обработка без моделей: сделано=%v, ошибка=%v", done, err)
+	}
+}
