@@ -106,18 +106,10 @@
     });
   });
 
-  // ─── без масштабирования: ни щипком, ни двойным тапом ────────────────────
-  // Safari игнорирует user-scalable=no в браузере (уважает только в
-  // приложении), поэтому жесты гасим сами.
+  // ─── без масштабирования ─────────────────────────────────────────────────
+  // Щипок и двойной тап гасит CSS (touch-action) и мета-тег. Здесь остался
+  // только жест Safari: он редкий, слушатель прокрутку не трогает.
   document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
-  document.addEventListener('gesturechange', function (e) { e.preventDefault(); }, { passive: false });
-  document.addEventListener('touchmove', function (e) { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) e.preventDefault(); }, { passive: false });
-  var lastTap = 0;
-  document.addEventListener('touchend', function (e) {
-    var now = Date.now();
-    if (now - lastTap < 300 && !e.target.closest('input, textarea, button, a, summary, label')) e.preventDefault();
-    lastTap = now;
-  }, { passive: false });
 
   // ─── потяни вниз — обнови ────────────────────────────────────────────────
   // Прокрутка внутри экрана, родного жеста браузера нет — рисуем свой.
@@ -127,14 +119,21 @@
     screen.addEventListener('touchstart', function (e) {
       if (screen.scrollTop === 0 && e.touches.length === 1) { startY = e.touches[0].clientY; pulling = true; }
     }, { passive: true });
+    var pending = 0, raf = 0;
     screen.addEventListener('touchmove', function (e) {
       if (!pulling || startY === null) return;
       var dy = e.touches[0].clientY - startY;
-      if (dy <= 0 || screen.scrollTop > 0) { ptr.style.height = '0px'; ptr.classList.remove('armed'); return; }
-      var h = Math.min(72, dy * 0.5);
-      ptr.style.height = h + 'px';
-      ptr.classList.toggle('armed', h >= 56);
-      ptr.textContent = h >= 56 ? 'отпусти — обновится' : 'потяни, чтобы обновить';
+      pending = (dy <= 0 || screen.scrollTop > 0) ? 0 : Math.min(72, dy * 0.5);
+      if (raf) return;
+      raf = requestAnimationFrame(function () {
+        raf = 0;
+        ptr.style.height = pending + 'px';
+        var armed = pending >= 56;
+        if (armed !== ptr.classList.contains('armed')) {
+          ptr.classList.toggle('armed', armed);
+          ptr.textContent = armed ? 'отпусти — обновится' : 'потяни, чтобы обновить';
+        }
+      });
     }, { passive: true });
     screen.addEventListener('touchend', function () {
       if (!pulling) return;

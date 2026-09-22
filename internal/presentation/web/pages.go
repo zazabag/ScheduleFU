@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -15,9 +16,13 @@ import (
 	"github.com/zazabag/schedulefu/internal/platform/clock"
 )
 
+// Ссылки в шаблон отдаются типом template.URL: они собраны здесь и уже
+// закодированы. Без этого html/template кодирует проценты повторно —
+// «%D0%9C» становится «%25D0%259C», и группа с кириллицей ломается.
 type chip struct {
-	Label, Href string
-	On          bool
+	Label string
+	Href  template.URL
+	On    bool
 }
 
 // ─── свободные аудитории ─────────────────────────────────────────────────────
@@ -53,7 +58,7 @@ func (s *Server) rooms(w http.ResponseWriter, r *http.Request) {
 		if x.Site.Slug == site {
 			label = x.Site.Label
 		}
-		tabs = append(tabs, chip{Label: x.Site.Label, Href: "/rooms?site=" + url.QueryEscape(x.Site.Slug), On: x.Site.Slug == site})
+		tabs = append(tabs, chip{Label: x.Site.Label, Href: template.URL("/rooms?site=" + url.QueryEscape(x.Site.Slug)), On: x.Site.Slug == site})
 	}
 
 	// Этажи — из того, что реально есть на площадке: нумерация в корпусах
@@ -91,13 +96,13 @@ func (s *Server) rooms(w http.ResponseWriter, r *http.Request) {
 		}
 		groups[gi].Rooms = append(groups[gi].Rooms, rw)
 	}
-	chips := []chip{{Label: "все", Href: "/rooms?site=" + url.QueryEscape(site), On: floor == ""}}
+	chips := []chip{{Label: "все", Href: template.URL("/rooms?site=" + url.QueryEscape(site)), On: floor == ""}}
 	for _, f := range sum.Floors {
 		if f.Floor < 0 {
 			continue
 		}
 		v := strconv.Itoa(f.Floor)
-		chips = append(chips, chip{Label: v, Href: "/rooms?site=" + url.QueryEscape(site) + "&floor=" + v, On: floor == v})
+		chips = append(chips, chip{Label: v, Href: template.URL("/rooms?site=" + url.QueryEscape(site) + "&floor=" + v), On: floor == v})
 	}
 
 	// Столбики по парам для SVG: высота — доля свободных.
@@ -126,7 +131,7 @@ func (s *Server) rooms(w http.ResponseWriter, r *http.Request) {
 		"Today": clock.DateRu(at) + " · " + clock.WeekdayRu(at), "Date": dateInfo(at, s.d.Clock.Today()),
 		"SiteLabel": label, "FreeCount": sum.FreeNow, "TotalCount": total, "BusyCount": total - sum.FreeNow, "FreePct": pct,
 		"Sites": tabs, "Floors": chips, "Groups": groups, "HasRooms": len(groups) > 0, "Freshness": s.freshness(r),
-		"Summary": sum, "Bars": bars, "Sentence": sentence, "FloorFilter": floor, "SiteSlug": url.QueryEscape(site),
+		"Summary": sum, "Bars": bars, "Sentence": sentence, "FloorFilter": floor, "SiteSlug": template.URL(url.QueryEscape(site)),
 	})
 }
 
@@ -408,13 +413,16 @@ func (s *Server) schedule(w http.ResponseWriter, r *http.Request) {
 		has[l.DateKey()]++
 	}
 	type dayView struct {
-		Dow, Num, Href string
+		Dow, Num       string
+		Href           template.URL
 		On, Has, Today bool
 		Count          int
 	}
 	dateKey := date.Format("2006-01-02")
 	todayKey := today.Format("2006-01-02")
-	hrefFor := func(d time.Time) string { return "/schedule?" + subj.Query() + "&date=" + d.Format("2006-01-02") }
+	hrefFor := func(d time.Time) template.URL {
+		return template.URL("/schedule?" + subj.Query() + "&date=" + d.Format("2006-01-02"))
+	}
 	var days []dayView
 	for i := 0; i < 7; i++ {
 		d := weekStart.AddDate(0, 0, i)
@@ -448,8 +456,8 @@ func (s *Server) schedule(w http.ResponseWriter, r *http.Request) {
 	data["Days"], data["Lessons"], data["Hero"] = days, rows, h
 	data["PrevWeekHref"], data["NextWeekHref"], data["TodayHref"] = hrefFor(weekStart.AddDate(0, 0, -7)), hrefFor(weekStart.AddDate(0, 0, 7)), hrefFor(today)
 	data["PrevDayHref"], data["NextDayHref"] = hrefFor(date.AddDate(0, 0, -1)), hrefFor(date.AddDate(0, 0, 1))
-	data["SubjectKey"], data["SubjectQuery"] = subj.Key(), subj.Query()
-	data["Pinned"], data["PinHref"] = pinned.Key() == subj.Key(), "/schedule?"+subj.Query()+"&pin=1"
+	data["SubjectKey"], data["SubjectQuery"] = subj.Key(), template.URL(subj.Query())
+	data["Pinned"], data["PinHref"] = pinned.Key() == subj.Key(), template.URL("/schedule?"+subj.Query()+"&pin=1")
 	data["ChangeHref"] = map[bool]string{true: "/lecturers", false: "/groups"}[subj.Kind == sched.SubjectLecturer]
 	data["Clock"] = now
 	s.render(w, r, "schedule", data)
@@ -655,13 +663,14 @@ func roomPhrase(r lessonRow) string {
 
 // nextDay — ближайший день с парами после пустого.
 type nextDay struct {
-	Label, Href, Count, First string
+	Label, Count, First string
+	Href                template.URL
 }
 
 // nextLessonDay ищет ближайший день с парами: сначала в уже загруженной
 // неделе, затем — ещё одним запросом — в следующей. Дальше не смотрим:
 // окно слепка неделя-две, и «через месяц» мы всё равно не знаем.
-func (s *Server) nextLessonDay(ctx context.Context, subj sched.Subject, week []sched.Lesson, after time.Time, href func(time.Time) string) *nextDay {
+func (s *Server) nextLessonDay(ctx context.Context, subj sched.Subject, week []sched.Lesson, after time.Time, href func(time.Time) template.URL) *nextDay {
 	afterKey := after.Format("2006-01-02")
 	pick := func(lessons []sched.Lesson) *nextDay {
 		var best *sched.Lesson
@@ -924,7 +933,7 @@ func (s *Server) pickerData(r *http.Request, data map[string]any) {
 		Code  string
 		Count int
 		On    bool
-		Href  string
+		Href  template.URL
 	}
 	counts := map[string]int{}
 	for _, name := range all {
@@ -935,7 +944,7 @@ func (s *Server) pickerData(r *http.Request, data map[string]any) {
 	var dirs []dir
 	for code, n := range counts {
 		dirs = append(dirs, dir{Code: code, Count: n, On: code == prefix,
-			Href: r.URL.Path + "?dir=" + url.QueryEscape(code)})
+			Href: template.URL(r.URL.Path + "?dir=" + url.QueryEscape(code))})
 	}
 	sort.Slice(dirs, func(i, j int) bool {
 		if dirs[i].Count != dirs[j].Count {
@@ -949,8 +958,8 @@ func (s *Server) pickerData(r *http.Request, data map[string]any) {
 		found, _ = s.d.Schedule.Repo().SearchGroups(r.Context(), q, 500)
 	}
 	type row struct {
-		Name, NameEscaped, Meta string
-		On                      bool
+		Name, Meta string
+		On         bool
 	}
 	var rows []row
 	for _, g := range found {
@@ -968,22 +977,21 @@ func (s *Server) pickerData(r *http.Request, data map[string]any) {
 		if c > 0 {
 			meta = strconv.Itoa(c) + " курс · " + meta
 		}
-		rows = append(rows, row{Name: g.Name, NameEscaped: url.QueryEscape(g.Name), Meta: meta, On: chosen.Group == g.Name})
+		rows = append(rows, row{Name: g.Name, Meta: meta, On: chosen.Group == g.Name})
 	}
 	base := r.URL.Path + "?q=" + url.QueryEscape(q)
 	if prefix != "" {
 		base += "&dir=" + url.QueryEscape(prefix)
 	}
-	chips := []chip{{Label: "все", Href: base, On: course == ""}}
+	chips := []chip{{Label: "все", Href: template.URL(base), On: course == ""}}
 	for i := 1; i <= 5; i++ {
 		v := strconv.Itoa(i)
-		chips = append(chips, chip{Label: v, Href: base + "&course=" + v, On: course == v})
+		chips = append(chips, chip{Label: v, Href: template.URL(base + "&course=" + v), On: course == v})
 	}
-	type recent struct{ Name, NameEscaped string }
-	var recents []recent
+	var recents []string
 	for _, n := range RecentFromCookie(r) {
 		if n != chosen.Group {
-			recents = append(recents, recent{Name: n, NameEscaped: url.QueryEscape(n)})
+			recents = append(recents, n)
 		}
 	}
 	data["Query"], data["Courses"], data["Groups"] = q, chips, rows
@@ -997,12 +1005,12 @@ func (s *Server) pickerData(r *http.Request, data map[string]any) {
 		dirs = dirs[:topDirs]
 	}
 	data["Dirs"], data["Dir"], data["DirCount"], data["GroupCount"] = dirs, prefix, len(counts), len(all)
-	data["AllDirsHref"] = r.URL.Path + "?dirs=all"
+	data["AllDirsHref"] = template.URL(r.URL.Path + "?dirs=all")
 	data["Recent"], data["Searching"] = recents, q != "" || prefix != "" || course != ""
 	data["ResultLabel"] = fmt.Sprintf("найдено: %d", len(rows))
 	data["Action"] = r.URL.Path
 	if chosen.Kind == sched.SubjectGroup {
-		data["PinnedGroup"], data["PinnedGroupEscaped"] = chosen.Group, url.QueryEscape(chosen.Group)
+		data["PinnedGroup"] = chosen.Group
 	}
 }
 
@@ -1086,7 +1094,9 @@ func (s *Server) lecturers(w http.ResponseWriter, r *http.Request) {
 	// рисуют его кольцом, табло, дорогой — как умеют.
 	data["Hero"] = s.buildHero(rows, true, hhmm, true)
 	data["Date"], data["Who"], data["Clock"] = dateInfo(today, today), "lecturer", hhmm
-	weekHref := func(d time.Time) string { return "/schedule?lecturer=" + oidParam + "&date=" + d.Format("2006-01-02") }
+	weekHref := func(d time.Time) template.URL {
+		return template.URL("/schedule?lecturer=" + oidParam + "&date=" + d.Format("2006-01-02"))
+	}
 	data["PrevDayHref"], data["NextDayHref"], data["TodayHref"] = weekHref(today.AddDate(0, 0, -1)), weekHref(today.AddDate(0, 0, 1)), weekHref(today)
 	name := s.d.Schedule.LecturerName(r.Context(), oid, lessons)
 	RememberRecentLecturer(w, r, oid, name, r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https")

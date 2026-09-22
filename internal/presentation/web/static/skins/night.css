@@ -65,7 +65,7 @@
 /* ─── остальные экраны: стекло и свечение ───────────────────────────────── */
 .clock { background: transparent; font-size: 28px; font-weight: 800; letter-spacing: -0.03em; color: var(--text); text-shadow: 0 0 18px rgba(139,123,255,0.6); }
 .tab.on, .chip.on, .act.on, .btn, .search button { box-shadow: 0 0 16px rgba(139,123,255,0.4); }
-.room { border: 1px solid var(--line); backdrop-filter: blur(8px); }
+.room { border: 1px solid var(--line); }
 .room-num { font-weight: 800; letter-spacing: -0.03em; }
 .room-until { color: var(--accent); }
 .rail-box { height: 16px; border-radius: 999px; }

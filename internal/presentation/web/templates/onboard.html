@@ -18,21 +18,21 @@
       </span>
       {{if not .Onboard.Pinned}}<a class="onb-btn" href="{{if eq .Tab "schedule"}}#picker{{else}}/groups{{end}}">Выбрать</a>{{end}}
     </li>
-    <li class="onb-step" data-step="push" {{if not .Onboard.Pinned}}data-locked="1"{{end}}>
-      <span class="onb-num">2</span>
-      <span class="onb-body">
-        <b>Разреши уведомления</b>
-        <i class="onb-push-text">{{if .Onboard.Pinned}}Одно сообщение, когда деканат поменяет расписание{{else}}Сначала закрепи группу{{end}}</i>
-      </span>
-      {{if .Onboard.Pinned}}<button class="onb-btn onb-push-btn" type="button">Разрешить</button>{{end}}
-    </li>
     <li class="onb-step" data-step="install">
-      <span class="onb-num">3</span>
+      <span class="onb-num">2</span>
       <span class="onb-body">
         <b>Поставь на рабочий стол</b>
         <i class="onb-install-text">Откроется как приложение: без адресной строки, с уведомлениями</i>
       </span>
       <button class="onb-btn onb-install-btn" type="button">Установить</button>
+    </li>
+    <li class="onb-step" data-step="push" {{if not .Onboard.Pinned}}data-locked="1"{{end}}>
+      <span class="onb-num">3</span>
+      <span class="onb-body">
+        <b>Разреши уведомления</b>
+        <i class="onb-push-text">{{if .Onboard.Pinned}}Одно сообщение, когда деканат поменяет расписание. На iPhone — после шага 2{{else}}Сначала закрепи группу{{end}}</i>
+      </span>
+      {{if .Onboard.Pinned}}<button class="onb-btn onb-push-btn" type="button">Разрешить</button>{{end}}
     </li>
   </ol>
   <div class="onb-howto" hidden>

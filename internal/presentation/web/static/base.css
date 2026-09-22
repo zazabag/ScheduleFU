@@ -61,10 +61,17 @@ svg { display: block; }
    панель стоит на месте, а «потяни вниз — обнови» рисуем сами. */
 html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
 body { touch-action: pan-y; }
+/* Окно приложения прибито к краям экрана: 100dvh на iPhone в режиме
+   приложения считается по большому экрану, и нижняя панель повисала над
+   дном, а при каждом переходе прыгала. */
 .app {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
   max-width: 560px;
-  margin: 0 auto;
-  height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -202,6 +209,8 @@ body { touch-action: pan-y; }
 
 /* ─── аудитории ─────────────────────────────────────────────────────────── */
 .rooms { padding: 4px var(--pad) 0; display: flex; flex-direction: column; gap: 8px; }
+/* content-visibility здесь пробовали и убрали: на сотне карточек выигрыш
+   мал, а высота угадывается неточно — полоса прокрутки дёргается. */
 .room { background: var(--surface); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 11px; }
 .room > summary { list-style: none; cursor: pointer; display: flex; flex-direction: column; gap: 11px; }
 .room > summary::-webkit-details-marker { display: none; }

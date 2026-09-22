@@ -1,6 +1,7 @@
 package web
 
 import (
+	"html/template"
 	"net/http"
 )
 
@@ -42,7 +43,7 @@ func (s *Server) settings(w http.ResponseWriter, r *http.Request) {
 		if pinned.LecturerOid != 0 {
 			label = s.d.Schedule.LecturerName(r.Context(), pinned.LecturerOid, nil)
 		}
-		data["Pinned"], data["PinnedLabel"], data["PinnedQuery"], data["PinnedKey"] = true, label, pinned.Query(), pinned.Key()
+		data["Pinned"], data["PinnedLabel"], data["PinnedQuery"], data["PinnedKey"] = true, label, template.URL(pinned.Query()), pinned.Key()
 		data["PinnedIsLecturer"] = pinned.LecturerOid != 0
 	}
 	data["PushEnabled"] = s.d.Notify != nil && s.d.Notify.Enabled()

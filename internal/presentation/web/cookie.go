@@ -39,7 +39,7 @@ func SubjectFromCookie(r *http.Request) sched.Subject {
 	if err != nil {
 		return sched.Subject{}
 	}
-	s, err := sched.ParseSubjectKey(v)
+	s, err := sched.ParseSubjectKey(healPercent(v))
 	if err != nil {
 		return sched.Subject{}
 	}
@@ -49,6 +49,21 @@ func SubjectFromCookie(r *http.Request) sched.Subject {
 // recentCookie — последние открытые группы: студент смотрит не только
 // свою, но и группу друга или потока; пять имён через «|», процентами.
 const recentCookie = "schedulefu_recent"
+
+// healPercent чинит значение, закодированное дважды: «%D0%9C%D0%95%D0%9D22-1»
+// вместо «МЕН22-1в». Такие cookie успели разойтись по браузерам, пока
+// html/template кодировал наши ссылки повторно; выбрасывать закрепление
+// человека из-за нашей ошибки нельзя.
+func healPercent(v string) string {
+	if !strings.Contains(v, "%D") && !strings.Contains(v, "%d") {
+		return v
+	}
+	decoded, err := url.QueryUnescape(v)
+	if err != nil {
+		return v
+	}
+	return decoded
+}
 
 // RecentFromCookie — недавние группы, свежие первыми.
 func RecentFromCookie(r *http.Request) []string {
@@ -62,7 +77,7 @@ func RecentFromCookie(r *http.Request) []string {
 	}
 	var out []string
 	for _, name := range strings.Split(v, "|") {
-		if name = strings.TrimSpace(name); name != "" && len(out) < 5 {
+		if name = strings.TrimSpace(healPercent(name)); name != "" && len(out) < 5 {
 			out = append(out, name)
 		}
 	}

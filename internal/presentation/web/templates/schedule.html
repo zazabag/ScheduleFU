@@ -21,7 +21,7 @@
 
 <section class="phero">
   {{if .PinnedGroup}}
-  <a class="ph-pinned" href="/schedule?group={{.PinnedGroupEscaped}}">
+  <a class="ph-pinned" href="/schedule?group={{.PinnedGroup}}">
     <span class="ph-pinned-label">закреплена</span>
     <span class="ph-pinned-name">{{.PinnedGroup}}</span>
     <span class="ph-pinned-go">открыть ›</span>
@@ -30,7 +30,7 @@
   {{if .Recent}}
   <div class="ph-recent">
     <span class="ph-recent-label">недавно</span>
-    {{range .Recent}}<a class="ph-recent-item" href="/schedule?group={{.NameEscaped}}">{{.Name}}</a>{{end}}
+    {{range .Recent}}<a class="ph-recent-item" href="/schedule?group={{.}}">{{.}}</a>{{end}}
   </div>
   {{end}}
   {{if not .Searching}}
@@ -46,7 +46,7 @@
   {{if .Searching}}
   <div class="picks-count">{{.ResultLabel}}{{if .Dir}} · {{.Dir}} <a class="picks-reset" href="{{.Action}}">сбросить</a>{{end}}</div>
   {{range .Groups}}
-  <a class="pick {{if .On}}on{{end}}" href="/schedule?group={{.NameEscaped}}&amp;pin=1">
+  <a class="pick {{if .On}}on{{end}}" href="/schedule?group={{.Name}}&amp;pin=1">
     <span class="pick-body"><span class="pick-name">{{.Name}}</span><span class="pick-meta">{{.Meta}}</span></span>
     <span class="pick-mark">{{if .On}}✓{{else}}›{{end}}</span>
   </a>
@@ -63,7 +63,7 @@
       <h1 class="top-title">{{.Group}}</h1>
     </div>
     <div class="top-actions">
-      {{if .Pinned}}<a class="act on" href="/schedule?unpin=1" title="Открепить">Моё ✓</a>{{else}}<a class="act" href="{{.PinHref}}">Закрепить</a>{{end}}
+      {{if not .Pinned}}<a class="act on" href="{{.PinHref}}">Закрепить</a>{{end}}
       <a class="act" href="{{.ChangeHref}}">Сменить</a>
     </div>
   </div>
