@@ -323,6 +323,11 @@ type Note struct {
 	SavedAt   *time.Time
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	// ShareToken — ключ ссылки, по которой конспект открывает кто угодно;
+	// пусто — ссылки нет.
+	ShareToken string
+	// CopiedFrom — из какого конспекта сохранена эта копия по ссылке.
+	CopiedFrom *int64
 }
 
 // Saved сообщает, нажал ли человек «Сохранить»: до этого конспект — черновик.

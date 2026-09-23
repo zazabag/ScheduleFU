@@ -626,3 +626,7 @@ body { touch-action: pan-y; }
 .hw-add-wrap .hw-add { border-top: 0; }
 .note-save { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
 .rec-row-card { padding: 12px 14px; border-top: 0; flex-wrap: wrap; }
+
+/* Обмен конспектами: страница конспекта по ссылке. */
+.share-actions { display: flex; flex-direction: column; gap: 10px; }
+.share-actions .btn { width: 100%; }

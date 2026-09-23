@@ -1,0 +1,57 @@
+{{define "content"}}
+{{if .Closed}}
+<header class="top"><div class="top-row"><div>
+  <span class="top-kicker">конспект</span>
+  <h1 class="top-title">Ссылка закрыта</h1>
+  <p class="top-sub">Автор закрыл доступ к этому конспекту, или ссылка набрана с ошибкой.</p>
+</div></div></header>
+<div class="empty"><a class="btn btn-main" href="/lessons">Мои пары</a></div>
+{{else}}
+<header class="top">
+  <div class="top-row">
+    <div>
+      <span class="top-kicker">конспектом поделились · {{.When}}</span>
+      <h1 class="top-title">{{.Discipline}}</h1>
+      {{if .Lecturer}}<p class="top-sub">{{.Lecturer}}</p>{{end}}
+    </div>
+  </div>
+</header>
+
+{{with .Note}}
+<section class="card note">
+  <div class="card-head">
+    <h2 class="card-title">{{if .Title}}{{.Title}}{{else}}Конспект{{end}}</h2>
+    <span class="note-date">{{.Date}}{{if .Time}} · {{.Time}}{{end}}</span>
+  </div>
+  {{if .Theses}}
+  <div class="theses"><div class="theses-label">главное</div><ul>{{range .Theses}}<li>{{.}}</li>{{end}}</ul></div>
+  {{end}}
+  <div class="note-body">
+    {{range .Blocks}}
+      {{if eq .Kind "head"}}<h3>{{.Text}}</h3>
+      {{else if eq .Kind "list"}}<ul>{{range .Items}}<li>{{.}}</li>{{end}}</ul>
+      {{else}}<p>{{.Text}}</p>{{end}}
+    {{end}}
+  </div>
+</section>
+{{if .Homeworks}}
+<section class="card">
+  <div class="card-head"><h2 class="card-title">Задали на дом</h2></div>
+  {{range .Homeworks}}<div class="hw"><div class="hw-body">{{.Body}}{{if .Due}} <span class="hw-due">{{.Due}}</span>{{end}}</div></div>{{end}}
+</section>
+{{end}}
+{{end}}
+
+<section class="card share-actions">
+  {{if .SavedHref}}
+  <a class="btn btn-main" href="{{.SavedHref}}">✓ Уже у вас — открыть</a>
+  {{else}}
+  <form method="post" action="/n/{{.Token}}">
+    <button class="btn btn-main" type="submit">Сохранить себе</button>
+  </form>
+  {{end}}
+  <button class="btn btn-quiet" type="button" data-share="/n/{{.Token}}" data-title="{{.Discipline}}">Переслать дальше</button>
+  <p class="hw-hint">Копия ляжет в раздел «Пары» к этому предмету вместе с заданиями. Регистрация не нужна.</p>
+</section>
+{{end}}
+{{end}}
