@@ -51,6 +51,7 @@ func New(d Deps) *Server { return &Server{d: d} }
 func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/health", s.health)
+	mux.HandleFunc("POST /api/v1/timing", s.timing)
 	mux.HandleFunc("GET /api/v1/free", s.free)
 	mux.HandleFunc("GET /api/v1/schedule", s.schedule)
 	if !s.d.HideWhereLecturer {
