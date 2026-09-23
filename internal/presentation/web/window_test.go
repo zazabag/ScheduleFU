@@ -115,7 +115,9 @@ func TestDlitelnostPoRusski(t *testing.T) {
 // вечером, у ПИ24-2 — утром и после обеда. Связи подгрупп уже дотянуты.
 func (windowRepo) ScheduleFor(_ context.Context, s sched.Subject, from, _ time.Time) ([]sched.Lesson, error) {
 	day := from.AddDate(0, 0, 2)
-	mk := func(b, e string) sched.Lesson { return sched.Lesson{Date: day, BeginsAt: b, EndsAt: e, Discipline: "x"} }
+	mk := func(b, e string) sched.Lesson {
+		return sched.Lesson{Date: day, BeginsAt: b, EndsAt: e, Discipline: "x"}
+	}
 	switch s.Group {
 	case "ПИ24-1":
 		return []sched.Lesson{mk("08:30", "10:00"), mk("15:40", "17:10")}, nil
