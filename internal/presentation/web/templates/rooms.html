@@ -61,6 +61,23 @@
   </div>
 </section>
 
+{{if .BreakSentence}}
+<section class="breaks">
+  <h2 class="rooms-floor"><span>перемены — сколько пар расходится</span></h2>
+  <p class="breaks-sentence">{{.BreakSentence}}</p>
+  <svg class="breaks-svg" viewBox="0 0 360 172" role="img" aria-label="Перемены площадки">
+    {{range .Breaks}}
+    <g class="break-row" data-state="{{.State}}">
+      <text class="break-time" x="0" y="{{.Y}}" dy="12">{{.Label}}</text>
+      <rect class="break-track" x="96" y="{{.Y}}" width="200" height="16" rx="4"/>
+      <rect class="break-fill{{if .Peak}} peak{{end}}" x="96" y="{{.Y}}" width="{{.W}}" height="16" rx="4"/>
+      <text class="break-count" x="302" y="{{.Y}}" dy="12">{{.Text}}</text>
+    </g>
+    {{end}}
+  </svg>
+</section>
+{{end}}
+
 <section class="rooms">
   {{range .Groups}}
   <h2 class="rooms-floor"><span>{{.Label}}</span><i>{{len .Rooms}}</i></h2>
