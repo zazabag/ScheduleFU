@@ -4,6 +4,9 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/zazabag/schedulefu/internal/modules/notes"
+	"github.com/zazabag/schedulefu/internal/modules/notes/domain"
 )
 
 // Просить JSON и получать JSON — разные вещи: модель регулярно добавляет
@@ -73,4 +76,18 @@ func lastRune(s string) string {
 		return ""
 	}
 	return string(r[len(r)-1])
+}
+
+// Модель предупреждена о пропусках: иначе метку в расшифровке она примет за
+// слова преподавателя или молча сошьёт края пропуска.
+func TestProPropuskiSkazanoVZaprose(t *testing.T) {
+	in := notes.SummaryInput{Discipline: "История", Date: "2026-09-23",
+		Gaps: []domain.Gap{{AtSec: 23 * 60, DurSec: 240}}}
+	p := finalPrompt(in, "текст")
+	if !strings.Contains(p, "на 23-й минуте — около 4 мин") || !strings.Contains(p, "[пропуск в записи") {
+		t.Errorf("в запросе нет пропусков:\n%s", p)
+	}
+	if strings.Contains(finalPrompt(notes.SummaryInput{Discipline: "История"}, "текст"), "пропуск") {
+		t.Error("о пропусках сказано, когда их не было")
+	}
 }

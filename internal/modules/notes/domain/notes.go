@@ -9,6 +9,8 @@ package domain
 
 import (
 	"errors"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -118,6 +120,9 @@ type Recording struct {
 	DurationSec int
 	AudioPath   string
 	Transcript  string
+	// Gaps — где запись прерывалась: айфон выключает микрофон свёрнутому
+	// приложению, и браузер отмечает, когда и насколько.
+	Gaps []Gap
 
 	Attempts  int
 	Failure   string
@@ -184,6 +189,92 @@ func Transcript(segs []Segment) string {
 			b.WriteByte(' ')
 		}
 		b.WriteString(t)
+	}
+	return b.String()
+}
+
+// Gap — пропуск в записи: микрофон был выключен системой.
+//
+// AtSec — сколько секунд успело записаться до пропуска, то есть место в
+// звуке, а не на часах: во время пропуска звук не пишется, и позиция в
+// расшифровке считается без него.
+type Gap struct {
+	AtSec  int `json:"at_sec"`
+	DurSec int `json:"dur_sec"`
+}
+
+// MaxGaps — потолок пропусков в одной записи. Пропуски присылает браузер,
+// и список длиной в миллион — это не пара, а подделанный запрос.
+const MaxGaps = 100
+
+// CleanGaps отбрасывает то, чему нельзя верить, и сортирует по месту.
+// Пропуск короче пяти секунд — переключение туда-обратно, в конспекте о
+// нём говорить незачем.
+func CleanGaps(in []Gap) []Gap {
+	const day = 24 * 60 * 60
+	out := make([]Gap, 0, len(in))
+	for _, g := range in {
+		if g.AtSec < 0 || g.AtSec > day || g.DurSec < 5 || g.DurSec > day {
+			continue
+		}
+		out = append(out, g)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].AtSec < out[j].AtSec })
+	if len(out) > MaxGaps {
+		out = out[:MaxGaps]
+	}
+	return out
+}
+
+// Label — «на 23-й минуте — около 4 мин».
+func (g Gap) Label() string {
+	where := "в самом начале"
+	if m := g.AtSec / 60; m >= 1 {
+		where = "на " + strconv.Itoa(m) + "-й минуте"
+	}
+	return where + " — около " + gapLength(g.DurSec)
+}
+
+// Marker — метка пропуска внутри расшифровки.
+func (g Gap) Marker() string { return "[пропуск в записи ~" + gapLength(g.DurSec) + "]" }
+
+// gapLength округляет до минуты, но не ниже одной: «около 0 мин» читается
+// как «пропуска не было», а он был.
+func gapLength(sec int) string {
+	m := (sec + 30) / 60
+	if m < 1 {
+		m = 1
+	}
+	return HumanDuration(m * 60)
+}
+
+// TranscriptWithGaps склеивает сегменты, как Transcript, и ставит метки
+// пропусков перед первой фразой, прозвучавшей после них.
+func TranscriptWithGaps(segs []Segment, gaps []Gap) string {
+	if len(gaps) == 0 {
+		return Transcript(segs)
+	}
+	var b strings.Builder
+	add := func(t string) {
+		if b.Len() > 0 {
+			b.WriteByte(' ')
+		}
+		b.WriteString(t)
+	}
+	next := 0
+	for _, s := range segs {
+		t := strings.TrimSpace(s.Text)
+		if t == "" {
+			continue
+		}
+		for next < len(gaps) && time.Duration(gaps[next].AtSec)*time.Second <= s.Start {
+			add(gaps[next].Marker())
+			next++
+		}
+		add(t)
+	}
+	for ; next < len(gaps); next++ {
+		add(gaps[next].Marker())
 	}
 	return b.String()
 }

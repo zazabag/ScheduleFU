@@ -26,6 +26,13 @@
   }
   startBtn.hidden = false;
 
+  // Айфон выключает микрофон свёрнутому приложению — и в PWA, и в Safari.
+  // Обойти это из браузера нельзя, поэтому честно предупреждаем заранее.
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var iosHint = document.getElementById('rec-ios');
+  if (isIOS && iosHint) iosHint.hidden = false;
+
   var stopBtn = document.getElementById('rec-stop');
   var live = document.getElementById('rec-live');
   var timeOut = document.getElementById('rec-time');
@@ -44,6 +51,10 @@
   var recorder = null, stream = null, wakeLock = null;
   var recordingId = 0, nextSeq = 0, sending = false, queue = [], finished = false;
   var startedAt = 0, ticker = 0;
+  // Пропуски: система выключила микрофон — запись идёт, а звука нет. Время
+  // пропуска не считается записанным, и место каждого уходит на сервер,
+  // чтобы конспект не сшил края пропуска в одну мысль.
+  var gaps = [], gapStart = 0, gapAt = 0, lostMs = 0;
 
   function say(text) { if (msg) msg.textContent = text || ''; }
 
@@ -109,18 +120,82 @@
     recorder.ondataavailable = function (e) {
       if (e.data && e.data.size) { queue.push(e.data); pump(); }
     };
-    recorder.onstop = function () { finalize(); };
+    recorder.onstop = function () {
+      if (!finished) {
+        // Остановил не человек, а система: микрофон отобран насовсем.
+        finished = true;
+        say('Система отключила микрофон — сохраняем то, что успели записать.');
+      }
+      finalize();
+    };
+    stream.getAudioTracks().forEach(function (t) {
+      t.addEventListener('mute', startGap);
+      t.addEventListener('unmute', endGap);
+    });
     recorder.start(15000);
 
     startedAt = Date.now();
     live.hidden = false;
     startBtn.hidden = true;
-    say('Идёт запись. Экран можно погасить только на Android — на айфоне держите приложение открытым.');
+    say(isIOS
+      ? 'Идёт запись. Держите приложение открытым: свёрнутому iOS выключает микрофон.'
+      : 'Идёт запись. Экран можно гасить, приложение — сворачивать.');
     ticker = setInterval(tick, 1000);
     tick();
     keepAwake();
     window.addEventListener('beforeunload', warn);
     document.addEventListener('visibilitychange', keepAwake);
+    document.addEventListener('visibilitychange', watchHidden);
+  }
+
+  // На айфоне свёрнутое приложение теряет микрофон, даже если событие mute
+  // не пришло: страница просто засыпает. Поэтому там уход с экрана сам по
+  // себе считается началом пропуска. На Android запись в фоне идёт, и
+  // пропуск отмечается только по mute.
+  function watchHidden() {
+    if (!recorder || finished) return;
+    if (document.visibilityState === 'hidden') {
+      if (isIOS) startGap();
+    } else if (!trackMuted()) {
+      endGap();
+    }
+  }
+
+  function trackMuted() {
+    if (!stream) return false;
+    var tracks = stream.getAudioTracks();
+    return tracks.length > 0 && tracks[0].muted;
+  }
+
+  function recordedMs(now) {
+    return now - startedAt - lostMs - (gapStart ? now - gapStart : 0);
+  }
+
+  function startGap() {
+    if (gapStart || !recorder || finished) return;
+    var now = Date.now();
+    gapAt = Math.max(0, Math.floor(recordedMs(now) / 1000));
+    gapStart = now;
+    tick();
+  }
+
+  function endGap() {
+    if (!gapStart) return;
+    var now = Date.now(), from = gapStart, dur = now - gapStart;
+    gapStart = 0;
+    lostMs += dur;
+    tick();
+    // Меньше пяти секунд — переключились туда-обратно, говорить не о чем.
+    if (dur < 5000) return;
+    gaps.push({ at_sec: gapAt, dur_sec: Math.round(dur / 1000) });
+    say('Запись прерывалась с ' + hhmm(from) + ' до ' + hhmm(now) + ' (около ' +
+      Math.max(1, Math.round(dur / 60000)) + ' мин): система выключала микрофон. ' +
+      'В конспекте это место будет отмечено.');
+  }
+
+  function hhmm(ms) {
+    var d = new Date(ms);
+    return d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
   }
 
   function pickMime() {
@@ -131,10 +206,12 @@
     return '';
   }
 
+  // tick показывает записанное время, а не прошедшее: во время пропуска
+  // часы стоят и помечены, чтобы не обещать звук, которого нет.
   function tick() {
-    var sec = Math.floor((Date.now() - startedAt) / 1000);
+    var sec = Math.max(0, Math.floor(recordedMs(Date.now()) / 1000));
     var m = Math.floor(sec / 60), s = sec % 60;
-    if (timeOut) timeOut.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+    if (timeOut) timeOut.textContent = m + ':' + (s < 10 ? '0' : '') + s + (gapStart ? ' · пауза' : '');
   }
 
   // pump отправляет куски строго по одному и по порядку: сервер склеивает
@@ -169,6 +246,8 @@
   });
 
   function finalize() {
+    endGap();
+    document.removeEventListener('visibilitychange', watchHidden);
     clearInterval(ticker);
     stopTracks();
     releaseWake();
@@ -180,7 +259,7 @@
     if (!recordingId) return;
     var id = recordingId;
     recordingId = 0;
-    post('/api/v1/notes/recordings/' + id + '/finish', '')
+    post('/api/v1/notes/recordings/' + id + '/finish', JSON.stringify({ gaps: gaps }), 'application/json')
       .then(function () {
         var base = window.location.pathname + window.location.search.replace(/&rec=\d+/, '');
         window.location.href = base + (base.indexOf('?') >= 0 ? '&' : '?') + 'rec=' + id;

@@ -86,6 +86,8 @@ type recordingView struct {
 	Working  bool
 	Ready    bool
 	Href     template.URL
+	// Gaps — где айфон выключал микрофон: «на 23-й минуте — около 4 мин».
+	Gaps []string
 }
 
 func (s *Server) lessons(w http.ResponseWriter, r *http.Request) {
@@ -328,6 +330,9 @@ func (s *Server) recordingScreen(ctx context.Context, owner string, id int64, da
 	view := recordingView{ID: rec.ID, Date: clock.DateRu(rec.Lesson.Date), Status: string(rec.Status),
 		Label: rec.Status.Label(), Failure: rec.Failure, Duration: rec.Duration(),
 		Working: rec.Status.Working(), Ready: rec.Status == ndom.StatusReady}
+	for _, g := range rec.Gaps {
+		view.Gaps = append(view.Gaps, g.Label())
+	}
 	data["Rec"] = view
 
 	if note, ok, err := s.d.Notes.NoteByRecording(ctx, owner, rec.ID); err != nil {
@@ -529,7 +534,7 @@ func (s *Server) lessonsUpload(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if _, err = s.d.Notes.Finish(ctx, owner, rec.ID); err != nil {
+		if _, err = s.d.Notes.Finish(ctx, owner, rec.ID, nil); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}

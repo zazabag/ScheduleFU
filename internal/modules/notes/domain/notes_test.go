@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -70,5 +71,55 @@ func TestSostoyaniyaObrabotki(t *testing.T) {
 	}
 	if !StatusFailed.Done() || StatusQueued.Done() {
 		t.Error("законченные — только готово и неудача")
+	}
+}
+
+// Айфон выключает микрофон свёрнутому приложению. Пропуск должен стоять в
+// расшифровке там, где он случился, иначе модель склеит «до» и «после» в
+// одну мысль и досочинит связку, которой на паре не было.
+func TestPropuskVstaetVRasshifrovkuNaSvoyoMesto(t *testing.T) {
+	segs := []Segment{
+		{Start: 0, Text: "реформы Петра"},
+		{Start: 60 * time.Second, Text: "итак табель о рангах"},
+		{Start: 20 * time.Minute, Text: "в итоге"},
+	}
+	got := TranscriptWithGaps(segs, []Gap{{AtSec: 30, DurSec: 240}})
+	want := "реформы Петра [пропуск в записи ~4 мин] итак табель о рангах в итоге"
+	if got != want {
+		t.Errorf("расшифровка:\n%q\nожидалось\n%q", got, want)
+	}
+	// Пропуск после последней фразы — в конце, а не потерян.
+	if got := TranscriptWithGaps(segs, []Gap{{AtSec: 3600, DurSec: 60}}); !strings.HasSuffix(got, "[пропуск в записи ~1 мин]") {
+		t.Errorf("пропуск в конце: %q", got)
+	}
+	if TranscriptWithGaps(segs, nil) != Transcript(segs) {
+		t.Error("без пропусков расшифровка должна совпадать с обычной")
+	}
+}
+
+// Пропуски приходят из браузера — это недоверенные данные: отрицательные,
+// крошечные и бесконечные списки отбрасываются, порядок наводится.
+func TestPropuskiIzBrauzeraChistyatsya(t *testing.T) {
+	in := []Gap{{AtSec: 600, DurSec: 120}, {AtSec: -5, DurSec: 60}, {AtSec: 10, DurSec: 2}, {AtSec: 100, DurSec: 30}}
+	got := CleanGaps(in)
+	if len(got) != 2 || got[0].AtSec != 100 || got[1].AtSec != 600 {
+		t.Errorf("пропуски: %+v", got)
+	}
+	many := make([]Gap, 500)
+	for i := range many {
+		many[i] = Gap{AtSec: i * 100, DurSec: 10}
+	}
+	if n := len(CleanGaps(many)); n != MaxGaps {
+		t.Errorf("пропусков после чистки: %d", n)
+	}
+}
+
+func TestPropuskPoRusski(t *testing.T) {
+	g := Gap{AtSec: 23*60 + 10, DurSec: 250}
+	if got := g.Label(); got != "на 23-й минуте — около 4 мин" {
+		t.Errorf("подпись: %q", got)
+	}
+	if got := (Gap{AtSec: 20, DurSec: 30}).Label(); got != "в самом начале — около 1 мин" {
+		t.Errorf("подпись в начале: %q", got)
 	}
 }

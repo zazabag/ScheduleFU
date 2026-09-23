@@ -139,8 +139,10 @@ func (s *Service) Append(ctx context.Context, owner string, id int64, seq int, b
 	return rec, nil
 }
 
-// Finish закрывает приём и ставит запись в очередь обработки.
-func (s *Service) Finish(ctx context.Context, owner string, id int64) (domain.Recording, error) {
+// Finish закрывает приём и ставит запись в очередь обработки. gaps — где
+// система выключала микрофон, как их заметил браузер; у загруженного файла
+// их нет.
+func (s *Service) Finish(ctx context.Context, owner string, id int64, gaps []domain.Gap) (domain.Recording, error) {
 	rec, ok, err := s.repo.Recording(ctx, owner, id)
 	if err != nil || !ok {
 		return domain.Recording{}, notFound(err)
@@ -152,10 +154,11 @@ func (s *Service) Finish(ctx context.Context, owner string, id int64) (domain.Re
 		_, _ = s.repo.DeleteRecording(ctx, owner, id)
 		return rec, errors.New("запись пустая: звук не дошёл")
 	}
-	if err := s.repo.Enqueue(ctx, id); err != nil {
+	gaps = domain.CleanGaps(gaps)
+	if err := s.repo.Enqueue(ctx, id, gaps); err != nil {
 		return rec, err
 	}
-	rec.Status = domain.StatusQueued
+	rec.Status, rec.Gaps = domain.StatusQueued, gaps
 	return rec, nil
 }
 
@@ -284,6 +287,7 @@ func (s *Service) process(ctx context.Context, rec domain.Recording) error {
 		Date:        rec.Lesson.DateKey(),
 		DurationSec: rec.DurationSec,
 		Transcript:  transcript,
+		Gaps:        rec.Gaps,
 	})
 	if err != nil {
 		return fmt.Errorf("конспект: %w", err)
@@ -322,7 +326,7 @@ func (s *Service) transcribe(ctx context.Context, rec domain.Recording) (string,
 	if err != nil {
 		return "", 0, fmt.Errorf("расшифровка: %w", err)
 	}
-	return domain.Transcript(segs), dur, nil
+	return domain.TranscriptWithGaps(segs, rec.Gaps), dur, nil
 }
 
 // storeRecap кладёт конспект и задания черновиками: сохранит их человек.

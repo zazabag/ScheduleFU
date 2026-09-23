@@ -47,8 +47,8 @@ func (f *fakeRepo) CountChunk(_ context.Context, _ int64, seq int, size int64, p
 	return nil
 }
 
-func (f *fakeRepo) Enqueue(_ context.Context, _ int64) error {
-	f.rec.Status = domain.StatusQueued
+func (f *fakeRepo) Enqueue(_ context.Context, _ int64, gaps []domain.Gap) error {
+	f.rec.Status, f.rec.Gaps = domain.StatusQueued, gaps
 	return nil
 }
 
@@ -246,7 +246,7 @@ func TestPustayaZapisNeIdyotVOchered(t *testing.T) {
 	s := newService(t, repo, fakeASR{}, &fakeLLM{}, fakeMedia{})
 	ctx := context.Background()
 	rec, _ := s.Start(ctx, "owner", lesson(), domain.OriginRecord)
-	if _, err := s.Finish(ctx, "owner", rec.ID); err == nil {
+	if _, err := s.Finish(ctx, "owner", rec.ID, nil); err == nil {
 		t.Fatal("запись без звука принята в обработку")
 	}
 }
@@ -262,7 +262,7 @@ func TestObrabotkaDayotChernovikKonspektaIZadaniy(t *testing.T) {
 	if _, err := s.Append(ctx, "owner", rec.ID, 0, strings.NewReader("звук")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Finish(ctx, "owner", rec.ID); err != nil {
+	if _, err := s.Finish(ctx, "owner", rec.ID, nil); err != nil {
 		t.Fatal(err)
 	}
 	if done, err := s.ProcessOne(ctx); err != nil || !done {
@@ -301,7 +301,7 @@ func TestZapisUdalyaetsyaSrazuPosleRasshifrovki(t *testing.T) {
 
 	rec, _ := s.Start(ctx, "owner", lesson(), domain.OriginRecord)
 	_, _ = s.Append(ctx, "owner", rec.ID, 0, strings.NewReader("звук"))
-	_, _ = s.Finish(ctx, "owner", rec.ID)
+	_, _ = s.Finish(ctx, "owner", rec.ID, nil)
 	if _, err := s.ProcessOne(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -323,7 +323,7 @@ func TestPoslePopytokSdayomsyaINeDerzhimZvuk(t *testing.T) {
 
 	rec, _ := s.Start(ctx, "owner", lesson(), domain.OriginRecord)
 	_, _ = s.Append(ctx, "owner", rec.ID, 0, strings.NewReader("звук"))
-	_, _ = s.Finish(ctx, "owner", rec.ID)
+	_, _ = s.Finish(ctx, "owner", rec.ID, nil)
 	if _, err := s.ProcessOne(ctx); err == nil {
 		t.Fatal("ошибка распознавания не всплыла")
 	}
@@ -342,5 +342,32 @@ func TestBezModeleyZapisNeBeryotsya(t *testing.T) {
 	}
 	if done, err := s.ProcessOne(context.Background()); done || err != nil {
 		t.Fatalf("обработка без моделей: сделано=%v, ошибка=%v", done, err)
+	}
+}
+
+// Пропуски, которые браузер заметил во время записи, доезжают до модели:
+// и списком, и меткой в самой расшифровке.
+func TestPropuskiDoezzhayutDoKonspekta(t *testing.T) {
+	repo := &fakeRepo{}
+	llm := &fakeLLM{recap: domain.Recap{Title: "т", Body: "текст"}}
+	s := newService(t, repo, fakeASR{segs: []domain.Segment{
+		{Start: 0, Text: "начало"}, {Start: 10 * time.Minute, Text: "продолжение"}}}, llm, fakeMedia{})
+	ctx := context.Background()
+	rec, _ := s.Start(ctx, "owner", lesson(), domain.OriginRecord)
+	if _, err := s.Append(ctx, "owner", rec.ID, 0, strings.NewReader("звук")); err != nil {
+		t.Fatal(err)
+	}
+	gaps := []domain.Gap{{AtSec: 300, DurSec: 240}, {AtSec: 1, DurSec: 1}}
+	if _, err := s.Finish(ctx, "owner", rec.ID, gaps); err != nil {
+		t.Fatal(err)
+	}
+	if len(repo.rec.Gaps) != 1 {
+		t.Fatalf("в записи сохранено пропусков: %+v", repo.rec.Gaps)
+	}
+	if _, err := s.ProcessOne(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if len(llm.seen.Gaps) != 1 || !strings.Contains(llm.seen.Transcript, "начало [пропуск в записи ~4 мин] продолжение") {
+		t.Errorf("модели ушло: %+v", llm.seen)
 	}
 }
