@@ -622,6 +622,16 @@ func (s *Service) EnsureGroupLinks(ctx context.Context, group string, from, to t
 	return s.repo.ApplyGroupLinks(ctx, group, oids, today)
 }
 
+// SearchDisciplines — дисциплины текущего окна по части названия. Меньше
+// двух букв не ищем: «э» совпадёт с половиной расписания, и ответ ничего
+// не скажет.
+func (s *Service) SearchDisciplines(ctx context.Context, query string, limit int) ([]domain.DisciplineHit, error) {
+	if len([]rune(strings.TrimSpace(query))) < 2 {
+		return nil, nil
+	}
+	return s.repo.SearchDisciplines(ctx, strings.TrimSpace(query), limit)
+}
+
 // Sites — площадки для переключателя.
 func (s *Service) Sites(ctx context.Context) ([]SiteRow, error) { return s.repo.Sites(ctx) }
 

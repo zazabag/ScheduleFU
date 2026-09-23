@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -255,6 +256,93 @@ func (r *Repo) SearchLecturers(ctx context.Context, query string, limit int) ([]
 		out = append(out, l)
 	}
 	return out, rows.Err()
+}
+
+// SearchDisciplines ищет в два шага: сначала дисциплины по числу пар —
+// короткий запрос с потолком, — потом подробности только по найденным.
+// Одним запросом с агрегатами по всем полям для «эко» пришлось бы
+// перелопатить тысячи пар ради десяти строк ответа.
+func (r *Repo) SearchDisciplines(ctx context.Context, query string, limit int) ([]domain.DisciplineHit, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 20
+	}
+	rows, err := r.pool.Query(ctx, `SELECT discipline, count(*) FROM lessons
+		WHERE lower(discipline) LIKE '%' || lower($1) || '%'
+		GROUP BY discipline ORDER BY count(*) DESC, discipline LIMIT $2`, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("поиск дисциплин: %w", err)
+	}
+	var hits []domain.DisciplineHit
+	index := map[string]int{}
+	for rows.Next() {
+		var h domain.DisciplineHit
+		if err := rows.Scan(&h.Name, &h.Lessons); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		index[h.Name] = len(hits)
+		hits = append(hits, h)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil || len(hits) == 0 {
+		return hits, err
+	}
+	names := make([]string, len(hits))
+	for i, h := range hits {
+		names[i] = h.Name
+	}
+	rows, err = r.pool.Query(ctx, `SELECT DISTINCT discipline, lecturer_oid, lecturer_name, group_names, kind_of_work, building
+		FROM lessons WHERE discipline = ANY($1)`, names)
+	if err != nil {
+		return nil, fmt.Errorf("подробности дисциплин: %w", err)
+	}
+	defer rows.Close()
+	type seen struct{ lec, grp, kind, bld map[string]bool }
+	marks := make([]seen, len(hits))
+	for i := range marks {
+		marks[i] = seen{map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}}
+	}
+	for rows.Next() {
+		var disc string
+		var lecOid *int64
+		var lecName, kind, bld *string
+		var groups []string
+		if err := rows.Scan(&disc, &lecOid, &lecName, &groups, &kind, &bld); err != nil {
+			return nil, err
+		}
+		i, ok := index[disc]
+		if !ok {
+			continue
+		}
+		h, m := &hits[i], marks[i]
+		if lecOid != nil && lecName != nil && !m.lec[*lecName] {
+			m.lec[*lecName] = true
+			h.Lecturers = append(h.Lecturers, domain.Lecturer{Oid: *lecOid, Name: *lecName})
+		}
+		for _, g := range groups {
+			// Имена языковых потоков («006073_2 Иностранный язык …») — не
+			// группы; тот же отсев, что в выборе группы.
+			if schedule.IsGroupName(g) && !m.grp[g] {
+				m.grp[g] = true
+				h.Groups = append(h.Groups, g)
+			}
+		}
+		if k := deref(kind); k != "" && !m.kind[k] {
+			m.kind[k] = true
+			h.Kinds = append(h.Kinds, k)
+		}
+		if b := deref(bld); b != "" && !m.bld[b] {
+			m.bld[b] = true
+			h.Buildings = append(h.Buildings, b)
+		}
+	}
+	for i := range hits {
+		sort.Slice(hits[i].Lecturers, func(a, b int) bool { return hits[i].Lecturers[a].Name < hits[i].Lecturers[b].Name })
+		sort.Strings(hits[i].Groups)
+		sort.Strings(hits[i].Kinds)
+		sort.Strings(hits[i].Buildings)
+	}
+	return hits, rows.Err()
 }
 
 // ─── проходы сборщика ────────────────────────────────────────────────────────

@@ -34,6 +34,18 @@ type Group struct {
 	AdmissionYear *int
 }
 
+// DisciplineHit — дисциплина в текущем окне расписания: кто её ведёт,
+// каким группам, где и в каком виде. Отвечает на вопрос выбора дисциплины
+// и на «кто у нас ведёт эконометрику».
+type DisciplineHit struct {
+	Name      string
+	Lessons   int
+	Lecturers []Lecturer
+	Groups    []string
+	Kinds     []string
+	Buildings []string
+}
+
 // Lecturer — преподаватель. Oid — единственный допустимый ключ.
 type Lecturer struct {
 	Oid  int64
