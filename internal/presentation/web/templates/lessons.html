@@ -233,6 +233,10 @@
       <p class="top-sub">Запись занятия, конспект и домашние задания по предметам.</p>
     </div>
   </div>
+  <form class="search" method="get" action="/lessons/search">
+    <input type="search" name="q" placeholder="Найти в конспектах, например «дюрация»" autocomplete="off">
+    <button type="submit">Найти</button>
+  </form>
 </header>
 <section class="subjects">
   {{range .Subjects}}

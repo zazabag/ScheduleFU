@@ -47,6 +47,9 @@ type Repository interface {
 	// DraftNotes — готовые, но не сохранённые конспекты предмета.
 	DraftNotes(ctx context.Context, owner, subjectKey, discipline string) ([]domain.Note, error)
 	SaveNote(ctx context.Context, owner string, id int64, at time.Time) error
+	// SearchNotes — сохранённые конспекты владельца по словам запроса,
+	// самые подходящие первыми.
+	SearchNotes(ctx context.Context, owner, query string, limit int) ([]domain.NoteHit, error)
 	DeleteNote(ctx context.Context, owner string, id int64) error
 	// SetShareToken открывает (token != "") или закрывает ссылку на
 	// сохранённый конспект владельца. Черновик ссылки не получает: делятся

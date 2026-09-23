@@ -1,0 +1,31 @@
+{{define "content"}}
+<header class="top">
+  <div class="top-row">
+    <div>
+      <span class="top-kicker">пары</span>
+      <h1 class="top-title">Поиск по конспектам</h1>
+      <p class="top-sub">Ищет в ваших сохранённых конспектах, в любой форме слова: «дюрация» найдёт и «дюрацию».</p>
+    </div>
+    <div class="top-actions"><a class="act" href="/lessons">К предметам</a></div>
+  </div>
+  <form class="search" method="get" action="/lessons/search">
+    <input type="search" name="q" value="{{.Query}}" placeholder="Например, дюрация" autocomplete="off" {{if not .Query}}autofocus{{end}}>
+    <button type="submit">Найти</button>
+  </form>
+</header>
+
+<section class="picks">
+  {{if .TooShort}}
+  <div class="empty"><div class="empty-sub">Нужно хотя бы две буквы.</div></div>
+  {{else if .Searched}}
+  {{range .Hits}}
+  <a class="card nhit" href="{{.Href}}">
+    <span class="nhit-head"><b>{{.Discipline}}</b> · {{.When}}{{if .Title}} · {{.Title}}{{end}}</span>
+    <span class="nhit-snippet">{{range .Parts}}{{if .Hit}}<mark>{{.Text}}</mark>{{else}}{{.Text}}{{end}}{{end}}</span>
+  </a>
+  {{else}}
+  <div class="empty"><div class="empty-title">Ничего не нашлось</div><div class="empty-sub">Ищем только в сохранённых конспектах этого устройства.</div></div>
+  {{end}}
+  {{end}}
+</section>
+{{end}}

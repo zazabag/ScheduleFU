@@ -779,3 +779,9 @@ body { touch-action: pan-y; }
   .summary-note { break-inside: avoid-page; }
 }
 
+/* Поиск по конспектам: отрывок с подсвеченным совпадением. */
+.nhit { display: flex; flex-direction: column; gap: 4px; color: var(--text); text-decoration: none; margin-bottom: 8px; }
+.nhit-head { font-size: 12px; color: var(--text-2); }
+.nhit-snippet { font-size: 13px; line-height: 1.5; }
+.nhit mark { background: var(--busy); color: inherit; border-radius: 3px; padding: 0 2px; }
+
