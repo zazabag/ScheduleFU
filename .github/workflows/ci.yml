@@ -35,6 +35,7 @@ jobs:
       TEST_DATABASE_URL_SCHEDULE: postgres://postgres:postgres@localhost:5432/schedulefu_test_schedule?sslmode=disable
       TEST_DATABASE_URL_NOTIFY: postgres://postgres:postgres@localhost:5432/schedulefu_test_notify?sslmode=disable
       TEST_DATABASE_URL_NOTES: postgres://postgres:postgres@localhost:5432/schedulefu_test_notes?sslmode=disable
+      TEST_DATABASE_URL_OPS: postgres://postgres:postgres@localhost:5432/schedulefu_test_ops?sslmode=disable
 
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +47,7 @@ jobs:
 
       - name: Тестовые базы и схема
         run: |
-          for db in schedulefu_test_schedule schedulefu_test_notify schedulefu_test_notes; do
+          for db in schedulefu_test_schedule schedulefu_test_notify schedulefu_test_notes schedulefu_test_ops; do
             createdb "$db"
             SCHEDULEFU_DB_DSN="postgres://postgres:postgres@localhost:5432/$db?sslmode=disable" \
               go run ./cmd/schedulefu migrate

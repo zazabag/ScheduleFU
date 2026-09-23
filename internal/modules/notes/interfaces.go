@@ -22,6 +22,8 @@ type Repository interface {
 	// CountChunk отмечает принятый кусок дозагрузки. Номер нужен, чтобы
 	// повтор того же куска после обрыва связи не удваивал запись.
 	CountChunk(ctx context.Context, id int64, seq int, size int64, path string) error
+	// CleanupLLMCalls убирает учёт вызовов модели старше срока.
+	CleanupLLMCalls(ctx context.Context, olderThan time.Duration) (int64, error)
 	// Enqueue закрывает приём и ставит запись в очередь вместе с пропусками.
 	Enqueue(ctx context.Context, id int64, gaps []domain.Gap) error
 	Recordings(ctx context.Context, owner, subjectKey, discipline string) ([]domain.Recording, error)

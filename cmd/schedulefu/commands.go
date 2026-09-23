@@ -17,7 +17,6 @@ import (
 	"github.com/zazabag/schedulefu/internal/modules/export"
 	"github.com/zazabag/schedulefu/internal/modules/notes"
 	notesasr "github.com/zazabag/schedulefu/internal/modules/notes/infrastructure/asr"
-	noteschat "github.com/zazabag/schedulefu/internal/modules/notes/infrastructure/llm"
 	notesmedia "github.com/zazabag/schedulefu/internal/modules/notes/infrastructure/media"
 	notespg "github.com/zazabag/schedulefu/internal/modules/notes/infrastructure/postgres"
 	"github.com/zazabag/schedulefu/internal/modules/notify"
@@ -45,6 +44,7 @@ var commands = map[string]command{
 	"vapid":   {help: "новая пара ключей уведомлений", flags: noFlags, do: vapid},
 	"notes":   {help: "обработка записей пар: расшифровка и конспект", flags: noFlags, do: notesWorker},
 	"migrate": {help: "применить миграции и выйти", flags: noFlags, do: migrate},
+	"ops":     {help: "присмотр за сервером: служебный чат в Telegram", flags: noFlags, do: opsCmd},
 }
 
 func noFlags(*flag.FlagSet) any { return nil }
@@ -109,15 +109,14 @@ func wireNotes(cfg config.Config, pool *pgxpool.Pool, clk *clock.Clock, log *slo
 	} else {
 		recognizer = sh
 	}
-	chat := noteschat.New(noteschat.Options{BaseURL: cfg.Notes.LLM.BaseURL, APIKey: cfg.Notes.LLM.APIKey,
-		Model: cfg.Notes.LLM.Model, NoThinking: cfg.Notes.LLM.NoThinking,
-		MaxChars: cfg.Notes.LLM.MaxChars, Timeout: cfg.Notes.LLM.Timeout})
+	repo := notespg.New(pool)
+	chat := llmChat(cfg, repo, log)
 	if !chat.Configured() {
 		log.Warn("записи: конспектирование не настроено", "причина", "нет ключа или адреса модели")
 	} else {
 		summarizer = chat
 	}
-	return notes.New(notespg.New(pool), recognizer, summarizer, decoder, clk, log, notes.Options{
+	return notes.New(repo, recognizer, summarizer, decoder, clk, log, notes.Options{
 		AudioDir:   cfg.Notes.AudioDir,
 		MaxBytes:   cfg.Notes.MaxMB << 20,
 		MaxMinutes: cfg.Notes.MaxMinutes,

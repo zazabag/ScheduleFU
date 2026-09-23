@@ -44,6 +44,9 @@ type Options struct {
 	MaxChars int
 	Timeout  time.Duration
 	Client   *http.Client
+	// Record получает каждый вызов — расход и отказы. Провайдер остатка
+	// лимита не сообщает, поэтому считать его приходится нам.
+	Record func(context.Context, domain.LLMCall)
 }
 
 // Chat — конспектирование через чат-совместимый сервис.
@@ -85,7 +88,7 @@ func (c *Chat) Summarize(ctx context.Context, in notes.SummaryInput) (domain.Rec
 			return domain.Recap{}, err
 		}
 	}
-	answer, err := c.ask(ctx, systemPrompt, finalPrompt(in, text))
+	answer, err := c.ask(ctx, "summary", systemPrompt, finalPrompt(in, text), 0)
 	if err != nil {
 		return domain.Recap{}, err
 	}
@@ -101,7 +104,7 @@ func (c *Chat) squeeze(ctx context.Context, in notes.SummaryInput, text string) 
 	parts := split(text, c.opts.MaxChars)
 	var b strings.Builder
 	for i, part := range parts {
-		answer, err := c.ask(ctx, systemPrompt, partPrompt(in, i+1, len(parts), part))
+		answer, err := c.ask(ctx, "part", systemPrompt, partPrompt(in, i+1, len(parts), part), 0)
 		if err != nil {
 			return "", fmt.Errorf("часть %d из %d: %w", i+1, len(parts), err)
 		}
@@ -242,6 +245,7 @@ type chatRequest struct {
 	Temperature float64       `json:"temperature"`
 	Stream      bool          `json:"stream"`
 	Thinking    *thinking     `json:"thinking,omitempty"`
+	MaxTokens   int           `json:"max_tokens,omitempty"`
 }
 
 type thinking struct {
@@ -258,14 +262,43 @@ type chatResponse struct {
 		Message chatMessage `json:"message"`
 	} `json:"choices"`
 	Error *struct {
-		Message string `json:"message"`
+		// Код у bigmodel.cn приходит строкой, у других — числом.
+		Code    json.RawMessage `json:"code"`
+		Message string          `json:"message"`
 	} `json:"error"`
+	Usage struct {
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
+	} `json:"usage"`
 }
 
-func (c *Chat) ask(ctx context.Context, system, user string) (string, error) {
+// Ping — пробный запрос в несколько токенов: жива ли модель и ключ.
+// Узнать, что модель сняли с раздачи или кончился лимит, лучше от бота
+// утром, чем от студента после пары.
+func (c *Chat) Ping(ctx context.Context) (time.Duration, error) {
+	start := time.Now()
+	_, err := c.ask(ctx, "probe", "Ответь одним словом.", "ok", 5)
+	return time.Since(start), err
+}
+
+// ask делает запрос и отчитывается о нём в Record — и об успехе, и об отказе.
+func (c *Chat) ask(ctx context.Context, kind, system, user string, maxTokens int) (string, error) {
 	if !c.Configured() {
 		return "", fmt.Errorf("llm: конспектирование не настроено")
 	}
+	call := domain.LLMCall{At: time.Now(), Kind: kind, Model: c.opts.Model}
+	answer, err := c.do(ctx, system, user, maxTokens, &call)
+	call.OK, call.Duration = err == nil, time.Since(call.At)
+	if err != nil && call.Message == "" {
+		call.Message = err.Error()
+	}
+	if c.opts.Record != nil {
+		c.opts.Record(ctx, call)
+	}
+	return answer, err
+}
+
+func (c *Chat) do(ctx context.Context, system, user string, maxTokens int, call *domain.LLMCall) (string, error) {
 	// Температура низкая: конспект — пересказ, а не сочинение, и разброс
 	// здесь означает выдуманные подробности.
 	req := chatRequest{
@@ -275,6 +308,7 @@ func (c *Chat) ask(ctx context.Context, system, user string) (string, error) {
 			{Role: "system", Content: system},
 			{Role: "user", Content: user},
 		},
+		MaxTokens: maxTokens,
 	}
 	if c.opts.NoThinking {
 		req.Thinking = &thinking{Type: "disabled"}
@@ -305,7 +339,13 @@ func (c *Chat) ask(ctx context.Context, system, user string) (string, error) {
 	if err := json.Unmarshal(raw, &out); err != nil {
 		return "", fmt.Errorf("llm: ответ %d не разобран", resp.StatusCode)
 	}
+	call.PromptTokens, call.CompletionTokens = out.Usage.PromptTokens, out.Usage.CompletionTokens
 	if out.Error != nil && out.Error.Message != "" {
+		call.Code = strings.Trim(string(out.Error.Code), `" `)
+		call.Message = out.Error.Message
+		if hint := domain.LLMHint(call.Code); hint != "" {
+			return "", fmt.Errorf("llm: %s (код %s: %s)", hint, call.Code, out.Error.Message)
+		}
 		return "", fmt.Errorf("llm: %s", out.Error.Message)
 	}
 	if resp.StatusCode != http.StatusOK {
