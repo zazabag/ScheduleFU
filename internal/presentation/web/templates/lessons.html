@@ -45,6 +45,12 @@
   </div>
   {{if $.Rec.Working}}<p class="rec-hint">Можно закрыть страницу — обработка идёт на сервере. Полуторачасовая пара занимает 5–15 минут.</p>{{end}}
   {{if $.Rec.Failure}}<p class="rec-fail">{{$.Rec.Failure}}</p>{{end}}
+  {{with $.Rec.Gaps}}
+  <div class="rec-gaps">
+    <p class="rec-hint">Запись прерывалась: телефон выключал микрофон, пока приложение было свёрнуто. В конспекте эти места отмечены.</p>
+    <ul>{{range .}}<li>{{.}}</li>{{end}}</ul>
+  </div>
+  {{end}}
   {{if not $.Rec.Ready}}
   <form method="post" action="/lessons">
     <input type="hidden" name="action" value="rec-delete">
@@ -135,7 +141,14 @@
     <div class="rec-buttons">
       <button class="btn btn-main" type="button" id="rec-start" hidden>● Начать запись</button>
       <label class="btn btn-ghost" for="rec-file">Загрузить запись</label>
-      <input id="rec-file" type="file" name="file" accept="audio/*,video/*" hidden>
+      {{/* Расширения перечислены явно: по одному «audio/*» айфон делает
+           записи Диктофона (.m4a) в «Файлах» недоступными для выбора и
+           показывает только видео. */}}
+      <input id="rec-file" type="file" name="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.aac,.caf,.ogg,.oga,.opus,.webm,.mp4,.m4v,.mov,.3gp,.amr,.flac" hidden>
+    </div>
+    <div class="rec-ios" id="rec-ios" hidden>
+      <p class="rec-hint"><b>На айфоне не сворачивайте приложение и не гасите экран</b> — iOS выключит микрофон, и в записи будет пропуск. Чтобы писать с погасшим экраном, запишите пару Диктофоном и нажмите «Загрузить запись».</p>
+      <p class="rec-note">Диктофон: у записи ⋯ → «Сохранить в Файлы», затем здесь «Загрузить запись» → «Выбрать файл».</p>
     </div>
     <div class="rec-live" id="rec-live" hidden>
       <span class="rec-dot"></span>

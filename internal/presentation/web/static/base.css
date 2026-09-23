@@ -574,6 +574,10 @@ body { touch-action: pan-y; }
 .rec-time { font-family: var(--font-mono); font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .rec-sent, .rec-note { font-size: 11px; color: var(--text-3); margin: 0; }
 .rec-hint { margin: 0; font-size: 12px; color: var(--text-2); }
+.rec-ios { display: grid; gap: 6px; margin: 0 0 12px; }
+.rec-ios[hidden] { display: none; }
+.rec-gaps { display: grid; gap: 6px; }
+.rec-gaps ul { margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-2); }
 .rec-warn { margin: 0; font-size: 11px; color: var(--text-3); line-height: 1.45; }
 .rec-fail { margin: 0; font-size: 12px; color: var(--danger); }
 .rec-state { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); white-space: nowrap; }

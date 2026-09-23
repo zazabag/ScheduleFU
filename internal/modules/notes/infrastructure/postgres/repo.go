@@ -7,6 +7,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -27,7 +28,7 @@ func New(pool *pgxpool.Pool) *Repo { return &Repo{pool: pool} }
 const recordingColumns = `id, owner_key, subject_key, discipline, lesson_date,
 	to_char(begins_at,'HH24:MI'), to_char(ends_at,'HH24:MI'), lecturer_name, auditorium,
 	kind_of_work, lesson_oid, source, status, chunks, bytes, duration_sec, audio_path,
-	transcript, attempts, failure, created_at, updated_at`
+	transcript, attempts, failure, created_at, updated_at, gaps`
 
 // scanRecording читает строку. Состояние и происхождение разбираются через
 // обычные строки: в базе это текст, а domain.Status — наш тип, и полагаться
@@ -36,12 +37,18 @@ func scanRecording(row pgx.Row) (domain.Recording, error) {
 	var rec domain.Recording
 	var begins, ends *string
 	var origin, status string
+	var gaps []byte
 	err := row.Scan(&rec.ID, &rec.OwnerKey, &rec.Lesson.SubjectKey, &rec.Lesson.Discipline, &rec.Lesson.Date,
 		&begins, &ends, &rec.Lesson.LecturerName, &rec.Lesson.Auditorium,
 		&rec.Lesson.KindOfWork, &rec.Lesson.LessonOid, &origin, &status, &rec.Chunks, &rec.Bytes,
 		&rec.DurationSec, &rec.AudioPath, &rec.Transcript, &rec.Attempts, &rec.Failure,
-		&rec.CreatedAt, &rec.UpdatedAt)
+		&rec.CreatedAt, &rec.UpdatedAt, &gaps)
 	rec.Origin, rec.Status = domain.Origin(origin), domain.Status(status)
+	if err == nil && len(gaps) > 0 {
+		if jerr := json.Unmarshal(gaps, &rec.Gaps); jerr != nil {
+			return rec, fmt.Errorf("пропуски записи %d: %w", rec.ID, jerr)
+		}
+	}
 	if begins != nil {
 		rec.Lesson.BeginsAt = *begins
 	}
@@ -105,9 +112,16 @@ func (r *Repo) CountChunk(ctx context.Context, id int64, seq int, size int64, pa
 	return nil
 }
 
-func (r *Repo) Enqueue(ctx context.Context, id int64) error {
-	_, err := r.pool.Exec(ctx, `UPDATE recordings SET status=$2, next_attempt_at=now(), updated_at=now()
-		WHERE id=$1 AND status=$3`, id, string(domain.StatusQueued), string(domain.StatusUploading))
+func (r *Repo) Enqueue(ctx context.Context, id int64, gaps []domain.Gap) error {
+	if gaps == nil {
+		gaps = []domain.Gap{}
+	}
+	raw, err := json.Marshal(gaps)
+	if err != nil {
+		return err
+	}
+	_, err = r.pool.Exec(ctx, `UPDATE recordings SET status=$2, gaps=$4::jsonb, next_attempt_at=now(), updated_at=now()
+		WHERE id=$1 AND status=$3`, id, string(domain.StatusQueued), string(domain.StatusUploading), string(raw))
 	if err != nil {
 		return fmt.Errorf("постановка записи в очередь: %w", err)
 	}

@@ -22,7 +22,8 @@ type Repository interface {
 	// CountChunk отмечает принятый кусок дозагрузки. Номер нужен, чтобы
 	// повтор того же куска после обрыва связи не удваивал запись.
 	CountChunk(ctx context.Context, id int64, seq int, size int64, path string) error
-	Enqueue(ctx context.Context, id int64) error
+	// Enqueue закрывает приём и ставит запись в очередь вместе с пропусками.
+	Enqueue(ctx context.Context, id int64, gaps []domain.Gap) error
 	Recordings(ctx context.Context, owner, subjectKey, discipline string) ([]domain.Recording, error)
 	DeleteRecording(ctx context.Context, owner string, id int64) (string, error)
 
@@ -100,6 +101,8 @@ type SummaryInput struct {
 	Date        string
 	DurationSec int
 	Transcript  string
+	// Gaps — где запись прерывалась; в Transcript на их местах стоят метки.
+	Gaps []domain.Gap
 }
 
 // Media — порт подготовки звука: что бы браузер ни записал (webm/opus у

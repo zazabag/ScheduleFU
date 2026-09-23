@@ -136,7 +136,18 @@ func (s *Server) notesFinish(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "неверный номер записи")
 		return
 	}
-	rec, err := s.d.Notes.Finish(r.Context(), owner, id)
+	// Тело необязательное: старый клиент шлёт пустое, новый — пропуски,
+	// которые заметил за запись. Потолок — от подделанного запроса.
+	var body struct {
+		Gaps []ndom.Gap `json:"gaps"`
+	}
+	if raw, _ := io.ReadAll(io.LimitReader(r.Body, 16<<10)); len(strings.TrimSpace(string(raw))) > 0 {
+		if err := json.Unmarshal(raw, &body); err != nil {
+			writeError(w, http.StatusBadRequest, "неверное тело запроса")
+			return
+		}
+	}
+	rec, err := s.d.Notes.Finish(r.Context(), owner, id, body.Gaps)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
