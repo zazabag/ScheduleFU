@@ -18,9 +18,10 @@ import (
 func SecurityHeaders(next http.Handler) http.Handler {
 	const csp = "default-src 'self'; " +
 		"script-src 'self'; " +
-		// Шрифты подключаются с Google Fonts — единственный внешний источник.
-		"style-src 'self' https://fonts.googleapis.com; " +
-		"font-src https://fonts.gstatic.com; " +
+		// Внешних источников нет совсем: шрифты свои, в static/fonts. С
+		// Google Fonts они держали отрисовку секундами на мобильной сети.
+		"style-src 'self'; " +
+		"font-src 'self'; " +
 		"img-src 'self' data:; " +
 		"connect-src 'self'; " +
 		"form-action 'self'; " +
