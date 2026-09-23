@@ -63,12 +63,12 @@ type Server struct {
 // New разбирает шаблоны: каждая страница вместе с базовым, потому что все
 // определяют блок content и в одном наборе последний затёр бы остальные.
 func New(d Deps) (*Server, error) {
-	funcs := template.FuncMap{"asset": AssetURL, "skinCSS": func(id string) string { return AssetURL("skins/" + id + ".css") }}
+	funcs := template.FuncMap{"asset": AssetURL, "skinCSS": func(id string) string { return AssetURL("skins/" + id + ".css") }, "cover": lessonCover}
 	pages := map[string]*template.Template{}
 	for _, name := range []string{"rooms", "window", "together", "shared", "map", "schedule", "lessons", "lecturers", "settings"} {
 		// hero.html — общий верхний блок дня: его рисуют и экран расписания,
 		// и экран «где преподаватель».
-		t, err := template.New("base").Funcs(funcs).ParseFS(templateFS, "templates/base.html", "templates/hero.html", "templates/onboard.html", "templates/"+name+".html")
+		t, err := template.New("base").Funcs(funcs).ParseFS(templateFS, "templates/base.html", "templates/hero.html", "templates/onboard.html", "templates/manul.html", "templates/"+name+".html")
 		if err != nil {
 			return nil, fmt.Errorf("web: шаблон %s: %w", name, err)
 		}

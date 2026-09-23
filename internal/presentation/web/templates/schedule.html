@@ -86,7 +86,7 @@
 
 {{template "hero" .}}
 
-<section class="lessons">
+<section class="lessons" id="lessons">
   {{if .Lessons}}<div class="lessons-head"><span>время</span><span>дисциплина</span><span>ауд.</span><span>статус</span></div>{{end}}
   <ol class="lesson-list">
     {{range .Lessons}}
@@ -94,6 +94,7 @@
     <li class="lesson stack" data-status="{{.Status}}" data-index="{{.Index}}">
       <details class="stack-box">
         <summary class="stack-summary">
+          <span class="lesson-cover" aria-hidden="true">{{cover .Discipline .KindOfWork}}</span>
           <div class="lesson-time"><span class="lesson-from">{{.BeginsAt}}</span><span class="lesson-to">{{.EndsAt}}</span></div>
           <div class="lesson-body">
             <div class="lesson-discipline">{{.Discipline}}</div>
@@ -116,6 +117,7 @@
     </li>
     {{else}}
     <li class="lesson" data-status="{{.Status}}" data-index="{{.Index}}">
+      <span class="lesson-cover" aria-hidden="true">{{cover .Discipline .KindOfWork}}</span>
       <div class="lesson-time"><span class="lesson-from">{{.BeginsAt}}</span><span class="lesson-to">{{.EndsAt}}</span></div>
       <div class="lesson-body">
         <div class="lesson-discipline">{{.Discipline}}</div>

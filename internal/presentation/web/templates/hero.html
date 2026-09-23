@@ -7,10 +7,12 @@
     <span class="hero-year">{{.Date.Year}}</span>
     <span class="hero-week">нед. {{.Date.Week}}</span>
     <span class="hero-dateline">{{.Date.Label}}</span>
-    <img class="hero-mascot" src="{{asset "manul.webp"}}" alt="" width="120" height="120">
+    <img class="hero-mascot" src="{{asset "manul.webp"}}" alt="Манул" width="120" height="120" data-manul>
   </div>
 
   <div class="hero-now">
+    {{/* Обложка «трека» — её показывает «Плеер», остальные оформления прячут. В выходной — манул. */}}
+    <div class="hero-cover">{{if eq .Hero.State "none"}}<img class="hero-cover-manul" src="{{asset "manul.webp"}}" alt="Манул" width="240" height="240" data-manul>{{else}}{{.Hero.Cover}}{{end}}</div>
     <span class="hero-label">{{.Hero.Label}}</span>
     {{with .Hero.Lesson}}
     <span class="hero-lesson">{{.Discipline}}</span>
@@ -18,7 +20,7 @@
     <span class="hero-meta">{{if .Room}}ауд. {{.Room}}{{end}}{{if .LecturerName}} · {{.LecturerName}}{{end}}</span>
     <span class="hero-time"><span class="hero-from">{{.BeginsAt}}</span><span class="hero-to">{{.EndsAt}}</span></span>
     {{end}}
-    <div class="hero-timer" data-state="{{.Hero.State}}" data-now="{{.Clock}}"{{with .Hero.Lesson}} data-begins="{{.BeginsAt}}" data-ends="{{.EndsAt}}"{{end}}{{with .Hero.Next}} data-next="{{.BeginsAt}}"{{end}} data-progress="{{.Hero.Progress}}">
+    <div class="hero-timer" data-state="{{.Hero.State}}" data-now="{{.Clock}}"{{with .Hero.Lesson}} data-begins="{{.BeginsAt}}" data-ends="{{.EndsAt}}"{{end}}{{with .Hero.Next}} data-next="{{.BeginsAt}}"{{end}}{{with .Hero.BreakFrom}} data-break-from="{{.}}"{{end}} data-progress="{{.Hero.Progress}}">
       <svg class="hero-ring" viewBox="0 0 120 120" aria-hidden="true">
         <circle class="ring-track" cx="60" cy="60" r="52"/>
         <circle class="ring-bar" cx="60" cy="60" r="52" pathLength="100"/>
@@ -27,9 +29,10 @@
       <span class="hero-countdown">{{if .Hero.RemainMin}}{{.Hero.RemainMin}} мин{{else}}—{{end}}</span>
     </div>
     <div class="hero-progress" aria-hidden="true"><span class="hero-progress-bar"></span><span class="hero-progress-knob"></span><span class="hero-progress-left">−{{.Hero.RemainMin}} мин</span></div>
+    {{if eq .Hero.State "between"}}<a class="hero-skip" href="#lessons">Пропустить через <b class="hero-skip-left">{{.Hero.RemainMin}} мин</b></a>{{end}}
     <div class="hero-controls">
       <a class="ctl ctl-prev" href="{{.PrevDayHref}}" aria-label="Предыдущий день"><svg viewBox="0 0 24 24"><path d="M18 5v14L8 12zM6 5v14"/></svg></a>
-      <a class="ctl ctl-main" href="{{.TodayHref}}" aria-label="Сегодня"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></a>
+      <a class="ctl ctl-main" href="{{.TodayHref}}" aria-label="{{if eq .Hero.State "now"}}Пара идёт{{else}}Сегодня{{end}}"><svg viewBox="0 0 24 24"><path class="ico-pause" d="M8 5v14M16 5v14"/><path class="ico-play" d="M8 5.5v13l10.5-6.5z"/></svg></a>
       <a class="ctl ctl-next" href="{{.NextDayHref}}" aria-label="Следующий день"><svg viewBox="0 0 24 24"><path d="M6 5v14l10-7zM18 5v14"/></svg></a>
     </div>
   </div>
@@ -69,7 +72,7 @@
       <circle class="route-dot" cx="{{.X}}" cy="{{.Y}}" r="8"/>
       <text class="route-title" x="{{.X}}" y="{{.Y}}" dx="{{if .Right}}-22{{else}}22{{end}}" dy="-2"{{if .Right}} text-anchor="end"{{end}}>{{.Title}}</text>
       <text class="route-sub" x="{{.X}}" y="{{.Y}}" dx="{{if .Right}}-22{{else}}22{{end}}" dy="14"{{if .Right}} text-anchor="end"{{end}}>{{.Lesson.BeginsAt}}{{if .Lesson.Room}} · ауд. {{.Lesson.Room}}{{end}}{{if eq .Lesson.Status "now"}} · {{if eq $.Who "lecturer"}}здесь{{else}}ты здесь{{end}}{{end}}</text>
-      {{if .Here}}<image class="route-mascot" href="{{asset "manul.webp"}}" x="{{if .Right}}{{.X}}{{else}}{{.X}}{{end}}" y="{{.Y}}" width="64" height="64" transform="translate({{if .Right}}18{{else}}-82{{end}} -20)"/>{{end}}
+      {{if .Here}}<image class="route-mascot" data-manul href="{{asset "manul.webp"}}" x="{{if .Right}}{{.X}}{{else}}{{.X}}{{end}}" y="{{.Y}}" width="64" height="64" transform="translate({{if .Right}}18{{else}}-82{{end}} -20)"/>{{end}}
     </g>
     {{end}}
   </svg>

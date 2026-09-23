@@ -358,6 +358,12 @@ type hero struct {
 	RoomCount  int
 	Route      routeView
 	Plan       planView
+	// Cover — обложка «трека» для оформления «Плеер»: у пары своя, у
+	// состояний без пары (до пар, перемена, после пар) — своя.
+	Cover template.HTML
+	// BreakFrom — начало перемены: полоса «рекламы» идёт от конца прошлой
+	// пары до начала следующей.
+	BreakFrom string
 }
 
 func (s *Server) schedule(w http.ResponseWriter, r *http.Request) {
@@ -644,6 +650,12 @@ func (s *Server) buildHero(rows []lessonRow, isToday bool, now string, lecturer 
 				h.Route.Pins[i].Here = h.Route.Pins[i].Lesson.Index == h.Lesson.Index
 			}
 		}
+		switch {
+		case (h.State == "now" || h.State == "day") && h.Lesson != nil:
+			h.Cover = lessonCover(h.Lesson.Discipline, h.Lesson.KindOfWork)
+		default:
+			h.Cover = stateCover(h.State)
+		}
 	}()
 
 	if !isToday {
@@ -707,6 +719,9 @@ func (s *Server) buildHero(rows []lessonRow, isToday bool, now string, lecturer 
 			h.Sentence = fmt.Sprintf("Первая пара в %s — %s, %s.", next.BeginsAt, next.Discipline, roomPhrase(*next))
 		} else {
 			h.State, h.Label = "between", "перерыв · следующая в "+next.BeginsAt
+			if next.Index >= 2 {
+				h.BreakFrom = rows[next.Index-2].EndsAt
+			}
 			h.Mood = "перерыв до " + next.BeginsAt
 			h.Sentence = fmt.Sprintf("Перерыв до %s. Дальше %s, %s.", next.BeginsAt, next.Discipline, roomPhrase(*next))
 		}
