@@ -21,7 +21,6 @@
 .hero > * { position: relative; z-index: 1; }
 .hero-date { display: grid; grid-template-areas: "week week" "dow dow" "num month"; grid-template-columns: auto 1fr; row-gap: 0; column-gap: 6px; }
 .hero-week { display: block; grid-area: week; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-2); }
-.hero-week::before { content: '№ '; }
 .hero-dow { grid-area: dow; font-family: var(--font-display); font-weight: 900; font-size: 74px; line-height: 0.95; letter-spacing: -0.03em; text-transform: capitalize; margin: 4px 0 8px -3px; }
 .hero-num, .hero-month, .hero-year { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 600; }
 .hero-num { grid-area: num; }

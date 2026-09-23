@@ -209,3 +209,12 @@ func TestSostavGruppBezImenPotokov(t *testing.T) {
 		t.Errorf("ожидали две базовые группы, получили %v", got)
 	}
 }
+
+// В заголовке — неделя учебного года, а не календарная неделя ISO: «нед. 39»
+// в сентябре студенту ни о чём не говорит.
+func TestZagolovokPokazyvaetUchebnuyuNedelyu(t *testing.T) {
+	info := dateInfo(time.Date(2026, 9, 24, 0, 0, 0, 0, time.UTC), time.Date(2026, 9, 24, 0, 0, 0, 0, time.UTC))
+	if info["StudyWeek"] != 4 {
+		t.Errorf("учебная неделя: %v", info["StudyWeek"])
+	}
+}

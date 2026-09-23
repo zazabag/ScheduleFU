@@ -627,7 +627,7 @@ func dateInfo(date, today time.Time) map[string]any {
 	return map[string]any{
 		"Num": strconv.Itoa(date.Day()), "Dow": clock.WeekdayRu(date), "DowShort": clock.WeekdayShortRu(date),
 		"Month": clock.MonthRu(date), "MonthGen": strings.TrimPrefix(clock.DateRu(date), strconv.Itoa(date.Day())+" "),
-		"Year": strconv.Itoa(date.Year()), "Week": strconv.Itoa(week), "Key": date.Format("2006-01-02"), "MM": date.Format("01"),
+		"Year": strconv.Itoa(date.Year()), "Week": strconv.Itoa(week), "StudyWeek": clock.StudyWeek(date), "Key": date.Format("2006-01-02"), "MM": date.Format("01"),
 		"IsToday": date.Format("2006-01-02") == today.Format("2006-01-02"), "Label": clock.DateRu(date) + " · " + clock.WeekdayRu(date),
 		"Range": weekRange(weekStart, weekStart.AddDate(0, 0, 6)),
 	}
