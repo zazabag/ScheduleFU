@@ -125,6 +125,7 @@ func (s *Server) rooms(w http.ResponseWriter, r *http.Request) {
 		bars = append(bars, bar{X: 10 + i*47, Y: 90 - h, H: h, Label: st.Label, Free: st.Free, Total: st.Total, State: st.State})
 	}
 	sentence := roomsSentence(sum, label)
+	breaks, breakSentence := breakRows(sum.Breaks)
 	pct := 0
 	if total > 0 {
 		pct = sum.FreeNow * 100 / total
@@ -135,8 +136,47 @@ func (s *Server) rooms(w http.ResponseWriter, r *http.Request) {
 		"Today": clock.DateRu(at) + " · " + clock.WeekdayRu(at), "Date": dateInfo(at, s.d.Clock.Today()),
 		"SiteLabel": label, "FreeCount": sum.FreeNow, "TotalCount": total, "BusyCount": total - sum.FreeNow, "FreePct": pct,
 		"Sites": tabs, "Floors": chips, "Groups": groups, "HasRooms": len(groups) > 0, "Freshness": s.freshness(r),
-		"HasPlan": s.d.Campus != nil && site == "leningradsky", "Summary": sum, "Bars": bars, "Sentence": sentence, "PlanHref": planHref(site, at, sum), "FloorFilter": floor, "SiteSlug": template.URL(url.QueryEscape(site)),
+		"HasPlan": s.d.Campus != nil && site == "leningradsky", "Summary": sum, "Bars": bars, "Sentence": sentence, "Breaks": breaks, "BreakSentence": breakSentence, "PlanHref": planHref(site, at, sum), "FloorFilter": floor, "SiteSlug": template.URL(url.QueryEscape(site)),
 	})
+}
+
+// breakRow — строка перемены в SVG: полоса длиной по числу пар.
+type breakRow struct {
+	Y, W        int
+	Label, Text string
+	State       string
+	Peak        bool
+}
+
+// breakRows раскладывает перемены в полосы и говорит одну фразу про самую
+// людную впереди. Прошедшие перемены остаются серыми: по ним видно, какой
+// был день.
+func breakRows(breaks []sched.BreakLoad) ([]breakRow, string) {
+	max := 0
+	for _, b := range breaks {
+		if b.Ending > max {
+			max = b.Ending
+		}
+	}
+	var rows []breakRow
+	sentence := ""
+	for i, b := range breaks {
+		w := 0
+		if max > 0 {
+			w = b.Ending * 200 / max
+		}
+		rows = append(rows, breakRow{Y: 6 + i*24, W: w, Label: b.From + "—" + b.To, State: b.State, Peak: b.Peak,
+			Text: pluralN(b.Ending, "пара", "пары", "пар")})
+		if b.Peak {
+			verb := "расходятся "
+			if b.Ending%10 == 1 && b.Ending%100 != 11 {
+				verb = "расходится "
+			}
+			sentence = "Люднее всего в " + b.From + ": " + verb + pluralN(b.Ending, "пара", "пары", "пар") +
+				" — у лифтов, в гардеробе и столовой будет очередь."
+		}
+	}
+	return rows, sentence
 }
 
 // roomsSentence — фраза сводки: что свободно сейчас и что будет дальше.

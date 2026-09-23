@@ -731,3 +731,15 @@ body { touch-action: pan-y; }
 .confirm-box { margin-top: 8px; padding: 10px 12px; border-radius: var(--radius); background: var(--surface); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .confirm-box p { margin: 0; font-size: 13px; color: var(--text-2); }
 
+/* Перемены: сколько пар расходится — где будет толпа. Людей не считаем. */
+.breaks { padding: 8px var(--pad) 0; }
+.breaks-sentence { margin: 0 0 6px; font-size: 13px; color: var(--text-2); }
+.breaks-svg { display: block; width: 100%; height: auto; }
+.break-time, .break-count { font-size: 11px; fill: var(--text-2); font-variant-numeric: tabular-nums; }
+.break-track { fill: var(--surface); }
+.break-fill { fill: var(--busy); }
+.break-fill.peak { fill: var(--warn); }
+.break-row[data-state="past"] .break-fill { fill: var(--past); }
+.break-row[data-state="past"] text { fill: var(--text-3); }
+.break-row[data-state="now"] .break-time, .break-row[data-state="next"] .break-time { fill: var(--accent); font-weight: 700; }
+

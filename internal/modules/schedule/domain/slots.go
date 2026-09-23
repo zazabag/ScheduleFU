@@ -110,6 +110,8 @@ type SiteSummary struct {
 	BestSlot *SlotStat
 	// NextSlot — ближайшая пара после текущей: к ней меняется картина.
 	NextSlot *SlotStat
+	// Breaks — перемены: сколько пар к каждой расходится и сходится.
+	Breaks []BreakLoad
 }
 
 // BuildSiteSummary складывает сводку из полос аудиторий.
@@ -150,6 +152,7 @@ func BuildSiteSummary(views []RoomView, now string) SiteSummary {
 		}
 	}
 	sum.Slots = stats
+	sum.Breaks = BuildBreaks(views, now)
 	for i := range stats {
 		if stats[i].State == "past" {
 			continue
