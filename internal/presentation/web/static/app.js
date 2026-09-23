@@ -251,3 +251,39 @@ document.addEventListener('click', function (e) {
     window.prompt('Ссылка на конспект', link);
   }
 });
+// ─── замер загрузки страницы ──────────────────────────────────────────────
+// Сервер отдаёт страницу за десятки миллисекунд, а на телефоне переход
+// ощущается секундами. Где уходит время, знает только браузер: он и
+// присылает свои тайминги — адрес страницы и миллисекунды, ничего больше.
+(function () {
+  'use strict';
+  if (!window.performance || !performance.getEntriesByType || !navigator.sendBeacon) return;
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      var n = performance.getEntriesByType('navigation')[0];
+      if (!n) return;
+      var ms = function (v) { return Math.max(0, Math.round(v || 0)); };
+      var fcp = 0;
+      performance.getEntriesByType('paint').forEach(function (p) {
+        if (p.name === 'first-contentful-paint') fcp = p.startTime;
+      });
+      var slow = performance.getEntriesByType('resource')
+        .filter(function (r) { return r.duration > 300; })
+        .sort(function (a, b) { return b.duration - a.duration; })
+        .slice(0, 8)
+        .map(function (r) {
+          var u = r.name;
+          try { var x = new URL(r.name); u = (x.host === location.host ? '' : x.host) + x.pathname; } catch (e) {}
+          return { n: u, d: ms(r.duration) };
+        });
+      var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+      var report = {
+        path: location.pathname, nav: n.type, standalone: !!standalone,
+        redirect: ms(n.redirectEnd - n.redirectStart), dns: ms(n.domainLookupEnd - n.domainLookupStart),
+        connect: ms(n.connectEnd - n.connectStart), ttfb: ms(n.responseStart), html: ms(n.responseEnd),
+        fcp: ms(fcp), dom: ms(n.domContentLoadedEventEnd), load: ms(n.loadEventEnd), slow: slow
+      };
+      navigator.sendBeacon('/api/v1/timing', new Blob([JSON.stringify(report)], { type: 'application/json' }));
+    }, 0);
+  });
+})();

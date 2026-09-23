@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="{{if eq .Look.Resolved "dark"}}#0f1115{{else}}#ffffff{{end}}">
 <title>{{.Title}} — ScheduleFU</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-{{if .Look.Skin.Fonts}}<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{.Look.Skin.Fonts}}&display=swap">{{end}}
+{{range .Look.Skin.Fonts}}<link rel="stylesheet" href="{{asset (printf "fonts/%s.css" .)}}">{{end}}
 <link rel="stylesheet" href="{{asset "base.css"}}">
 <link rel="stylesheet" href="{{skinCSS .Look.Skin.ID}}">
 <link rel="manifest" href="/static/manifest.webmanifest">

@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -176,7 +177,7 @@ func staticHandler() http.Handler {
 			// Service worker отдаётся свежим всегда, иначе браузер месяцами
 			// работает по старому сценарию.
 			w.Header().Set("Cache-Control", "no-cache")
-		case r.URL.Query().Get("v") != "":
+		case r.URL.Query().Get("v") != "", fontFile.MatchString(r.URL.Path):
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		default:
 			w.Header().Set("Cache-Control", "public, max-age=300")
@@ -204,3 +205,8 @@ func (s *Server) onboard(r *http.Request) onboardState {
 	}
 	return onboardState{Pinned: true, Label: label, Key: subj.Key()}
 }
+
+// fontFile — шрифт с отпечатком содержимого в имени (tools/fetch_fonts.py):
+// «inter-3f9a0c21bd.woff2». Имя меняется вместе с файлом, поэтому кэш на
+// год безопасен, как у статики с ?v=.
+var fontFile = regexp.MustCompile(`^/static/fonts/[a-z-]+-[0-9a-f]{10}\.woff2$`)

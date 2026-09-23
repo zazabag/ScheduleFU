@@ -12,8 +12,10 @@ type Skin struct {
 	ID   string
 	Name string
 	Note string
-	// Fonts — параметр family для Google Fonts; пусто — системный шрифт.
-	Fonts string
+	// Fonts — семейства из static/fonts (tools/fetch_fonts.py). Свои, а не
+	// с Google: стили с fonts.googleapis.com держали отрисовку по 4–5 с на
+	// мобильной сети (замер с телефона, 23.09.2026).
+	Fonts []string
 	// Dark — оформление задумано тёмным: при системной теме без JavaScript
 	// оно показывается таким, каким нарисовано.
 	Dark bool
@@ -21,14 +23,14 @@ type Skin struct {
 
 // Skins — восемь оформлений мудборда «итерация 3», в порядке выбора.
 var Skins = []Skin{
-	{ID: "grid", Name: "Сетка", Note: "Редакционная типографика: крупная дата, таблица пар", Fonts: "Inter:wght@400;500;600;700;900"},
-	{ID: "night", Name: "Ночной таймер", Note: "Тёмная тема и обратный отсчёт до конца пары", Fonts: "Inter:wght@400;500;600;700", Dark: true},
-	{ID: "board", Name: "Табло", Note: "Отправления с вокзала: моноширинный шрифт, статусы рейсов", Fonts: "JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;600;800", Dark: true},
-	{ID: "cover", Name: "Обложка", Note: "День как журнал: синяя обложка и антиква", Fonts: "Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Inter:wght@400;500;600"},
-	{ID: "player", Name: "Плеер", Note: "Пара как трек: пластинка, полоса, «далее»", Fonts: "Inter:wght@400;500;600;700", Dark: true},
-	{ID: "plan", Name: "План корпуса", Note: "Куда идти: схема аудиторий и маршрут между парами", Fonts: "Inter:wght@400;500;600;700"},
-	{ID: "stickers", Name: "Стикеры", Note: "Коллаж из наклеек — пары как стикеры на оранжевом", Fonts: "Rubik:wght@400;500;700;900"},
-	{ID: "map", Name: "Карта дня", Note: "Маршрут с остановками: пары как точки на дороге", Fonts: "Nunito:wght@400;600;700;800"},
+	{ID: "grid", Name: "Сетка", Note: "Редакционная типографика: крупная дата, таблица пар", Fonts: []string{"inter"}},
+	{ID: "night", Name: "Ночной таймер", Note: "Тёмная тема и обратный отсчёт до конца пары", Fonts: []string{"inter"}, Dark: true},
+	{ID: "board", Name: "Табло", Note: "Отправления с вокзала: моноширинный шрифт, статусы рейсов", Fonts: []string{"jetbrains-mono", "inter"}, Dark: true},
+	{ID: "cover", Name: "Обложка", Note: "День как журнал: синяя обложка и антиква", Fonts: []string{"playfair-display", "inter"}},
+	{ID: "player", Name: "Плеер", Note: "Пара как трек: пластинка, полоса, «далее»", Fonts: []string{"inter"}, Dark: true},
+	{ID: "plan", Name: "План корпуса", Note: "Куда идти: схема аудиторий и маршрут между парами", Fonts: []string{"inter"}},
+	{ID: "stickers", Name: "Стикеры", Note: "Коллаж из наклеек — пары как стикеры на оранжевом", Fonts: []string{"rubik"}},
+	{ID: "map", Name: "Карта дня", Note: "Маршрут с остановками: пары как точки на дороге", Fonts: []string{"nunito"}},
 }
 
 const defaultSkin = "night"
