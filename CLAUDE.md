@@ -71,7 +71,7 @@ ScheduleFU — собственный сервис расписания Фина
 | `internal/modules/notify/` | подписки, очередь, планировщик, порт `Transport`; `transport/webpush/` |
 | `internal/modules/notes/` | записи пар, расшифровка, конспекты, ДЗ; порты `Recognizer · Summarizer · Media`, адаптеры `asr/` (sherpa-onnx + GigaAM), `llm/` (чат-модель), `media/` (ffmpeg) |
 | `internal/modules/export/` | календарь ICS |
-| `internal/modules/ops/` | присмотр: `schedulefu ops` шлёт в служебный Telegram тревоги (служба, сайт, сбор, очередь записей, нейросеть, диск) и утренний отчёт; токен — `SCHEDULEFU_OPS_TELEGRAM_TOKEN`, чат — `ops.chat_id` |
+| `internal/modules/ops/` | присмотр: `schedulefu ops` шлёт в служебный Telegram тревоги (служба, сайт, сбор, очередь записей, нейросеть, диск) сразу, а отчёт — только утром и вечером (`ops.report_at`), запуск молчит; токен — `SCHEDULEFU_OPS_TELEGRAM_TOKEN`, чат — `ops.chat_id` |
 | `internal/platform/` | `config` (YAML + `SCHEDULEFU_*`), `db` (пул, миграции таймстемпами), `clock` (пояс вуза, русские даты), `httpx` |
 | `internal/archtest/` | тест графа зависимостей — держит § 6 канона |
 | `deploy/local/` | установка служб на macOS (для разработки) |

@@ -154,8 +154,9 @@ type Ops struct {
 	// нейросеть (проба тратит токены, поэтому реже).
 	Every      time.Duration `yaml:"every"`
 	ProbeEvery time.Duration `yaml:"probe_every"`
-	// DailyAt — утренний отчёт, ЧЧ:ММ в поясе вуза.
-	DailyAt string `yaml:"daily_at"`
+	// ReportAt — когда присылать отчёт: ЧЧ:ММ через запятую, в поясе вуза.
+	// Утром и вечером — чаще автор просил не писать.
+	ReportAt string `yaml:"report_at"`
 }
 
 // Static — сборка версии для GitHub Pages.
@@ -211,7 +212,7 @@ func Default() Config {
 		},
 		Static:  Static{OutDir: "site"},
 		Privacy: Privacy{WhereLecturer: true},
-		Ops:     Ops{Every: 5 * time.Minute, ProbeEvery: 6 * time.Hour, DailyAt: "09:00"},
+		Ops:     Ops{Every: 5 * time.Minute, ProbeEvery: 6 * time.Hour, ReportAt: "09:00,21:00"},
 	}
 }
 
@@ -247,6 +248,8 @@ func (c Config) Validate() error {
 		// базы вуза (docs/03-legal-risks.md). Потолок держится здесь, чтобы
 		// его нельзя было обойти флагом.
 		return fmt.Errorf("config: source.days должен быть от 1 до 14, задано %d", c.Source.Days)
+	case !reportTimes(c.Ops.ReportAt):
+		return fmt.Errorf("config: ops.report_at — ЧЧ:ММ через запятую, задано %q", c.Ops.ReportAt)
 	case !isHHMM(c.Source.NightFrom) || !isHHMM(c.Source.NightTo):
 		return fmt.Errorf("config: source.night_from и night_to — ЧЧ:ММ, задано %q и %q",
 			c.Source.NightFrom, c.Source.NightTo)
@@ -268,6 +271,17 @@ func isHHMM(v string) bool {
 	}
 	t, err := time.Parse("15:04", v)
 	return err == nil && t.Format("15:04") == v
+}
+
+// reportTimes — «09:00,21:00»: время отчётов сравнивается строками, как и
+// ночное окно, поэтому каждое — строго ЧЧ:ММ.
+func reportTimes(v string) bool {
+	for _, t := range strings.Split(v, ",") {
+		if t = strings.TrimSpace(t); t == "" || !isHHMM(t) {
+			return false
+		}
+	}
+	return true
 }
 
 // NotesReady сообщает, настроена ли обработка записей до конца. Раздел без

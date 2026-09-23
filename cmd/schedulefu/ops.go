@@ -42,7 +42,7 @@ func opsCmd(ctx context.Context, cfg config.Config, log *slog.Logger, _ any) err
 	svc := ops.New(telegram.New(cfg.Ops.TelegramToken, ""), opshost.New(healthURL(cfg.HTTP.Addr)), opspg.New(pool),
 		probe, log, ops.Options{
 			ChatID: cfg.Ops.ChatID, Services: services, Model: cfg.Notes.LLM.Model,
-			Every: cfg.Ops.Every, ProbeEvery: cfg.Ops.ProbeEvery, DailyAt: cfg.Ops.DailyAt,
+			Every: cfg.Ops.Every, ProbeEvery: cfg.Ops.ProbeEvery, ReportAt: cfg.Ops.ReportAt,
 			Location: clk.Location(),
 		})
 	if cfg.Ops.ChatID == 0 {
