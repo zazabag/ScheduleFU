@@ -20,6 +20,7 @@ import (
 	notesmedia "github.com/zazabag/schedulefu/internal/modules/notes/infrastructure/media"
 	notespg "github.com/zazabag/schedulefu/internal/modules/notes/infrastructure/postgres"
 	"github.com/zazabag/schedulefu/internal/modules/notify"
+	notifydomain "github.com/zazabag/schedulefu/internal/modules/notify/domain"
 	notifypg "github.com/zazabag/schedulefu/internal/modules/notify/infrastructure/postgres"
 	"github.com/zazabag/schedulefu/internal/modules/notify/transport/webpush"
 	"github.com/zazabag/schedulefu/internal/modules/schedule"
@@ -82,7 +83,49 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger) (*app, error
 	if cfg.Notes.Enabled {
 		a.notes = wireNotes(cfg, pool, clk, log)
 	}
+	// Напоминания о заданиях: notes спрашивает у schedule, какие завтра
+	// пары, notify спрашивает у notes, о чём напомнить. Модули друг о друге
+	// не знают — связывают их переходники здесь.
+	if a.notify != nil && a.notes != nil {
+		a.notes.Plan = dayPlan{schedSvc}
+		a.notify.Reminders = homeworkReminders{a.notes}
+	}
 	return a, nil
+}
+
+// dayPlan — порт notes.DayPlan поверх расписания.
+type dayPlan struct{ s *schedule.Service }
+
+func (p dayPlan) Disciplines(ctx context.Context, subjectKey string, day time.Time) (map[string]bool, error) {
+	subj, err := sched.ParseSubjectKey(subjectKey)
+	if err != nil || subj.IsZero() {
+		return nil, err
+	}
+	lessons, err := p.s.ScheduleFor(ctx, subj, day, day)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]bool{}
+	for _, l := range lessons {
+		out[l.Discipline] = true
+	}
+	return out, nil
+}
+
+// homeworkReminders — порт notify.ReminderSource поверх заданий.
+type homeworkReminders struct{ n *notes.Service }
+
+func (h homeworkReminders) Reminders(ctx context.Context, day time.Time) ([]notify.Reminder, error) {
+	rs, err := h.n.Reminders(ctx, day)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]notify.Reminder, 0, len(rs))
+	for _, r := range rs {
+		out = append(out, notify.Reminder{OwnerKey: r.OwnerKey, Notification: notifydomain.Notification{
+			Title: r.Title, Body: r.Body, URL: "/lessons", Tag: "hw-" + day.Format("2006-01-02")}})
+	}
+	return out, nil
 }
 
 // wireNotes связывает модуль записей с его портами.

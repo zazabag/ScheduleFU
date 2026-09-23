@@ -76,6 +76,9 @@ type Repository interface {
 	CopyOf(ctx context.Context, owner string, source int64) (domain.Note, bool, error)
 
 	CreateHomework(ctx context.Context, h domain.Homework) (int64, error)
+	// PendingHomeworks — сохранённые и не сделанные задания всех устройств,
+	// заданные на парах в [since, before). Для вечерних напоминаний.
+	PendingHomeworks(ctx context.Context, since, before time.Time) ([]domain.Homework, error)
 	Homeworks(ctx context.Context, owner, subjectKey, discipline string, onlySaved bool) ([]domain.Homework, error)
 	HomeworksByNote(ctx context.Context, owner string, noteID int64) ([]domain.Homework, error)
 	SaveHomework(ctx context.Context, owner string, id int64, at time.Time) error
@@ -94,6 +97,14 @@ type Repository interface {
 	// StuckAudio — записи, брошенные на полпути: вкладку закрыли, дозагрузка
 	// не кончилась. Их файлы надо убрать с диска.
 	StuckAudio(ctx context.Context, olderThan time.Duration) ([]domain.Recording, error)
+}
+
+// DayPlan — какие предметы у расписания в этот день. Реализует schedule
+// через переходник в cmd: notes о расписании не знает (ARCHITECTURE.md
+// § 3.4), а напоминанию «завтра пара — задание не сделано» нужно именно
+// оно.
+type DayPlan interface {
+	Disciplines(ctx context.Context, subjectKey string, day time.Time) (map[string]bool, error)
 }
 
 // Discipline — предмет в списке раздела «Пары».

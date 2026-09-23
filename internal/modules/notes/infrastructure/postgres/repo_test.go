@@ -148,3 +148,40 @@ func TestKartochkiVBaze(t *testing.T) {
 		t.Errorf("словарь: %+v", terms)
 	}
 }
+
+// Для напоминаний — только сохранённые, не сделанные и заданные в окне.
+func TestNesdelannyeZadaniyaDlyaNapominaniy(t *testing.T) {
+	r, ctx := testRepo(t)
+	at := func(d int) time.Time { return time.Date(2026, 9, d, 0, 0, 0, 0, time.UTC) }
+	add := func(owner string, d int, body string, save, done bool) {
+		t.Helper()
+		id, err := r.CreateHomework(ctx, domain.Homework{OwnerKey: owner, Body: body, Origin: "manual",
+			Lesson: domain.LessonRef{SubjectKey: "group:ПИ24-1", Discipline: "Финансы", Date: at(d)}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if save {
+			if err := r.SaveHomework(ctx, owner, id, time.Now()); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if done {
+			now := time.Now()
+			if err := r.SetHomeworkDone(ctx, owner, id, &now); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	add("a", 20, "нужное", true, false)
+	add("a", 21, "черновик", false, false)
+	add("b", 21, "сделано", true, true)
+	add("b", 2, "давнее", true, false)
+	add("b", 24, "сегодняшнее", true, false)
+	got, err := r.PendingHomeworks(ctx, at(10), at(24))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].Body != "нужное" {
+		t.Errorf("задания для напоминаний: %+v", got)
+	}
+}

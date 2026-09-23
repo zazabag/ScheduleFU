@@ -31,6 +31,10 @@ type Subscription struct {
 	Transport   string
 	Target      string            // endpoint | chat_id | адрес
 	Credentials map[string]string // ключи шифрования push и т. п.
+	// OwnerKey — ключ устройства, с которого подписались: по нему находятся
+	// его домашние задания для напоминаний. Пусто — подписка старая или с
+	// устройства без ключа; напоминаний такой подписке не будет.
+	OwnerKey string
 }
 
 // Delivery — письмо в очереди.

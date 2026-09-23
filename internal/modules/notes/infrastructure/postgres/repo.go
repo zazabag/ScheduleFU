@@ -460,6 +460,25 @@ func (r *Repo) CreateHomework(ctx context.Context, h domain.Homework) (int64, er
 	return id, nil
 }
 
+func (r *Repo) PendingHomeworks(ctx context.Context, since, before time.Time) ([]domain.Homework, error) {
+	rows, err := r.pool.Query(ctx, `SELECT `+homeworkColumns+` FROM homeworks
+		WHERE saved_at IS NOT NULL AND done_at IS NULL AND lesson_date >= $1 AND lesson_date < $2
+		ORDER BY owner_key, id`, since, before)
+	if err != nil {
+		return nil, fmt.Errorf("несделанные задания: %w", err)
+	}
+	defer rows.Close()
+	var out []domain.Homework
+	for rows.Next() {
+		h, err := scanHomework(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, h)
+	}
+	return out, rows.Err()
+}
+
 func (r *Repo) Homeworks(ctx context.Context, owner, subjectKey, discipline string, onlySaved bool) ([]domain.Homework, error) {
 	rows, err := r.pool.Query(ctx, `SELECT `+homeworkColumns+` FROM homeworks
 		WHERE owner_key=$1 AND subject_key=$2 AND discipline=$3 AND (NOT $4 OR saved_at IS NOT NULL)

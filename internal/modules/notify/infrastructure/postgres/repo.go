@@ -27,10 +27,13 @@ func (r *Repo) Save(ctx context.Context, s domain.Subscription) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.pool.Exec(ctx, `INSERT INTO subscriptions (subject_key, transport, target, credentials)
-		VALUES ($1,$2,$3,$4) ON CONFLICT (transport, target, subject_key) DO UPDATE SET
-		credentials=EXCLUDED.credentials, last_seen_at=now(), failures=0`,
-		s.SubjectKey, s.Transport, s.Target, creds)
+	// Ключ устройства не затирается пустым: подписку могут подтвердить из
+	// вкладки, где cookie ещё не выдан.
+	_, err = r.pool.Exec(ctx, `INSERT INTO subscriptions (subject_key, transport, target, credentials, owner_key)
+		VALUES ($1,$2,$3,$4,NULLIF($5,'')) ON CONFLICT (transport, target, subject_key) DO UPDATE SET
+		credentials=EXCLUDED.credentials, last_seen_at=now(), failures=0,
+		owner_key=COALESCE(EXCLUDED.owner_key, subscriptions.owner_key)`,
+		s.SubjectKey, s.Transport, s.Target, creds, s.OwnerKey)
 	if err != nil {
 		return fmt.Errorf("сохранение подписки: %w", err)
 	}
@@ -44,6 +47,37 @@ func (r *Repo) Delete(ctx context.Context, transport, target, subjectKey string)
 		return fmt.Errorf("удаление подписки: %w", err)
 	}
 	return nil
+}
+
+func (r *Repo) ForOwners(ctx context.Context, owners []string) ([]domain.Subscription, error) {
+	if len(owners) == 0 {
+		return nil, nil
+	}
+	rows, err := r.pool.Query(ctx, `SELECT id, subject_key, transport, target, credentials, owner_key
+		FROM subscriptions WHERE owner_key = ANY($1) ORDER BY id`, owners)
+	if err != nil {
+		return nil, fmt.Errorf("подписки владельцев: %w", err)
+	}
+	defer rows.Close()
+	var out []domain.Subscription
+	for rows.Next() {
+		var s domain.Subscription
+		var creds []byte
+		if err := rows.Scan(&s.ID, &s.SubjectKey, &s.Transport, &s.Target, &creds, &s.OwnerKey); err != nil {
+			return nil, err
+		}
+		_ = json.Unmarshal(creds, &s.Credentials)
+		out = append(out, s)
+	}
+	return out, rows.Err()
+}
+
+func (r *Repo) ClaimReminderDay(ctx context.Context, day time.Time) (bool, error) {
+	tag, err := r.pool.Exec(ctx, `INSERT INTO reminder_days (day) VALUES ($1) ON CONFLICT DO NOTHING`, day.Format("2006-01-02"))
+	if err != nil {
+		return false, fmt.Errorf("день напоминаний: %w", err)
+	}
+	return tag.RowsAffected() == 1, nil
 }
 
 func (r *Repo) For(ctx context.Context, keys []string) ([]domain.Subscription, error) {
