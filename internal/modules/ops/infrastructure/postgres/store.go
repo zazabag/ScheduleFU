@@ -61,15 +61,15 @@ func (s *Store) Notes(ctx context.Context, now time.Time) (domain.Notes, error) 
 	err := s.pool.QueryRow(ctx, `SELECT
 		count(*) FILTER (WHERE status = 'queued'),
 		count(*) FILTER (WHERE status IN ('decoding','transcribing','summarizing')),
-		count(*) FILTER (WHERE status IN ('decoding','transcribing','summarizing') AND updated_at < $1 - interval '1 hour'),
-		count(*) FILTER (WHERE status = 'ready' AND updated_at > $1 - interval '24 hours'),
-		count(*) FILTER (WHERE status = 'failed' AND updated_at > $1 - interval '24 hours')
+		count(*) FILTER (WHERE status IN ('decoding','transcribing','summarizing') AND updated_at < $1::timestamptz - interval '1 hour'),
+		count(*) FILTER (WHERE status = 'ready' AND updated_at > $1::timestamptz - interval '24 hours'),
+		count(*) FILTER (WHERE status = 'failed' AND updated_at > $1::timestamptz - interval '24 hours')
 		FROM recordings`, now).Scan(&n.Queued, &n.Working, &n.Stuck, &n.Ready24h, &n.Failed24h)
 	if err != nil {
 		return n, fmt.Errorf("очередь записей: %w", err)
 	}
 	err = s.pool.QueryRow(ctx, `SELECT failure FROM recordings
-		WHERE failure <> '' AND updated_at > $1 - interval '24 hours' ORDER BY updated_at DESC LIMIT 1`, now).
+		WHERE failure <> '' AND updated_at > $1::timestamptz - interval '24 hours' ORDER BY updated_at DESC LIMIT 1`, now).
 		Scan(&n.LastFailure)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return n, fmt.Errorf("последняя ошибка записи: %w", err)
@@ -82,10 +82,10 @@ func (s *Store) LLM(ctx context.Context, now time.Time) (domain.LLM, error) {
 	var l domain.LLM
 	var lastOK *time.Time
 	err := s.pool.QueryRow(ctx, `SELECT
-		count(*) FILTER (WHERE at > $1 - interval '24 hours'),
-		count(*) FILTER (WHERE at > $1 - interval '24 hours' AND NOT ok),
-		COALESCE(sum(prompt_tokens + completion_tokens) FILTER (WHERE at > $1 - interval '24 hours'), 0),
-		COALESCE(sum(prompt_tokens + completion_tokens) FILTER (WHERE at > $1 - interval '7 days'), 0),
+		count(*) FILTER (WHERE at > $1::timestamptz - interval '24 hours'),
+		count(*) FILTER (WHERE at > $1::timestamptz - interval '24 hours' AND NOT ok),
+		COALESCE(sum(prompt_tokens + completion_tokens) FILTER (WHERE at > $1::timestamptz - interval '24 hours'), 0),
+		COALESCE(sum(prompt_tokens + completion_tokens) FILTER (WHERE at > $1::timestamptz - interval '7 days'), 0),
 		max(at) FILTER (WHERE ok)
 		FROM llm_calls`, now).Scan(&l.Calls24h, &l.Errors24h, &l.Tokens24h, &l.Tokens7d, &lastOK)
 	if err != nil {
