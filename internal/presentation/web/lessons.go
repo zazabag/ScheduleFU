@@ -64,6 +64,11 @@ type noteView struct {
 	// ShareHref — ссылка, по которой конспект открывает кто угодно; пусто —
 	// им не делились.
 	ShareHref string
+	// Карточки и словарь по конспекту: можно ли просить, что с ними сейчас
+	// и где они лежат.
+	CanCards                  bool
+	CardsStatus, CardsFailure string
+	CardsHref                 template.URL
 }
 
 // noteBlock — кусок конспекта. Разметку разбирает сервер, а не браузер:
@@ -134,6 +139,7 @@ func (s *Server) lessons(w http.ResponseWriter, r *http.Request) {
 	}
 	data["Group"], data["SubjectQuery"] = label, template.URL(subj.Query())
 	data["CanRecord"] = s.d.NotesReady
+	data["CanCards"] = s.d.Notes.CanCards()
 
 	discipline := strings.TrimSpace(r.URL.Query().Get("d"))
 	if discipline == "" {
@@ -453,6 +459,10 @@ func (s *Server) noteView(n ndom.Note, hws []ndom.Homework, base string) noteVie
 	if n.ShareToken != "" {
 		v.ShareHref = "/n/" + n.ShareToken
 	}
+	if s.d.Notes != nil && s.d.Notes.CanCards() {
+		v.CanCards, v.CardsStatus, v.CardsFailure = true, n.CardsStatus, n.CardsFailure
+		v.CardsHref = template.URL(strings.Replace(base, "/lessons?", "/lessons/cards?", 1))
+	}
 	for _, h := range hws {
 		v.Homeworks = append(v.Homeworks, homeworkViewOf(h))
 	}
@@ -536,6 +546,10 @@ func (s *Server) lessonsAction(w http.ResponseWriter, r *http.Request) {
 		err = s.d.Notes.SaveNote(ctx, owner, id, r.FormValue("hw"))
 	case "note-delete":
 		err = s.d.Notes.DeleteNote(ctx, owner, id)
+	case "note-cards":
+		err = s.d.Notes.RequestCards(ctx, owner, id)
+	case "card-review":
+		err = s.d.Notes.Review(ctx, owner, id, r.FormValue("remembered") == "1")
 	case "note-share":
 		_, err = s.d.Notes.Share(ctx, owner, id)
 	case "note-unshare":

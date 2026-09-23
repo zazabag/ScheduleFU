@@ -191,7 +191,7 @@
 
 {{/* Лента пар, по которым что-то есть. */}}
 <section class="card" id="days">
-  <div class="card-head"><h2 class="card-title">Пары</h2><a class="act" href="/lessons/summary?{{$.SubjectQuery}}&amp;d={{.Name}}">Сводка всех конспектов</a></div>
+  <div class="card-head"><h2 class="card-title">Пары</h2><span class="card-links">{{if $.CanCards}}<a class="act" href="/lessons/cards?{{$.SubjectQuery}}&amp;d={{.Name}}">Карточки и словарь</a>{{end}}<a class="act" href="/lessons/summary?{{$.SubjectQuery}}&amp;d={{.Name}}">Сводка всех конспектов</a></span></div>
   {{range .Days}}
   <a class="day-row" href="{{.Href}}">
     <span class="day-date">{{.Label}}</span>
@@ -301,6 +301,21 @@
   </form>
   {{end}}
   <div class="card-actions">
+    {{if and .Saved .CanCards}}
+    <div class="note-cards">
+      {{if eq .CardsStatus "ready"}}<a class="btn btn-small" href="{{.CardsHref}}">Карточки и словарь ›</a>
+      {{else if or (eq .CardsStatus "queued") (eq .CardsStatus "working")}}<span class="rec-state working">готовим карточки и словарь — минута-две, обновите страницу</span>
+      {{else}}
+      <form method="post" action="/lessons">
+        <input type="hidden" name="action" value="note-cards">
+        <input type="hidden" name="id" value="{{.ID}}">
+        <input type="hidden" name="back" value="{{.SaveBack}}#note-{{.ID}}">
+        <button class="btn btn-small" type="submit">Сделать карточки и словарь</button>
+      </form>
+      {{if .CardsFailure}}<span class="rec-fail">{{.CardsFailure}}</span>{{end}}
+      {{end}}
+    </div>
+    {{end}}
     {{if .Saved}}<span class="saved-mark">✓ сохранён</span>
     {{if .ShareHref}}
     <button class="btn btn-small" type="button" data-share="{{.ShareHref}}" data-title="{{.Title}}">Отправить ссылку</button>

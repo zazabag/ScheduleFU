@@ -12,7 +12,7 @@ import (
 
 func testRepo(t *testing.T) (*Repo, context.Context) {
 	t.Helper()
-	pool := db.TestPool(t, "TEST_DATABASE_URL_NOTES", "schedulefu_test_notes", "homeworks", "notes", "recordings")
+	pool := db.TestPool(t, "TEST_DATABASE_URL_NOTES", "schedulefu_test_notes", "cards", "homeworks", "notes", "recordings")
 	return New(pool), context.Background()
 }
 
@@ -93,5 +93,58 @@ func TestPoiskPoSvoimKonspektam(t *testing.T) {
 	}
 	if !strings.Contains(hits[0].Snippet, domain.HitStart+"Дюрация"+domain.HitEnd) {
 		t.Errorf("подсветка: %q", hits[0].Snippet)
+	}
+}
+
+// Карточки: только по сохранённому, очередь отдаёт конспект один раз,
+// повторная генерация не плодит дублей, счёт — на сегодня.
+func TestKartochkiVBaze(t *testing.T) {
+	r, ctx := testRepo(t)
+	day := time.Date(2026, 9, 24, 0, 0, 0, 0, time.UTC)
+	lesson := domain.LessonRef{SubjectKey: "group:ПИ24-1", Discipline: "Финансы", Date: day.AddDate(0, 0, -7)}
+	draft, _ := r.CreateNote(ctx, domain.Note{OwnerKey: "я", Lesson: lesson, Body: "черновик"})
+	if ok, _ := r.QueueCards(ctx, "я", draft, day); ok {
+		t.Error("черновик в очередь карточек не ставится")
+	}
+	id, _ := r.CreateNote(ctx, domain.Note{OwnerKey: "я", Lesson: lesson, Body: "текст"})
+	_ = r.SaveNote(ctx, "я", id, day)
+	if ok, err := r.QueueCards(ctx, "я", id, day); !ok || err != nil {
+		t.Fatalf("в очередь: %v %v", ok, err)
+	}
+	n, ok, err := r.ClaimCards(ctx, day)
+	if !ok || err != nil || n.ID != id || n.CardsStatus != "working" {
+		t.Fatalf("из очереди: %+v %v %v", n, ok, err)
+	}
+	if _, again, _ := r.ClaimCards(ctx, day); again {
+		t.Error("конспект взят из очереди дважды")
+	}
+	mk := func(kind domain.CardKind, front string, due time.Time) domain.Card {
+		return domain.Card{OwnerKey: "я", NoteID: &id, Lesson: lesson, Kind: kind, Front: front, Back: "ответ", Box: 1, DueOn: due}
+	}
+	added, err := r.AddCards(ctx, []domain.Card{mk(domain.CardQuestion, "Что такое дюрация?", day), mk(domain.CardQuestion, "Что такое купон?", day.AddDate(0, 0, 3)), mk(domain.CardTerm, "Купон", day)})
+	if err != nil || added != 3 {
+		t.Fatalf("добавлено %d: %v", added, err)
+	}
+	if again, _ := r.AddCards(ctx, []domain.Card{mk(domain.CardQuestion, "Что такое дюрация?", day)}); again != 0 {
+		t.Error("повторная генерация добавила дубль")
+	}
+	_ = r.FinishCards(ctx, id, "")
+	due, total, next, err := r.CardStats(ctx, "я", "group:ПИ24-1", "Финансы", day)
+	if err != nil || due != 1 || total != 2 || next == nil {
+		t.Errorf("счёт: %d из %d, следующая %v, %v", due, total, next, err)
+	}
+	cards, _ := r.DueCards(ctx, "я", "group:ПИ24-1", "Финансы", day, 5)
+	if len(cards) != 1 || cards[0].Front != "Что такое дюрация?" {
+		t.Fatalf("к повторению: %+v", cards)
+	}
+	c := cards[0].Review(true, day)
+	if err := r.SaveReview(ctx, c, day); err != nil {
+		t.Fatal(err)
+	}
+	if left, _, _, _ := r.CardStats(ctx, "я", "group:ПИ24-1", "Финансы", day); left != 0 {
+		t.Error("отвеченная «помню» карточка осталась на сегодня")
+	}
+	if terms, _ := r.Terms(ctx, "я", "group:ПИ24-1", "Финансы"); len(terms) != 1 {
+		t.Errorf("словарь: %+v", terms)
 	}
 }

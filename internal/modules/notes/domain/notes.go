@@ -328,6 +328,10 @@ type Note struct {
 	ShareToken string
 	// CopiedFrom — из какого конспекта сохранена эта копия по ссылке.
 	CopiedFrom *int64
+	// CardsStatus — карточки по конспекту: "" — не просили, queued и
+	// working — готовятся, ready — готовы, failed — не вышло (CardsFailure).
+	CardsStatus  string
+	CardsFailure string
 }
 
 // NoteHit — конспект, найденный поиском, с отрывком вокруг совпадения.

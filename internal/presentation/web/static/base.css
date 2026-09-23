@@ -785,3 +785,20 @@ body { touch-action: pan-y; }
 .nhit-snippet { font-size: 13px; line-height: 1.5; }
 .nhit mark { background: var(--busy); color: inherit; border-radius: 3px; padding: 0 2px; }
 
+/* Карточки: одна за раз, ответ — по касанию, «помню» и «не помню». */
+.note-cards { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.flash { padding: 18px 16px; }
+.flash-front { font-size: 17px; font-weight: 700; line-height: 1.35; margin: 0 0 12px; }
+.flash details > summary { list-style: none; }
+.flash details > summary::-webkit-details-marker { display: none; }
+.flash-back { font-size: 15px; line-height: 1.5; margin: 12px 0; }
+.flash-answers { display: flex; gap: 8px; }
+.flash-answers form { flex: 1; }
+.flash-answers .btn { width: 100%; }
+.flash-meta { font-size: 11px; color: var(--text-3); margin-top: 10px; }
+.terms dt { font-weight: 700; font-size: 14px; margin-top: 10px; }
+.terms dd { margin: 2px 0 0; font-size: 13px; line-height: 1.5; color: var(--text-2); }
+
+
+/* Ссылки в шапке ленты пар: карточки и сводка — рядом, с переносом. */
+.card-links { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }

@@ -116,7 +116,7 @@ func wireNotes(cfg config.Config, pool *pgxpool.Pool, clk *clock.Clock, log *slo
 	} else {
 		summarizer = chat
 	}
-	return notes.New(repo, recognizer, summarizer, decoder, clk, log, notes.Options{
+	svc := notes.New(repo, recognizer, summarizer, decoder, clk, log, notes.Options{
 		AudioDir:   cfg.Notes.AudioDir,
 		MaxBytes:   cfg.Notes.MaxMB << 20,
 		MaxMinutes: cfg.Notes.MaxMinutes,
@@ -125,6 +125,11 @@ func wireNotes(cfg config.Config, pool *pgxpool.Pool, clk *clock.Clock, log *slo
 		DraftTTL:   time.Duration(cfg.Notes.Worker.DraftDays) * 24 * time.Hour,
 		KeepAudio:  cfg.Notes.KeepAudio,
 	})
+	// Карточкам нужна только модель: ни звук, ни распознавание.
+	if chat.Configured() {
+		svc.Carder = chat
+	}
+	return svc
 }
 
 func (a *app) close() { a.pool.Close() }

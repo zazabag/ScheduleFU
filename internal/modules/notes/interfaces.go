@@ -51,6 +51,21 @@ type Repository interface {
 	// самые подходящие первыми.
 	SearchNotes(ctx context.Context, owner, query string, limit int) ([]domain.NoteHit, error)
 	DeleteNote(ctx context.Context, owner string, id int64) error
+
+	// QueueCards ставит сохранённый конспект владельца в очередь на
+	// карточки; false — такого сохранённого конспекта нет.
+	QueueCards(ctx context.Context, owner string, id int64, now time.Time) (bool, error)
+	// ClaimCards берёт из очереди один конспект с блокировкой строки;
+	// брошенный на полпути (дольше часа в работе) возвращается в очередь.
+	ClaimCards(ctx context.Context, now time.Time) (domain.Note, bool, error)
+	FinishCards(ctx context.Context, noteID int64, failure string) error
+	// AddCards добавляет карточки, пропуская уже существующие по лицу.
+	AddCards(ctx context.Context, cards []domain.Card) (int, error)
+	DueCards(ctx context.Context, owner, subjectKey, discipline string, day time.Time, limit int) ([]domain.Card, error)
+	CardStats(ctx context.Context, owner, subjectKey, discipline string, day time.Time) (due, total int, next *time.Time, err error)
+	Terms(ctx context.Context, owner, subjectKey, discipline string) ([]domain.Card, error)
+	Card(ctx context.Context, owner string, id int64) (domain.Card, bool, error)
+	SaveReview(ctx context.Context, c domain.Card, at time.Time) error
 	// SetShareToken открывает (token != "") или закрывает ссылку на
 	// сохранённый конспект владельца. Черновик ссылки не получает: делятся
 	// тем, что человек сам принял.
@@ -98,6 +113,23 @@ type Discipline struct {
 type Recognizer interface {
 	// Transcribe принимает путь к WAV 16 кГц моно и возвращает сегменты.
 	Transcribe(ctx context.Context, wavPath string) ([]domain.Segment, error)
+}
+
+// Carder — порт карточек: модель вынимает из конспекта вопросы для
+// повторения и термины с определениями. Реализация — тот же адаптер чата,
+// что пишет конспект.
+type Carder interface {
+	Cards(ctx context.Context, in CardsInput) (domain.CardSet, error)
+}
+
+// CardsInput — что уходит модели: предмет и уже готовый конспект. Не
+// расшифровка — она длиннее и грязнее, а всё нужное в конспекте уже есть;
+// имён людей здесь нет, как и в конспекте.
+type CardsInput struct {
+	Discipline string
+	Title      string
+	Theses     []string
+	Body       string
 }
 
 // Summarizer — порт конспектирования.
