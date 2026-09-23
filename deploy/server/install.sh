@@ -9,7 +9,7 @@
 #   PostgreSQL 16   — база слепков; из репозитория Ubuntu, версия та же, что локально
 #   Caddy           — обратный прокси, сам получает и продлевает сертификат:
 #                     без HTTPS не работают ни уведомления, ни установка на телефон
-#   systemd-юниты   — serve и collect; перезапуск при падении, лог в journald
+#   systemd-юниты   — serve, collect и notes; перезапуск при падении, лог в journald
 #   ufw + fail2ban  — открыты только 22/80/443; пароль root перебирают круглосуточно
 #   pg_dump         — раз в сутки, хранится 14 дней; терять нечего, кроме подписок
 #
@@ -67,6 +67,15 @@ source:
   base_url: https://ruz.fa.ru
   interval: 1h
   days: 7
+notes:
+  # Раздел «Пары»: запись занятия, конспект, домашние задания. Включать
+  # после того, как положены модели распознавания и задан ключ модели
+  # конспекта (SCHEDULEFU_NOTES_LLM_API_KEY в $APP_DIR/env) —
+  # docs/07-notes-module.md § 8.
+  enabled: false
+  audio_dir: $APP_DIR/audio
+  asr:
+    model_dir: $APP_DIR/models/gigaam-v3
 static:
   out_dir: /tmp/schedulefu-pages
   api_base: https://$DOMAIN
@@ -81,7 +90,8 @@ chown $APP_USER:$APP_USER $APP_DIR/config.yaml $APP_DIR/env
 chmod 600 $APP_DIR/env
 
 echo "==> Службы"
-for unit in serve collect; do
+install -d -o $APP_USER -g $APP_USER -m 700 $APP_DIR/audio $APP_DIR/models
+for unit in serve collect notes; do
   cat > /etc/systemd/system/schedulefu-$unit.service <<UNIT
 [Unit]
 Description=ScheduleFU $unit
@@ -158,6 +168,9 @@ chmod +x /etc/cron.daily/schedulefu-backup
 echo "==> Запуск"
 systemctl enable -q --now schedulefu-serve schedulefu-collect
 systemctl restart schedulefu-serve schedulefu-collect
+# Обработка записей включается вручную: без моделей она сразу выходит с
+# ошибкой, и systemd крутил бы её по кругу.
+#   systemctl enable --now schedulefu-notes
 sleep 3
 systemctl is-active schedulefu-serve schedulefu-collect caddy postgresql | tr '\n' ' '; echo
 echo

@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/zazabag/schedulefu/internal/modules/notes"
 	"github.com/zazabag/schedulefu/internal/modules/notify"
 	"github.com/zazabag/schedulefu/internal/modules/schedule"
 	"github.com/zazabag/schedulefu/internal/platform/clock"
@@ -31,7 +32,12 @@ var staticFS embed.FS
 type Deps struct {
 	Schedule *schedule.Service
 	Notify   *notify.Service
+	Notes    *notes.Service
 	Clock    *clock.Clock
+	// NotesReady — настроена ли обработка записей. Раздел «Пары» без неё
+	// показывает конспекты, но не предлагает записать новую пару: обещать
+	// конспект, которого не будет, хуже, чем не предлагать вовсе.
+	NotesReady bool
 	// SiteLabel и BuildingLabel — короткие подписи; живут у источника.
 	BuildingLabel func(building string) string
 	Calendar      func(w http.ResponseWriter, r *http.Request) // ручка export
@@ -51,7 +57,7 @@ type Server struct {
 func New(d Deps) (*Server, error) {
 	funcs := template.FuncMap{"asset": AssetURL, "skinCSS": func(id string) string { return AssetURL("skins/" + id + ".css") }}
 	pages := map[string]*template.Template{}
-	for _, name := range []string{"rooms", "schedule", "lecturers", "settings"} {
+	for _, name := range []string{"rooms", "schedule", "lessons", "lecturers", "settings"} {
 		// hero.html — общий верхний блок дня: его рисуют и экран расписания,
 		// и экран «где преподаватель».
 		t, err := template.New("base").Funcs(funcs).ParseFS(templateFS, "templates/base.html", "templates/hero.html", "templates/onboard.html", "templates/"+name+".html")
@@ -78,6 +84,9 @@ func (s *Server) Routes() http.Handler {
 	})
 	mux.HandleFunc("GET /schedule", s.schedule)
 	mux.HandleFunc("GET /rooms", s.rooms)
+	mux.HandleFunc("GET /lessons", s.lessons)
+	mux.HandleFunc("POST /lessons", s.lessonsAction)
+	mux.HandleFunc("POST /lessons/upload", s.lessonsUpload)
 	mux.HandleFunc("GET /groups", s.groups)
 	mux.HandleFunc("GET /lecturers", s.lecturers)
 	mux.HandleFunc("GET /settings", s.settings)

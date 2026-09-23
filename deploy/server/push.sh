@@ -27,7 +27,8 @@ echo "==> Отправка на $HOST"
 $SSH 'mkdir -p /opt/schedulefu/data /opt/schedulefu/deploy'
 $SCP "$BIN" root@$HOST:/opt/schedulefu/schedulefu.new
 $SCP "$REPO_DIR"/data/*.json root@$HOST:/opt/schedulefu/data/
-$SCP "$REPO_DIR"/deploy/server/install.sh "$REPO_DIR"/deploy/server/harden.sh root@$HOST:/opt/schedulefu/deploy/
+$SCP "$REPO_DIR"/deploy/server/install.sh "$REPO_DIR"/deploy/server/harden.sh \
+     "$REPO_DIR"/deploy/server/install-notes.sh root@$HOST:/opt/schedulefu/deploy/
 rm -rf "$(dirname "$BIN")"
 
 echo "==> Установка"

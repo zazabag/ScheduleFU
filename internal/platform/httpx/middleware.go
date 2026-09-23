@@ -35,8 +35,10 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "same-origin")
 		h.Set("X-Frame-Options", "DENY")
-		// Ни одно из этих устройств сервису не нужно.
-		h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+		// Микрофон открыт своим страницам: раздел «Пары» записывает занятие.
+		// Разрешение всё равно спрашивает браузер, но без этой строки он не
+		// спросит вовсе. Остальные устройства сервису не нужны.
+		h.Set("Permissions-Policy", "geolocation=(), microphone=(self), camera=()")
 		next.ServeHTTP(w, r)
 	})
 }

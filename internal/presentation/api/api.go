@@ -6,6 +6,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zazabag/schedulefu/internal/modules/notes"
+	ndom "github.com/zazabag/schedulefu/internal/modules/notes/domain"
 	"github.com/zazabag/schedulefu/internal/modules/notify"
 	ndomain "github.com/zazabag/schedulefu/internal/modules/notify/domain"
 	"github.com/zazabag/schedulefu/internal/modules/schedule"
@@ -25,10 +28,17 @@ import (
 type Deps struct {
 	Schedule *schedule.Service
 	Notify   *notify.Service
+	Notes    *notes.Service
 	Clock    *clock.Clock
 	PushKey  string // публичный VAPID; пусто — уведомления выключены
 	StandEnv string
 	Calendar http.HandlerFunc
+	// NotesReady — настроена ли обработка записей.
+	NotesReady bool
+	// ResolveLesson собирает слепок пары по предмету и выбранному времени.
+	// Приходит снаружи, потому что живёт в web, а транспорт транспорт не
+	// импортирует; связывает их composition root.
+	ResolveLesson func(ctx context.Context, subj sched.Subject, discipline, choice string) (ndom.LessonRef, error)
 }
 
 type Server struct{ d Deps }
@@ -45,6 +55,12 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /api/v1/push/key", s.pushKey)
 	mux.HandleFunc("POST /api/v1/push/subscribe", s.subscribe)
 	mux.HandleFunc("POST /api/v1/push/unsubscribe", s.unsubscribe)
+	if s.d.Notes != nil {
+		mux.HandleFunc("POST /api/v1/notes/recordings", s.notesStart)
+		mux.HandleFunc("GET /api/v1/notes/recordings/{id}", s.notesState)
+		mux.HandleFunc("PUT /api/v1/notes/recordings/{id}/chunks/{seq}", s.notesChunk)
+		mux.HandleFunc("POST /api/v1/notes/recordings/{id}/finish", s.notesFinish)
+	}
 	if s.d.Calendar != nil {
 		mux.HandleFunc("GET /api/v1/calendar.ics", s.d.Calendar)
 	}

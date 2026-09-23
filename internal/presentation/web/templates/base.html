@@ -33,6 +33,10 @@
     <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h8v18M14 3l6 2v16"/><circle cx="11" cy="12" r="1"/></svg>
     <span class="nav-label">Аудитории</span>
   </a>
+  <a href="/lessons" class="nav-item {{if eq .Tab "lessons"}}on{{end}}">
+    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M14 4v5h5M8 13h8M8 17h5"/></svg>
+    <span class="nav-label">Пары</span>
+  </a>
   <a href="/lecturers" class="nav-item {{if eq .Tab "lecturers"}}on{{end}}">
     <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
     <span class="nav-label">Преподаватели</span>
@@ -45,5 +49,6 @@
 </div>
 <script src="{{asset "push.js"}}" defer></script>
 <script src="{{asset "app.js"}}" defer></script>
+{{if eq .Tab "lessons"}}<script src="{{asset "record.js"}}" defer></script>{{end}}
 </body>
 </html>{{end}}

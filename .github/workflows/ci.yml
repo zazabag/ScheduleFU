@@ -1,0 +1,70 @@
+# Сборка и тесты на каждый push и pull request.
+#
+# Тесты с базой гоняются на настоящем PostgreSQL, как требует CLAUDE.md:
+# подменять его заглушкой — значит не проверять ровно то, где ошибки и
+# живут. База своя на пакет (go test гоняет пакеты параллельно, и на общей
+# они вычищают таблицы друг у друга), схема накатывается той же командой
+# migrate, что и в бою.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      TEST_DATABASE_URL_SCHEDULE: postgres://postgres:postgres@localhost:5432/schedulefu_test_schedule?sslmode=disable
+      TEST_DATABASE_URL_NOTIFY: postgres://postgres:postgres@localhost:5432/schedulefu_test_notify?sslmode=disable
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Тестовые базы и схема
+        run: |
+          for db in schedulefu_test_schedule schedulefu_test_notify; do
+            createdb "$db"
+            SCHEDULEFU_DB_DSN="postgres://postgres:postgres@localhost:5432/$db?sslmode=disable" \
+              go run ./cmd/schedulefu migrate
+          done
+
+      - name: Формат
+        # gofmt -l печатает файлы, которые он бы изменил; непустой вывод —
+        # это и есть ошибка, своего кода возврата у него нет.
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "не отформатировано:"; echo "$unformatted"; exit 1
+          fi
+
+      - name: Сборка
+        run: go build ./...
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Тесты
+        run: go test ./...

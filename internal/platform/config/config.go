@@ -28,6 +28,7 @@ type Config struct {
 	DB     DB     `yaml:"db"`
 	Source Source `yaml:"source"`
 	Notify Notify `yaml:"notify"`
+	Notes  Notes  `yaml:"notes"`
 	Static Static `yaml:"static"`
 }
 
@@ -72,6 +73,58 @@ type Notify struct {
 	Subject      string `yaml:"subject"`
 }
 
+// Notes — записи пар и конспекты.
+//
+// Раздел включается целиком: без распознавания и модели принимать запись
+// нечестно — человек проговорит полтора часа и не получит ничего.
+type Notes struct {
+	Enabled  bool   `yaml:"enabled"`
+	AudioDir string `yaml:"audio_dir"`
+	// MaxMinutes — потолок длительности одной записи.
+	MaxMinutes int `yaml:"max_minutes"`
+	// MaxMB — потолок размера. Пара в Opus 24 кбит/с — около 16 МБ.
+	MaxMB int64 `yaml:"max_mb"`
+	// KeepAudio оставляет запись на диске после расшифровки. По умолчанию
+	// выключено: голос преподавателя у нас не хранится.
+	KeepAudio bool        `yaml:"keep_audio"`
+	FFmpeg    string      `yaml:"ffmpeg"`
+	ASR       NotesASR    `yaml:"asr"`
+	LLM       NotesLLM    `yaml:"llm"`
+	Worker    NotesWorker `yaml:"worker"`
+}
+
+// NotesASR — распознавание речи на своём сервере.
+type NotesASR struct {
+	Command  string        `yaml:"command"`
+	ModelDir string        `yaml:"model_dir"`
+	Threads  int           `yaml:"threads"`
+	Timeout  time.Duration `yaml:"timeout"`
+}
+
+// NotesLLM — сервис, пишущий конспект. Подходит любой с интерфейсом в
+// стиле OpenAI: GLM, GigaChat, локальная модель — разница в трёх строках.
+type NotesLLM struct {
+	BaseURL string `yaml:"base_url"`
+	Model   string `yaml:"model"`
+	// APIKey живёт только в окружении: SCHEDULEFU_NOTES_LLM_API_KEY.
+	APIKey string `yaml:"api_key"`
+	// NoThinking выключает «размышления»: думающая модель на промпте в
+	// тридцать тысяч токенов рассуждает минутами. Для GLM обязательно, для
+	// провайдера, который такого поля не знает, — выключить.
+	NoThinking bool          `yaml:"no_thinking"`
+	MaxChars   int           `yaml:"max_chars"`
+	Timeout    time.Duration `yaml:"timeout"`
+}
+
+// NotesWorker — поведение обработчика очереди.
+type NotesWorker struct {
+	Idle     time.Duration `yaml:"idle"`
+	Retry    time.Duration `yaml:"retry"`
+	Attempts int           `yaml:"attempts"`
+	// DraftDays — сколько живёт конспект, который не сохранили.
+	DraftDays int `yaml:"draft_days"`
+}
+
 // Static — сборка версии для GitHub Pages.
 type Static struct {
 	OutDir  string `yaml:"out_dir"`
@@ -95,6 +148,29 @@ func Default() Config {
 			Timezone:   "Europe/Moscow",
 		},
 		Notify: Notify{Subject: "mailto:schedulefu@example.org"},
+		Notes: Notes{
+			AudioDir:   "/var/lib/schedulefu/audio",
+			MaxMinutes: 240,
+			MaxMB:      512,
+			FFmpeg:     "ffmpeg",
+			ASR: NotesASR{
+				Command:  "sherpa-onnx-vad-with-offline-asr",
+				ModelDir: "/var/lib/schedulefu/models/gigaam-v3",
+				Threads:  4,
+				Timeout:  2 * time.Hour,
+			},
+			LLM: NotesLLM{
+				// Китайские модели отвечают на российские адреса, в отличие
+				// от западных; бесплатная glm-4.5-flash с окном 128k берёт
+				// полуторачасовую пару одним запросом.
+				BaseURL:    "https://open.bigmodel.cn/api/paas/v4",
+				Model:      "glm-4.5-flash",
+				NoThinking: true,
+				MaxChars:   150000,
+				Timeout:    10 * time.Minute,
+			},
+			Worker: NotesWorker{Idle: 20 * time.Second, Retry: 10 * time.Minute, Attempts: 3, DraftDays: 14},
+		},
 		Static: Static{OutDir: "site"},
 	}
 }
@@ -133,8 +209,19 @@ func (c Config) Validate() error {
 		return fmt.Errorf("config: source.days должен быть от 1 до 14, задано %d", c.Source.Days)
 	case (c.Notify.VAPIDPublic == "") != (c.Notify.VAPIDPrivate == ""):
 		return fmt.Errorf("config: ключи уведомлений задаются парой")
+	case c.Notes.Enabled && c.Notes.AudioDir == "":
+		return fmt.Errorf("config: не задан notes.audio_dir")
+	case c.Notes.Enabled && c.Notes.MaxMinutes < 1:
+		return fmt.Errorf("config: notes.max_minutes должен быть положительным")
 	}
 	return nil
+}
+
+// NotesReady сообщает, настроена ли обработка записей до конца. Раздел без
+// ключа модели показывать можно — конспекты, записанные раньше, никуда не
+// делись, — а принимать новые записи нельзя.
+func (c Config) NotesReady() bool {
+	return c.Notes.Enabled && c.Notes.LLM.APIKey != "" && c.Notes.LLM.BaseURL != "" && c.Notes.LLM.Model != ""
 }
 
 // PushEnabled сообщает, настроены ли уведомления.
