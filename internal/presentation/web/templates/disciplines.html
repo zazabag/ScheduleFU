@@ -1,0 +1,33 @@
+{{define "content"}}
+<header class="top">
+  <div class="top-row">
+    <div>
+      <span class="top-kicker">поиск по дисциплине</span>
+      <h1 class="top-title">Кто ведёт и где</h1>
+      <p class="top-sub">Преподаватели, группы и корпуса по дисциплине — за эту и следующую неделю. <a href="/lecturers">Поиск по преподавателю</a></p>
+    </div>
+  </div>
+  <form class="search" method="get" action="/disciplines">
+    <input type="search" name="q" value="{{.Query}}" placeholder="Например, эконометрика" autocomplete="off" {{if not .Query}}autofocus{{end}}>
+    <button type="submit">Найти</button>
+  </form>
+</header>
+
+<section class="picks">
+  {{if .TooShort}}
+  <div class="empty"><div class="empty-sub">Нужно хотя бы две буквы.</div></div>
+  {{else if .Searched}}
+  {{range .Hits}}
+  <article class="disc">
+    <h2 class="disc-name">{{.Name}}</h2>
+    <p class="disc-meta">{{.Meta}}{{if .Places}} · {{.Places}}{{end}}</p>
+    {{if .Lecturers}}<p class="disc-row"><span class="disc-label">ведут</span>{{range $i, $l := .Lecturers}}{{if $i}}, {{end}}<a href="{{$l.Href}}">{{$l.Label}}</a>{{end}}</p>{{end}}
+    {{if .Groups}}<p class="disc-row"><span class="disc-label">группы</span>{{range .Groups}}<a class="chip" href="{{.Href}}">{{.Label}}</a>{{end}}{{if .MoreGroups}}<span class="disc-more">и ещё {{.MoreGroups}}</span>{{end}}</p>{{end}}
+  </article>
+  {{else}}
+  <div class="empty"><div class="empty-title">Ничего не нашлось</div><div class="empty-sub">В расписании этой и следующей недели такой дисциплины нет — проверьте написание.</div></div>
+  {{end}}
+  {{end}}
+</section>
+<footer class="foot"><span class="foot-note">Источник: расписание вуза{{if .Freshness}}, обновлено {{.Freshness}}{{end}}.</span></footer>
+{{end}}

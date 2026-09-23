@@ -30,6 +30,9 @@ type Repository interface {
 	LecturerName(ctx context.Context, oid int64) (string, error)
 	SearchGroups(ctx context.Context, query string, limit int) ([]domain.Group, error)
 	SearchLecturers(ctx context.Context, query string, limit int) ([]domain.Lecturer, error)
+	// SearchDisciplines — дисциплины окна по части названия, самые частые
+	// первыми.
+	SearchDisciplines(ctx context.Context, query string, limit int) ([]domain.DisciplineHit, error)
 
 	Sites(ctx context.Context) ([]SiteRow, error)
 	SiteDay(ctx context.Context, site string, date time.Time) ([]RoomDay, error)

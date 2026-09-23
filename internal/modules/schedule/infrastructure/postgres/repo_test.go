@@ -298,3 +298,28 @@ func TestMissingGroupsTolkoNovye(t *testing.T) {
 		t.Errorf("новые группы: %q %v", got, err)
 	}
 }
+
+// Поиск по дисциплине: кто ведёт, каким группам, где. Регистр не важен,
+// склеенные имена языковых потоков в группы не попадают.
+func TestPoiskPoDistsipline(t *testing.T) {
+	r, ctx := testRepo(t)
+	eng := para(3, 8, "14:00", 2852, "Иностранный язык")
+	eng.GroupNames = []string{"006073_2 Иностранный язык (КАЯиПК)-10 СОЦ25-6_7"}
+	fill(t, r, ctx, para(1, 7, "08:30", 2851, "Философия"), para(2, 8, "11:50", 2851, "Философия"), eng)
+
+	hits, err := r.SearchDisciplines(ctx, "философ", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(hits) != 1 || hits[0].Name != "Философия" || hits[0].Lessons != 2 {
+		t.Fatalf("поиск: %+v", hits)
+	}
+	h := hits[0]
+	if len(h.Lecturers) != 1 || h.Lecturers[0].Oid != 46674 || len(h.Groups) != 2 || h.Groups[0] != "ПИ24-1" {
+		t.Errorf("кто и кому: %+v", h)
+	}
+	hits, _ = r.SearchDisciplines(ctx, "ИНОСТРАН", 10)
+	if len(hits) != 1 || len(hits[0].Groups) != 0 {
+		t.Errorf("имя потока не группа: %+v", hits)
+	}
+}
