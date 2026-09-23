@@ -30,6 +30,11 @@ func TestShriftyOformleniyLezhatUNas(t *testing.T) {
 				if _, err := fs.Stat(staticFS, "static/fonts/"+m[1]); err != nil {
 					t.Errorf("%s.css: нет файла %s", f, m[1])
 				}
+				// Без отпечатка в имени шрифт кэшировался бы пять минут, и
+				// телефон переспрашивал бы его на каждом переходе.
+				if !fontFile.MatchString("/static/fonts/" + m[1]) {
+					t.Errorf("%s: имя без отпечатка — годового кэша не будет", m[1])
+				}
 			}
 		}
 	}

@@ -10,6 +10,7 @@
 
 Запуск: python tools/fetch_fonts.py — перезаписывает static/fonts целиком.
 """
+import hashlib
 import re
 import urllib.request
 from pathlib import Path
@@ -51,8 +52,10 @@ def main():
             if subset not in KEEP:
                 continue
             url = re.search(r'url\((https://[^)]+\.woff2)\)', block).group(1)
-            name = f'{fid}-{n}.woff2'
             data = get(url)
+            # Отпечаток содержимого в имени: сервер кэширует такие файлы на
+            # год (web/server.go), как статику с ?v=.
+            name = f'{fid}-{hashlib.sha256(data).hexdigest()[:10]}.woff2'
             (OUT / name).write_bytes(data)
             total += len(data)
             out.append(f'/* {subset} */\n' + block.replace(url, name))
