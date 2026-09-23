@@ -63,6 +63,9 @@ body:has(.hero[data-state="none"]) { --tint: #0F5A48; }
 @media (prefers-reduced-motion: reduce) { .hero[data-state="now"] .hero-cover { animation: none; } }
 /* Выходной: манул на мятной обложке. */
 .hero[data-state="none"] .hero-cover { background: linear-gradient(160deg, #C8F3E2, #6FCFA9); }
+/* Outro: манул сидит на крыше правого корпуса и смотрит на луну. Крыша
+   на обложке — на высоте 214 из 300, отсюда отступ снизу. */
+.hero-cover-outro { position: absolute; right: 1%; bottom: 27%; width: 30%; height: auto; }
 .hero-cover-manul { position: absolute; left: 12%; bottom: 6%; width: 76%; height: 76%; object-fit: contain; }
 .hero[data-state="none"] .hero-cover::before { content: 'Day off'; position: absolute; left: 7%; top: 7%; font-family: var(--font-display); font-weight: 700; font-size: 32px; color: #0A4A38; }
 

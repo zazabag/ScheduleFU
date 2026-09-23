@@ -11,8 +11,8 @@
   </div>
 
   <div class="hero-now">
-    {{/* Обложка «трека» — её показывает «Плеер», остальные оформления прячут. В выходной — манул. */}}
-    <div class="hero-cover">{{if eq .Hero.State "none"}}<img class="hero-cover-manul" src="{{asset "manul.webp"}}" alt="Манул" width="240" height="240" data-manul>{{else}}{{.Hero.Cover}}{{end}}</div>
+    {{/* Обложка «трека» — её показывает «Плеер», остальные оформления прячут. В выходной — манул, после пар он сидит на крыше корпуса. */}}
+    <div class="hero-cover">{{if eq .Hero.State "none"}}<img class="hero-cover-manul" src="{{asset "manul.webp"}}" alt="Манул" width="240" height="240" data-manul>{{else}}{{.Hero.Cover}}{{if eq .Hero.State "after"}}<img class="hero-cover-outro" src="{{asset "manul.webp"}}" alt="Манул" width="120" height="120" data-manul>{{end}}{{end}}</div>
     <span class="hero-label">{{.Hero.Label}}</span>
     {{with .Hero.Lesson}}
     <span class="hero-lesson">{{.Discipline}}</span>
