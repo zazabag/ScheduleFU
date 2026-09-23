@@ -53,3 +53,20 @@ func TestChernovikiNahodyatsyaOtdelnoOtSohranyonnyh(t *testing.T) {
 		t.Errorf("сохранённые: %+v", list)
 	}
 }
+
+func TestUchyotVyzovovModeli(t *testing.T) {
+	r, ctx := testRepo(t)
+	if _, err := r.pool.Exec(ctx, `DELETE FROM llm_calls`); err != nil {
+		t.Fatal(err)
+	}
+	old := domain.LLMCall{At: time.Now().Add(-100 * 24 * time.Hour), Kind: "summary", Model: "m", OK: true, PromptTokens: 10}
+	fresh := domain.LLMCall{At: time.Now(), Kind: "probe", Model: "m", Code: "1304", Message: "лимит"}
+	for _, c := range []domain.LLMCall{old, fresh} {
+		if err := r.LogLLMCall(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n, err := r.CleanupLLMCalls(ctx, 90*24*time.Hour); err != nil || n != 1 {
+		t.Errorf("убрано %d (%v), ожидалась одна старая строка", n, err)
+	}
+}

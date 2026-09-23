@@ -91,7 +91,7 @@ chmod 600 $APP_DIR/env
 
 echo "==> Службы"
 install -d -o $APP_USER -g $APP_USER -m 700 $APP_DIR/audio $APP_DIR/models
-for unit in serve collect notes; do
+for unit in serve collect notes ops; do
   cat > /etc/systemd/system/schedulefu-$unit.service <<UNIT
 [Unit]
 Description=ScheduleFU $unit
@@ -171,7 +171,24 @@ systemctl restart schedulefu-serve schedulefu-collect
 # Обработка записей включается вручную: без моделей она сразу выходит с
 # ошибкой, и systemd крутил бы её по кругу.
 #   systemctl enable --now schedulefu-notes
+# Но включённую — перезапускать при каждой выкатке. До 23.09.2026 здесь её
+# не было, и обработчик полдня работал на старом бинарнике: новый файл на
+# диске не заменяет код уже запущенного процесса.
+if systemctl is-enabled -q schedulefu-notes 2>/dev/null; then
+  systemctl restart schedulefu-notes
+fi
+# Присмотр в Telegram — только когда задан токен бота: без него служба
+# сразу выйдет с ошибкой.
+if grep -q '^SCHEDULEFU_OPS_TELEGRAM_TOKEN=.' $APP_DIR/env; then
+  systemctl enable -q schedulefu-ops
+  systemctl restart schedulefu-ops
+fi
 sleep 3
 systemctl is-active schedulefu-serve schedulefu-collect caddy postgresql | tr '\n' ' '; echo
+for unit in notes ops; do
+  if systemctl is-enabled -q schedulefu-$unit 2>/dev/null; then
+    printf 'schedulefu-%s: ' $unit; systemctl is-active schedulefu-$unit
+  fi
+done
 echo
 echo "Готово: https://$DOMAIN"

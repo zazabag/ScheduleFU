@@ -556,3 +556,25 @@ func (r *Repo) StuckAudio(ctx context.Context, olderThan time.Duration) ([]domai
 	}
 	return out, rows.Err()
 }
+
+// LogLLMCall записывает вызов модели. Ошибка записи учёта не должна ронять
+// конспект, поэтому вызывающий её только логирует.
+func (r *Repo) LogLLMCall(ctx context.Context, c domain.LLMCall) error {
+	_, err := r.pool.Exec(ctx, `INSERT INTO llm_calls
+		(at, kind, model, ok, prompt_tokens, completion_tokens, duration_ms, code, message)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+		c.At, c.Kind, c.Model, c.OK, c.PromptTokens, c.CompletionTokens, c.Duration.Milliseconds(), c.Code, c.Message)
+	if err != nil {
+		return fmt.Errorf("учёт вызова модели: %w", err)
+	}
+	return nil
+}
+
+func (r *Repo) CleanupLLMCalls(ctx context.Context, olderThan time.Duration) (int64, error) {
+	tag, err := r.pool.Exec(ctx, `DELETE FROM llm_calls WHERE at < now() - $1::interval`,
+		fmt.Sprintf("%d seconds", int64(olderThan.Seconds())))
+	if err != nil {
+		return 0, fmt.Errorf("уборка учёта модели: %w", err)
+	}
+	return tag.RowsAffected(), nil
+}

@@ -169,6 +169,8 @@ func (f *fakeRepo) DeleteHomework(context.Context, string, int64) error         
 func (f *fakeRepo) Disciplines(context.Context, string, string) ([]Discipline, error) {
 	return nil, nil
 }
+func (f *fakeRepo) CleanupLLMCalls(context.Context, time.Duration) (int64, error) { return 0, nil }
+
 func (f *fakeRepo) CleanupDrafts(context.Context, time.Duration) (int64, error) { return 0, nil }
 func (f *fakeRepo) StuckAudio(context.Context, time.Duration) ([]domain.Recording, error) {
 	return nil, nil

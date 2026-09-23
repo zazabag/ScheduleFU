@@ -216,6 +216,10 @@ func (s *Service) sweep(ctx context.Context) {
 	} else if n > 0 {
 		s.log.Info("notes: убраны черновики", "сколько", n)
 	}
+	// Учёт вызовов модели нужен для «сколько тратим в неделю», не дольше.
+	if _, err := s.repo.CleanupLLMCalls(ctx, 90*24*time.Hour); err != nil {
+		s.log.Error("notes: уборка учёта модели", "ошибка", err)
+	}
 	stuck, err := s.repo.StuckAudio(ctx, 24*time.Hour)
 	if err != nil {
 		s.log.Error("notes: поиск брошенных записей", "ошибка", err)

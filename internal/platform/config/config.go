@@ -31,6 +31,7 @@ type Config struct {
 	Notes   Notes   `yaml:"notes"`
 	Static  Static  `yaml:"static"`
 	Privacy Privacy `yaml:"privacy"`
+	Ops     Ops     `yaml:"ops"`
 }
 
 // Privacy — функции, которые обязаны выключаться одной строкой.
@@ -142,6 +143,21 @@ type NotesWorker struct {
 	DraftDays int `yaml:"draft_days"`
 }
 
+// Ops — присмотр за сервером: служебный чат в Telegram.
+type Ops struct {
+	// ChatID — служебная группа. Ноль — ещё не задана: бот в ответ на
+	// /start называет id чата и больше ничего не делает.
+	ChatID int64 `yaml:"chat_id"`
+	// TelegramToken живёт только в окружении: SCHEDULEFU_OPS_TELEGRAM_TOKEN.
+	TelegramToken string `yaml:"telegram_token"`
+	// Every — как часто проверять; ProbeEvery — как часто пробовать
+	// нейросеть (проба тратит токены, поэтому реже).
+	Every      time.Duration `yaml:"every"`
+	ProbeEvery time.Duration `yaml:"probe_every"`
+	// DailyAt — утренний отчёт, ЧЧ:ММ в поясе вуза.
+	DailyAt string `yaml:"daily_at"`
+}
+
 // Static — сборка версии для GitHub Pages.
 type Static struct {
 	OutDir  string `yaml:"out_dir"`
@@ -195,6 +211,7 @@ func Default() Config {
 		},
 		Static:  Static{OutDir: "site"},
 		Privacy: Privacy{WhereLecturer: true},
+		Ops:     Ops{Every: 5 * time.Minute, ProbeEvery: 6 * time.Hour, DailyAt: "09:00"},
 	}
 }
 

@@ -123,3 +123,20 @@ func TestPropuskPoRusski(t *testing.T) {
 		t.Errorf("подпись в начале: %q", got)
 	}
 }
+
+// Коды отказов bigmodel.cn переводятся на человеческий: в чат бота уходит
+// не «1113», а что делать.
+func TestKodyOtkazaNeyroseti(t *testing.T) {
+	cases := map[string]string{
+		"1113": "баланс", "1302": "частот", "1303": "частот", "1304": "дневной лимит",
+		"1305": "частот", "1002": "ключ", "1211": "модел", "1301": "фильтр",
+	}
+	for code, want := range cases {
+		if got := LLMHint(code); !strings.Contains(got, want) {
+			t.Errorf("%s: %q, ожидалось со словом %q", code, got, want)
+		}
+	}
+	if LLMHint("9999") != "" {
+		t.Error("неизвестный код получил выдуманное объяснение")
+	}
+}

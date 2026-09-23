@@ -3,6 +3,7 @@
 //	schedulefu serve      страницы, /api/v1, отправка уведомлений
 //	schedulefu collect    проход по источнику (один: -once)
 //	schedulefu notes      обработка записей пар: расшифровка и конспект
+//	schedulefu ops        присмотр за сервером: служебный чат в Telegram
 //	schedulefu seed       справочники из data/*.json
 //	schedulefu static     сборка версии для GitHub Pages
 //	schedulefu vapid      ключи уведомлений
@@ -73,7 +74,7 @@ type command struct {
 
 func usage() {
 	fmt.Fprintln(os.Stderr, "использование: schedulefu <команда> [флаги]")
-	for _, name := range []string{"serve", "collect", "notes", "seed", "static", "vapid", "migrate"} {
+	for _, name := range []string{"serve", "collect", "notes", "ops", "seed", "static", "vapid", "migrate"} {
 		fmt.Fprintf(os.Stderr, "  %-9s %s\n", name, commands[name].help)
 	}
 }
