@@ -121,8 +121,20 @@
         <div class="lesson-discipline">{{.Discipline}}</div>
         <div class="lesson-kind">{{.KindOfWork}}{{if .LecturerName}} · {{.LecturerName}}{{end}}</div>
       </div>
-      <div class="lesson-room{{if .LongRoom}} long{{end}}"><span class="lesson-roomnum">{{if .Room}}{{.Room}}{{else}}—{{end}}</span><span class="lesson-place">{{.Place}}</span></div>
+      <div class="lesson-room{{if .LongRoom}} long{{end}}">{{if .MapHref}}<a class="lesson-roomnum lesson-maplink" href="{{.MapHref}}">{{.Room}}</a>{{else}}<span class="lesson-roomnum">{{if .Room}}{{.Room}}{{else}}—{{end}}</span>{{end}}<span class="lesson-place">{{.Place}}{{if .MapHref}} · план{{end}}</span></div>
       <div class="lesson-status"><span class="lesson-state">{{.StatusLabel}}</span>{{if .Changed}}<span class="lesson-changed">изменено</span>{{end}}</div>
+    </li>
+    {{end}}
+    {{with .Move}}
+    <li class="move"><span class="move-text">Переезд: {{.From}} → {{.To}}</span><span class="move-break">перемена {{.Break}}</span></li>
+    {{end}}
+    {{with .Gap}}
+    <li class="gap">
+      <a class="gap-link" href="{{.Href}}">
+        <span class="gap-time">{{.From}}—{{.To}}</span>
+        <span class="gap-body"><b>Окно {{.Length}}</b><i>{{if .Free}}{{.Free}} {{.Near}}{{else}}где пересидеть{{end}}</i></span>
+        <span class="gap-go">›</span>
+      </a>
     </li>
     {{end}}
     {{end}}
@@ -131,6 +143,7 @@
 
 <footer class="foot">
   <a class="foot-link" href="/calendar.ics?{{.SubjectQuery}}">Подписаться в календаре</a>
+  {{if not .IsLecturer}}<a class="foot-link" href="/together?g={{.Group}}">Общие окна с другой группой</a>{{end}}
   <span class="foot-note">{{if .Freshness}}Обновлено {{.Freshness}} · и{{else}}И{{end}}сточник: расписание вуза</span>
 </footer>
 {{end}}

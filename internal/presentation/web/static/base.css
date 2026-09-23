@@ -188,6 +188,54 @@ body { touch-action: pan-y; }
   column-gap: 12px; row-gap: 2px; align-items: center;
   padding: 12px 14px; border-radius: var(--radius); background: var(--surface);
 }
+.plan-link { display: inline-block; margin: 2px 0 8px; font-size: 13px; color: var(--accent); text-decoration: none; }
+/* Общие окна: сетка неделя × пары. */
+.together-best { padding: 4px var(--pad) 0; }
+.together-best ul { margin: 0; padding: 0 0 0 18px; font-size: 14px; line-height: 1.6; }
+.together-grid { display: flex; flex-direction: column; gap: 4px; padding: 8px var(--pad) 0; }
+.tg-row { display: grid; grid-template-columns: 44px repeat(8, minmax(0, 1fr)); gap: 3px; align-items: center; }
+.tg-day { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.tg-row.today .tg-day { color: var(--accent); font-weight: 700; }
+.tg-slot { font-size: 10px; color: var(--text-3); text-align: center; font-variant-numeric: tabular-nums; }
+.tg-cell { height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; background: var(--surface); color: var(--text-2); }
+.tg-cell.busy { background: var(--busy); }
+.tg-cell.meet { background: var(--ok); }
+.tg-cell.open { background: transparent; border: 1px dashed var(--line); }
+.legend-box.meet { background: var(--ok); }
+.legend-box.open { background: transparent; border: 1px dashed var(--text-3); }
+/* Переезд за перемену: предупреждение, а не карточка. */
+.move { display: flex; justify-content: space-between; gap: 8px; padding: 4px 14px; font-size: 11px; color: var(--warn); }
+.move-break { color: var(--text-3); white-space: nowrap; }
+/* План кампуса: настоящие контуры корпусов в SVG, цвета — из оформления. */
+.plan { padding: 4px var(--pad) 0; }
+.plan-box { display: flex; gap: 8px; align-items: stretch; }
+.plan-svg { flex: 1; min-width: 0; height: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.plan-corp path { fill: var(--surface-2); stroke: var(--text-3); stroke-width: .8; }
+.plan-corp.on path { fill: var(--accent); stroke: var(--accent); }
+.plan-corp-name { font-size: 9px; font-weight: 700; fill: var(--text-2); pointer-events: none; }
+.plan-corp-name.on { fill: var(--accent-ink); }
+.plan-levels { display: flex; flex-direction: column; gap: 3px; width: 34px; }
+.plan-level { flex: 1; min-height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: var(--surface); color: var(--text-2); font-size: 12px; font-weight: 600; text-decoration: none; }
+.plan-level.on { background: var(--accent); color: var(--accent-ink); }
+.plan-hint { margin: 6px 0 0; font-size: 11px; color: var(--text-3); }
+.plan-warn { margin: 8px var(--pad) 0; padding: 10px 12px; border-radius: var(--radius); background: var(--surface); font-size: 13px; color: var(--warn); }
+.plan-notes { padding: 6px var(--pad) 0; font-size: 13px; color: var(--text-2); }
+.plan-notes p { margin: 2px 0; }
+.plan-rooms { display: flex; flex-wrap: wrap; gap: 6px; }
+.plan-roomchip { padding: 4px 9px; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.plan-roomchip.here { background: var(--accent); color: var(--accent-ink); }
+.lesson-maplink { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
+/* Окно между парами: не пара, поэтому пунктир вместо карточки. */
+.gap-link {
+  display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 12px;
+  padding: 10px 14px; border: 1px dashed var(--line); border-radius: var(--radius);
+  color: var(--text-2); text-decoration: none;
+}
+.gap-time { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.gap-body { display: flex; flex-direction: column; min-width: 0; }
+.gap-body b { font-size: 13px; font-weight: 600; color: var(--text); }
+.gap-body i { font-style: normal; font-size: 11px; color: var(--accent); }
+.gap-go { color: var(--text-3); font-size: 18px; }
 .lesson-time { grid-area: time; display: flex; flex-direction: column; font-variant-numeric: tabular-nums; }
 .lesson-from { font-size: 14px; font-weight: 700; }
 .lesson-to { font-size: 11px; color: var(--text-3); }

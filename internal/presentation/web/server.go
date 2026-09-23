@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/zazabag/schedulefu/internal/modules/campus"
 	"github.com/zazabag/schedulefu/internal/modules/notes"
 	"github.com/zazabag/schedulefu/internal/modules/notify"
 	"github.com/zazabag/schedulefu/internal/modules/schedule"
@@ -34,6 +35,8 @@ type Deps struct {
 	Notify   *notify.Service
 	Notes    *notes.Service
 	Clock    *clock.Clock
+	// Campus — план корпусов; nil — раздела плана нет.
+	Campus *campus.Service
 	// NotesReady — настроена ли обработка записей. Раздел «Пары» без неё
 	// показывает конспекты, но не предлагает записать новую пару: обещать
 	// конспект, которого не будет, хуже, чем не предлагать вовсе.
@@ -44,6 +47,10 @@ type Deps struct {
 	// Dev включает параметр ?now=ЧЧ:ММ на экране дня: иначе состояние «пара
 	// идёт» можно увидеть только дождавшись пары. В бою параметр игнорируется.
 	Dev bool
+	// HideWhereLecturer выключает «где преподаватель сейчас»: карточка
+	// преподавателя уводит на его расписание недели. Нулевое значение —
+	// функция включена, как и было до выключателя.
+	HideWhereLecturer bool
 }
 
 // Server — страницы.
@@ -57,7 +64,7 @@ type Server struct {
 func New(d Deps) (*Server, error) {
 	funcs := template.FuncMap{"asset": AssetURL, "skinCSS": func(id string) string { return AssetURL("skins/" + id + ".css") }}
 	pages := map[string]*template.Template{}
-	for _, name := range []string{"rooms", "shared", "schedule", "lessons", "lecturers", "settings"} {
+	for _, name := range []string{"rooms", "window", "together", "shared", "map", "schedule", "lessons", "lecturers", "settings"} {
 		// hero.html — общий верхний блок дня: его рисуют и экран расписания,
 		// и экран «где преподаватель».
 		t, err := template.New("base").Funcs(funcs).ParseFS(templateFS, "templates/base.html", "templates/hero.html", "templates/onboard.html", "templates/"+name+".html")
@@ -84,12 +91,14 @@ func (s *Server) Routes() http.Handler {
 	})
 	mux.HandleFunc("GET /schedule", s.schedule)
 	mux.HandleFunc("GET /rooms", s.rooms)
+	mux.HandleFunc("GET /together", s.together)
+	mux.HandleFunc("GET /map", s.plan)
+	mux.HandleFunc("GET /n/{token}", s.sharedNote)
+	mux.HandleFunc("POST /n/{token}", s.saveSharedNote)
 	mux.HandleFunc("GET /lessons", s.lessons)
 	mux.HandleFunc("POST /lessons", s.lessonsAction)
 	mux.HandleFunc("POST /lessons/upload", s.lessonsUpload)
 	mux.HandleFunc("GET /groups", s.groups)
-	mux.HandleFunc("GET /n/{token}", s.sharedNote)
-	mux.HandleFunc("POST /n/{token}", s.saveSharedNote)
 	mux.HandleFunc("GET /lecturers", s.lecturers)
 	mux.HandleFunc("GET /settings", s.settings)
 	mux.HandleFunc("POST /settings", s.settings)

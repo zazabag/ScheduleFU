@@ -13,6 +13,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/zazabag/schedulefu/internal/modules/campus"
 	"github.com/zazabag/schedulefu/internal/modules/export"
 	"github.com/zazabag/schedulefu/internal/modules/notes"
 	notesasr "github.com/zazabag/schedulefu/internal/modules/notes/infrastructure/asr"
@@ -167,8 +168,13 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger, _ any) erro
 		_, _ = w.Write([]byte(body))
 	}
 
-	site, err := web.New(web.Deps{Schedule: a.schedule, Notify: a.notify, Notes: a.notes, NotesReady: cfg.NotesReady(),
-		Clock: a.clock, BuildingLabel: buildingLabel, Calendar: calendar, Dev: cfg.Stand.Env == "dev"})
+	plans, err := campus.Load()
+	if err != nil {
+		return err
+	}
+	site, err := web.New(web.Deps{Schedule: a.schedule, Notify: a.notify, Notes: a.notes, NotesReady: cfg.NotesReady(), Campus: plans,
+		Clock: a.clock, BuildingLabel: buildingLabel, Calendar: calendar, Dev: cfg.Stand.Env == "dev",
+		HideWhereLecturer: !cfg.Privacy.WhereLecturer})
 	if err != nil {
 		return err
 	}
@@ -176,7 +182,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger, _ any) erro
 	// транспорт не импортирует, поэтому их связывает composition root.
 	jsonAPI := api.New(api.Deps{Schedule: a.schedule, Notify: a.notify, Notes: a.notes, NotesReady: cfg.NotesReady(),
 		Clock: a.clock, PushKey: a.keys.Public, StandEnv: cfg.Stand.Env, Calendar: calendar,
-		ResolveLesson: site.ResolveLesson})
+		ResolveLesson: site.ResolveLesson, HideWhereLecturer: !cfg.Privacy.WhereLecturer})
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/", jsonAPI.Routes())

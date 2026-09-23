@@ -23,13 +23,25 @@ import (
 // Теги yaml задают ключ в файле; имя переменной окружения выводится из
 // пути: modules.notify.vapid_private -> SCHEDULEFU_NOTIFY_VAPID_PRIVATE.
 type Config struct {
-	Stand  Stand  `yaml:"stand"`
-	HTTP   HTTP   `yaml:"http"`
-	DB     DB     `yaml:"db"`
-	Source Source `yaml:"source"`
-	Notify Notify `yaml:"notify"`
-	Notes  Notes  `yaml:"notes"`
-	Static Static `yaml:"static"`
+	Stand   Stand   `yaml:"stand"`
+	HTTP    HTTP    `yaml:"http"`
+	DB      DB      `yaml:"db"`
+	Source  Source  `yaml:"source"`
+	Notify  Notify  `yaml:"notify"`
+	Notes   Notes   `yaml:"notes"`
+	Static  Static  `yaml:"static"`
+	Privacy Privacy `yaml:"privacy"`
+}
+
+// Privacy — функции, которые обязаны выключаться одной строкой.
+//
+// WhereLecturer — ответ «где преподаватель сейчас». Данные публичные, но
+// собранный ответ о местонахождении человека — не то же самое, что
+// расписание группы, и при распространении сервиса вопросы возникнут к
+// нему первым (CLAUDE.md, ограничения). Выключенный, он оставляет
+// расписание преподавателя на неделю — ровно то, что показывает сам вуз.
+type Privacy struct {
+	WhereLecturer bool `yaml:"where_lecturer"`
 }
 
 // Stand — паспорт контура: отдаётся в /healthz, чтобы отличать прод от
@@ -181,7 +193,8 @@ func Default() Config {
 			},
 			Worker: NotesWorker{Idle: 20 * time.Second, Retry: 10 * time.Minute, Attempts: 3, DraftDays: 14},
 		},
-		Static: Static{OutDir: "site"},
+		Static:  Static{OutDir: "site"},
+		Privacy: Privacy{WhereLecturer: true},
 	}
 }
 

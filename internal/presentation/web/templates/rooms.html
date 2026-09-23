@@ -8,6 +8,8 @@
     </div>
     <div class="clock">{{.Clock}}</div>
   </div>
+  <a class="plan-link" href="{{.PlanHref}}">Другая пара или день, нужное число мест ›</a>
+  {{if .HasPlan}}<a class="plan-link" href="/map">План кампуса ›</a>{{end}}
   <div class="tabs">
     {{range .Sites}}<a class="tab {{if .On}}on{{end}}" href="{{.Href}}">{{.Label}}</a>{{end}}
   </div>

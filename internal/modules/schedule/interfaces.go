@@ -40,6 +40,8 @@ type Repository interface {
 	Days(ctx context.Context) ([]time.Time, error)
 	LessonsOn(ctx context.Context, date time.Time) ([]domain.Lesson, error)
 	Auditoriums(ctx context.Context) ([]domain.Auditorium, error)
+	// Auditorium — одна аудитория по oid: якорь «где пересидеть окно».
+	Auditorium(ctx context.Context, oid int64) (domain.Auditorium, bool, error)
 	GroupNames(ctx context.Context) ([]string, error)
 	Lecturers(ctx context.Context) ([]domain.Lecturer, error)
 

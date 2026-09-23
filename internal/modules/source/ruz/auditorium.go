@@ -37,8 +37,9 @@ const (
 	floorUnknown floorRule = iota
 	// floorFirstOfThree: "423" -> 4 этаж. Ленинградский 49/2.
 	floorFirstOfThree
-	// floorSecondOfFourLeadingZero: "0312" -> 3 этаж. Ленинградский 51 к.1.
-	floorSecondOfFourLeadingZero
+	// floorFirstTwoOfFour: "0312" -> 3 этаж, "1001" -> 10. Ленинградский
+	// 51 к.1: этаж — первые две цифры, до десятого с ведущим нулём.
+	floorFirstTwoOfFour
 )
 
 // floorRuleByPrefix привязывает правило к префиксу имени аудитории.
@@ -46,7 +47,7 @@ const (
 // записан по-разному, а префикс формируется системой расписания.
 var floorRuleByPrefix = map[string]floorRule{
 	"ЛП49/2": floorFirstOfThree,
-	"ЛП51_1": floorSecondOfFourLeadingZero,
+	"ЛП51_1": floorFirstTwoOfFour,
 	"ЛП51_4": floorUnknown,
 	"Киб1_1": floorUnknown, // "31" — то ли 3 этаж, то ли комната 31
 	"Киб1_2": floorUnknown, // "1002" — этажность здания не подтверждена
@@ -61,7 +62,7 @@ var floorRuleByPrefix = map[string]floorRule{
 var floorRuleByBuilding = map[string]floorRule{
 	"Ленинградский проспект, 49/2":           floorFirstOfThree,
 	"Ленинградский проспект, 55":             floorFirstOfThree,
-	"Ленинградский проспект, 51, корп. 1":    floorSecondOfFourLeadingZero,
+	"Ленинградский проспект, 51, корп. 1":    floorFirstTwoOfFour,
 	"Ленинградский проспект, 51, строение 4": floorUnknown,
 }
 
@@ -138,9 +139,13 @@ func parseFloor(prefix, building, room string) *int {
 		if len(digits) == 3 {
 			return intPtr(int(digits[0] - '0'))
 		}
-	case floorSecondOfFourLeadingZero:
-		if len(digits) == 4 && digits[0] == '0' {
-			return intPtr(int(digits[1] - '0'))
+	case floorFirstTwoOfFour:
+		// Двузначный этаж, а не «вторая цифра»: иначе десятый этаж
+		// оставался бы без этажа (1001), а с первой цифрой — был бы первым.
+		if len(digits) == 4 {
+			if f := int(digits[0]-'0')*10 + int(digits[1]-'0'); f > 0 {
+				return intPtr(f)
+			}
 		}
 	}
 	return nil

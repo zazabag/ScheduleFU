@@ -35,6 +35,9 @@ type Deps struct {
 	Calendar http.HandlerFunc
 	// NotesReady — настроена ли обработка записей.
 	NotesReady bool
+	// HideWhereLecturer снимает ручку «где преподаватель сейчас» целиком:
+	// выключенная функция не должна отвечать даже пустым ответом.
+	HideWhereLecturer bool
 	// ResolveLesson собирает слепок пары по предмету и выбранному времени.
 	// Приходит снаружи, потому что живёт в web, а транспорт транспорт не
 	// импортирует; связывает их composition root.
@@ -50,7 +53,9 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /api/v1/health", s.health)
 	mux.HandleFunc("GET /api/v1/free", s.free)
 	mux.HandleFunc("GET /api/v1/schedule", s.schedule)
-	mux.HandleFunc("GET /api/v1/lecturer/{oid}/where", s.where)
+	if !s.d.HideWhereLecturer {
+		mux.HandleFunc("GET /api/v1/lecturer/{oid}/where", s.where)
+	}
 	mux.HandleFunc("GET /api/v1/changes", s.changes)
 	mux.HandleFunc("GET /api/v1/push/key", s.pushKey)
 	mux.HandleFunc("POST /api/v1/push/subscribe", s.subscribe)

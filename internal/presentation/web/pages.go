@@ -28,6 +28,10 @@ type chip struct {
 // ─── свободные аудитории ─────────────────────────────────────────────────────
 
 func (s *Server) rooms(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("from") != "" {
+		s.roomsWindow(w, r)
+		return
+	}
 	site := r.URL.Query().Get("site")
 	if site == "" {
 		site = "leningradsky"
@@ -131,7 +135,7 @@ func (s *Server) rooms(w http.ResponseWriter, r *http.Request) {
 		"Today": clock.DateRu(at) + " · " + clock.WeekdayRu(at), "Date": dateInfo(at, s.d.Clock.Today()),
 		"SiteLabel": label, "FreeCount": sum.FreeNow, "TotalCount": total, "BusyCount": total - sum.FreeNow, "FreePct": pct,
 		"Sites": tabs, "Floors": chips, "Groups": groups, "HasRooms": len(groups) > 0, "Freshness": s.freshness(r),
-		"Summary": sum, "Bars": bars, "Sentence": sentence, "FloorFilter": floor, "SiteSlug": template.URL(url.QueryEscape(site)),
+		"HasPlan": s.d.Campus != nil && site == "leningradsky", "Summary": sum, "Bars": bars, "Sentence": sentence, "PlanHref": planHref(site, at, sum), "FloorFilter": floor, "SiteSlug": template.URL(url.QueryEscape(site)),
 	})
 }
 
@@ -178,6 +182,13 @@ type lessonRow struct {
 	Changed                                                      bool // деканат правил пару недавно
 	LongRoom                                                     bool // название, а не номер: показывать мельче
 	Subgroup                                                     string
+	AuditoriumOid                                                int64        // якорь «где пересидеть окно»
+	MapHref                                                      template.URL // аудитория на плане корпуса
+	// Gap — окно после этой пары: разрыв хотя бы в одну пару до следующей.
+	Gap *gapView
+	// Move — следующая пара на другой площадке, а между ними перемена, не
+	// окно: об этом надо знать заранее, а не на выходе из аудитории.
+	Move *moveView
 	// Variants — пары того же слота: подгруппы английского или несколько
 	// дисциплин на выбор. Карточка одна, раскрывается по касанию.
 	Variants   []lessonRow
@@ -190,6 +201,10 @@ func (s *Server) lessonRow(l sched.Lesson, subj sched.Subject) lessonRow {
 		KindOfWork: shortKind(l.KindOfWork), LecturerName: l.LecturerName, Room: roomShort(l.Auditorium),
 		Groups: strings.Join(baseGroups(l.GroupNames), ", "), Subgroup: l.Subgroup}
 	row.Place = s.d.BuildingLabel(l.Building)
+	row.MapHref = s.mapHref(l.Building, l.Auditorium)
+	if l.AuditoriumOid != nil {
+		row.AuditoriumOid = *l.AuditoriumOid
+	}
 	row.LongRoom = len([]rune(row.Room)) > 6
 	// У преподавателя в строке пары полезен состав групп, а не его имя.
 	// Языковой поток группы не называет — тогда честнее подгруппа, чем
@@ -442,6 +457,8 @@ func (s *Server) schedule(w http.ResponseWriter, r *http.Request) {
 	}
 	rows = stackSlots(rows)
 	markStatuses(rows, dateKey, todayKey, now)
+	s.markWindows(r.Context(), rows, date, dateKey, todayKey, now)
+	markMoves(rows)
 	h := s.buildHero(rows, dateKey == todayKey, now, subj.Kind == sched.SubjectLecturer)
 	// Пустой день: куда смотреть дальше — ближайший день с парами.
 	if len(rows) == 0 {
@@ -461,6 +478,91 @@ func (s *Server) schedule(w http.ResponseWriter, r *http.Request) {
 	data["ChangeHref"] = map[bool]string{true: "/lecturers", false: "/groups"}[subj.Kind == sched.SubjectLecturer]
 	data["Clock"] = now
 	s.render(w, r, "schedule", data)
+}
+
+// gapView — окно между парами и где его пересидеть.
+type gapView struct {
+	From, To, Length string
+	Free             string // «14 свободных»; пусто — не считали
+	Near             string // «рядом с 0512»
+	Href             template.URL
+}
+
+// moveView — переезд между площадками.
+type moveView struct {
+	From, To, Break string
+}
+
+// markMoves помечает переезды между площадками за перемену. Время в пути
+// не пишем: замеров дороги между корпусами у нас нет, а угаданное число
+// хуже честного «перерыв 10 минут, пара в другом корпусе». Окно — не
+// переезд в спешке: там предупреждает карточка окна.
+func markMoves(rows []lessonRow) {
+	for i := 0; i+1 < len(rows); i++ {
+		cur, next := rows[i], rows[i+1]
+		if cur.Place == "" || next.Place == "" || cur.Place == next.Place || sched.IsWindow(cur.EndsAt, next.BeginsAt) {
+			continue
+		}
+		gap := sched.Minutes(next.BeginsAt) - sched.Minutes(cur.EndsAt)
+		if gap < 0 {
+			continue
+		}
+		rows[i].Move = &moveView{From: cur.Place, To: next.Place, Break: durationRu(gap)}
+	}
+}
+
+// markWindows помечает окна между парами дня и считает, сколько аудиторий
+// свободно всё окно рядом с аудиторией следующей пары: туда человеку идти
+// дальше. Прошедшие окна не считаются; окно, идущее сейчас, — с текущей
+// минуты, иначе в него попадут аудитории, занятые до этого момента.
+func (s *Server) markWindows(ctx context.Context, rows []lessonRow, date time.Time, dateKey, todayKey, now string) {
+	if dateKey < todayKey {
+		return
+	}
+	for i := 0; i+1 < len(rows); i++ {
+		cur, next := rows[i], rows[i+1]
+		if !sched.IsWindow(cur.EndsAt, next.BeginsAt) {
+			continue
+		}
+		from := cur.EndsAt
+		if dateKey == todayKey {
+			if next.BeginsAt <= now {
+				continue
+			}
+			if from < now {
+				from = now
+			}
+		}
+		anchor, room := next.AuditoriumOid, next.Room
+		if anchor == 0 {
+			anchor, room = cur.AuditoriumOid, cur.Room
+		}
+		g := &gapView{From: cur.EndsAt, To: next.BeginsAt, Length: durationRu(sched.Minutes(next.BeginsAt) - sched.Minutes(cur.EndsAt))}
+		q := url.Values{"date": {dateKey}, "from": {from}, "to": {next.BeginsAt}}
+		if anchor > 0 {
+			q.Set("near", strconv.FormatInt(anchor, 10))
+			if w, err := s.d.Schedule.FreeWindow(ctx, "", date, from, next.BeginsAt, anchor, 0); err == nil && w.Anchor != nil {
+				g.Free = pluralN(len(w.Rooms), "свободная", "свободные", "свободных")
+				if room != "" {
+					g.Near = "рядом с " + room
+				}
+			}
+		}
+		g.Href = template.URL("/rooms?" + q.Encode())
+		rows[i].Gap = g
+	}
+}
+
+// durationRu: «1 ч 50 мин», «2 ч», «40 мин».
+func durationRu(min int) string {
+	h, m := min/60, min%60
+	switch {
+	case h == 0:
+		return strconv.Itoa(m) + " мин"
+	case m == 0:
+		return strconv.Itoa(h) + " ч"
+	}
+	return strconv.Itoa(h) + " ч " + strconv.Itoa(m) + " мин"
 }
 
 // weekRange: «21—27 сентября», а на стыке месяцев — «28 сентября — 4 октября».
@@ -1070,6 +1172,10 @@ func (s *Server) lecturers(w http.ResponseWriter, r *http.Request) {
 	oid, err := strconv.ParseInt(oidParam, 10, 64)
 	if err != nil || oid <= 0 {
 		http.Error(w, "некорректный идентификатор преподавателя", http.StatusBadRequest)
+		return
+	}
+	if s.d.HideWhereLecturer {
+		http.Redirect(w, r, "/schedule?"+sched.LecturerSubject(oid).Query(), http.StatusSeeOther)
 		return
 	}
 	_, lessons, err := s.d.Schedule.WhereIsLecturer(r.Context(), oid, now)
