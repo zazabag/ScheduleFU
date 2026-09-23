@@ -19,10 +19,15 @@ MODEL_REPO="${MODEL_REPO:-csukuangfj/sherpa-onnx-nemo-transducer-giga-am-v3-russ
 MODEL_DIR="$APP_DIR/models/gigaam-v3"
 SHERPA_DIR="$APP_DIR/sherpa"
 
-echo "==> ffmpeg"
-if ! command -v ffmpeg >/dev/null; then
+echo "==> ffmpeg и bzip2"
+# bzip2 нужен, чтобы распаковать релиз sherpa-onnx (.tar.bz2): на минимальном
+# сервере его нет, а tar без него падает с «lbzip2: Cannot exec».
+need=""
+command -v ffmpeg >/dev/null || need="$need ffmpeg"
+command -v bzip2  >/dev/null || need="$need bzip2"
+if [ -n "$need" ]; then
   apt-get update -qq
-  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $need
 fi
 ffmpeg -version | head -1
 
@@ -34,7 +39,9 @@ if [ ! -x "$SHERPA_DIR/bin/sherpa-onnx-vad-with-offline-asr" ]; then
   NAME="sherpa-onnx-$SHERPA_VERSION-linux-x64-shared-no-tts"
   curl -fsSL -o "$TMP/sherpa.tar.bz2" \
     "https://github.com/k2-fsa/sherpa-onnx/releases/download/$SHERPA_VERSION/$NAME.tar.bz2"
-  tar -xf "$TMP/sherpa.tar.bz2" -C "$TMP"
+  # Явно через bzip2: на разных сборках tar по-разному выбирает распаковщик
+  # для .bz2 (где-то дёргает отсутствующий lbzip2), а пайп однозначен.
+  bzip2 -dc "$TMP/sherpa.tar.bz2" | tar -x -C "$TMP"
   rm -rf "$SHERPA_DIR"
   mkdir -p "$SHERPA_DIR"
   cp -r "$TMP/$NAME/bin" "$TMP/$NAME/lib" "$SHERPA_DIR/"
