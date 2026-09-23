@@ -91,3 +91,22 @@ func TestGdePrepodavatelVklyuchenIVyklyuchaetsyaOkruzheniem(t *testing.T) {
 		t.Error("выключатель из окружения не сработал")
 	}
 }
+
+// Время отчётов бота сравнивается строками: «9:00» без нуля сдвинуло бы
+// отчёт молча, поэтому такой конфиг не запускается.
+func TestVremyaOtchyotovTolkoChChMM(t *testing.T) {
+	cfg := Default()
+	if cfg.Ops.ReportAt != "09:00,21:00" {
+		t.Errorf("по умолчанию: %q", cfg.Ops.ReportAt)
+	}
+	for _, bad := range []string{"9:00,21:00", "09:00,", ""} {
+		cfg.Ops.ReportAt = bad
+		if cfg.Validate() == nil {
+			t.Errorf("%q принято", bad)
+		}
+	}
+	cfg.Ops.ReportAt = "08:30, 20:00"
+	if err := cfg.Validate(); err != nil {
+		t.Errorf("пробел после запятой: %v", err)
+	}
+}

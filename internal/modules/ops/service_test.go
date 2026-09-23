@@ -139,27 +139,60 @@ func TestKomandyTolkoIzSvoegoChata(t *testing.T) {
 	}
 }
 
-// Утренний отчёт — раз в день, в заданное время, даже если всё хорошо:
-// тишина иначе неотличима от умершего бота.
-func TestUtrenniyOtchyotRazVDen(t *testing.T) {
+// Отчёт — утром и вечером, в заданное время, и каждый только раз: чаще
+// автор просил не писать (23.09.2026) — сообщения тонули бы в шуме.
+func TestOtchyotUtromIVecherom(t *testing.T) {
 	s, chat, _, _ := newOps(t, -100)
-	loc := time.UTC
-	s.opts.DailyAt = "09:00"
-	morning := time.Date(2026, 9, 24, 9, 1, 0, 0, loc)
-	if s.dailyDue(time.Date(2026, 9, 24, 8, 59, 0, 0, loc)) {
-		t.Fatal("отчёт раньше времени")
+	s.opts.ReportAt = "09:00,21:00"
+	day := func(h, m int) time.Time { return time.Date(2026, 9, 24, h, m, 0, 0, time.UTC) }
+	if _, due := s.reportDue(day(8, 59)); due {
+		t.Fatal("отчёт раньше утра")
 	}
-	if !s.dailyDue(morning) {
-		t.Fatal("отчёт не пришёл в срок")
+	slot, due := s.reportDue(day(9, 1))
+	if !due {
+		t.Fatal("утреннего отчёта нет")
 	}
-	s.Daily(context.Background(), morning)
-	if s.dailyDue(morning.Add(3 * time.Hour)) {
-		t.Error("второй отчёт в тот же день")
+	s.Report(context.Background(), day(9, 1), slot)
+	if _, due := s.reportDue(day(14, 0)); due {
+		t.Error("второй утренний отчёт")
 	}
-	if !s.dailyDue(morning.Add(24 * time.Hour)) {
-		t.Error("на следующий день отчёта нет")
+	slot, due = s.reportDue(day(21, 5))
+	if !due {
+		t.Fatal("вечернего отчёта нет")
 	}
-	if got := chat.take(); len(got) != 1 || !strings.Contains(got[0].text, "Утренний отчёт") {
-		t.Errorf("отчёт: %+v", got)
+	s.Report(context.Background(), day(21, 5), slot)
+	if _, due := s.reportDue(day(23, 30)); due {
+		t.Error("второй вечерний отчёт")
+	}
+	if _, due := s.reportDue(day(9, 1).Add(24 * time.Hour)); !due {
+		t.Error("на следующее утро отчёта нет")
+	}
+	got := chat.take()
+	if len(got) != 2 || !strings.Contains(got[0].text, "Утренний отчёт") || !strings.Contains(got[1].text, "Вечерний отчёт") {
+		t.Errorf("отчёты: %+v", got)
+	}
+}
+
+// Бот перезапускается при каждой выкатке, а выкатки идут пачками — отчёт
+// при каждом запуске превращал чат в ленту (23.09.2026: шесть за час).
+// Запуск молчит, если всё в порядке, и называет только то, что уже сломано.
+func TestZapuskMolchitKogdaVsyoVPoryadke(t *testing.T) {
+	s, chat, _, _ := newOps(t, -100)
+	s.Start(context.Background())
+	if got := chat.take(); len(got) != 0 {
+		t.Fatalf("при здоровом запуске сообщения: %+v", got)
+	}
+
+	s2, chat2, host2, _ := newOps(t, -100)
+	host2.siteErr = errors.New("connection refused")
+	s2.Start(context.Background())
+	got := chat2.take()
+	if len(got) != 1 || !strings.Contains(got[0].text, "сайт не отвечает") {
+		t.Fatalf("запуск с поломкой: %+v", got)
+	}
+	// Уже названная при запуске поломка — не новость для первой проверки.
+	s2.Check(context.Background())
+	if got := chat2.take(); len(got) != 0 {
+		t.Errorf("поломка повторена после запуска: %+v", got)
 	}
 }

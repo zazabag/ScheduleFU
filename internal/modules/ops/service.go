@@ -23,8 +23,9 @@ type Options struct {
 	// запрос к нейросети: он тратит токены, поэтому реже проверок.
 	Every      time.Duration
 	ProbeEvery time.Duration
-	// DailyAt — время утреннего отчёта, «ЧЧ:ММ» в поясе Location.
-	DailyAt  string
+	// ReportAt — когда присылать отчёт: «ЧЧ:ММ» через запятую, в поясе
+	// Location. Автор просил утром и вечером — чаще отчёт тонет в шуме.
+	ReportAt string
 	Location *time.Location
 	Now      func() time.Time
 }
@@ -38,10 +39,10 @@ type Service struct {
 	log   *slog.Logger
 	opts  Options
 
-	mu        sync.Mutex
-	active    map[string]string // текущие тревоги: ключ → текст
-	lastProbe domain.LLM        // только поля пробы
-	lastDaily string            // дата последнего утреннего отчёта
+	mu         sync.Mutex
+	active     map[string]string // текущие тревоги: ключ → текст
+	lastProbe  domain.LLM        // только поля пробы
+	lastReport string            // последний отправленный отчёт: «дата слот»
 }
 
 // New собирает присмотр.
@@ -52,8 +53,8 @@ func New(chat Messenger, host Host, store Store, probe Prober, log *slog.Logger,
 	if opts.ProbeEvery <= 0 {
 		opts.ProbeEvery = 6 * time.Hour
 	}
-	if opts.DailyAt == "" {
-		opts.DailyAt = "09:00"
+	if opts.ReportAt == "" {
+		opts.ReportAt = "09:00,21:00"
 	}
 	if opts.Location == nil {
 		opts.Location = time.UTC
@@ -67,22 +68,11 @@ func New(chat Messenger, host Host, store Store, probe Prober, log *slog.Logger,
 
 func (s *Service) now() time.Time { return s.opts.Now().In(s.opts.Location) }
 
-// Run крутит присмотр, пока жив контекст: проверки, пробы, утренний отчёт
+// Run крутит присмотр, пока жив контекст: проверки, пробы, отчёты утром и вечером
 // и ответы на команды.
 func (s *Service) Run(ctx context.Context) error {
 	updates := s.chat.Updates(ctx)
-	s.Probe(ctx)
-	// Первая проверка — молча: тревоги, которые уже горят, бот назовёт
-	// сообщением о запуске, а не пачкой «новых поломок».
-	st := s.Snapshot(ctx)
-	s.mu.Lock()
-	for _, p := range st.Problems() {
-		s.active[p.Key] = p.Text
-	}
-	s.mu.Unlock()
-	if s.opts.ChatID != 0 {
-		s.send(ctx, "🤖 <b>Присмотр запущен</b>\n\n"+st.Format())
-	}
+	s.Start(ctx)
 
 	check := time.NewTicker(s.opts.Every)
 	defer check.Stop()
@@ -102,8 +92,9 @@ func (s *Service) Run(ctx context.Context) error {
 			s.Probe(ctx)
 		case <-check.C:
 			s.Check(ctx)
-			if now := s.now(); s.dailyDue(now) {
-				s.Daily(ctx, now)
+			now := s.now()
+			if slot, due := s.reportDue(now); due {
+				s.Report(ctx, now, slot)
 			}
 		}
 	}
@@ -184,21 +175,60 @@ func (s *Service) Probe(ctx context.Context) {
 	s.mu.Unlock()
 }
 
-// dailyDue — пора ли утреннего отчёта: время наступило, а сегодня его ещё
-// не было.
-func (s *Service) dailyDue(now time.Time) bool {
+// Start — запуск: проба нейросети и первая проверка.
+//
+// Бот перезапускается при каждой выкатке, а выкатки идут пачками — отчёт
+// при каждом запуске превращал чат в ленту (23.09.2026: шесть за час).
+// Поэтому запуск молчит, если всё в порядке, и называет только то, что уже
+// сломано. Названное запоминается: первая проверка не повторит его как
+// новую поломку.
+func (s *Service) Start(ctx context.Context) {
+	s.Probe(ctx)
+	problems := s.Snapshot(ctx).Problems()
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	return now.Format("15:04") >= s.opts.DailyAt && s.lastDaily != now.Format("2006-01-02")
+	for _, p := range problems {
+		s.active[p.Key] = p.Text
+	}
+	s.mu.Unlock()
+	if len(problems) == 0 {
+		return
+	}
+	var b strings.Builder
+	b.WriteString("⚠️ <b>При запуске уже не работает</b>\n")
+	for _, p := range problems {
+		b.WriteString("• " + escape(p.Text) + "\n")
+	}
+	s.send(ctx, b.String())
 }
 
-// Daily — утренний отчёт. Приходит и когда всё хорошо: тишина иначе
-// неотличима от умершего бота.
-func (s *Service) Daily(ctx context.Context, now time.Time) {
+// reportDue — пора ли отчёта: последний наступивший слот из ReportAt, по
+// которому сегодня ещё не отчитывались.
+func (s *Service) reportDue(now time.Time) (string, bool) {
+	hhmm, slot := now.Format("15:04"), ""
+	for _, t := range strings.Split(s.opts.ReportAt, ",") {
+		if t = strings.TrimSpace(t); t != "" && hhmm >= t && t > slot {
+			slot = t
+		}
+	}
+	if slot == "" {
+		return "", false
+	}
 	s.mu.Lock()
-	s.lastDaily = now.Format("2006-01-02")
+	defer s.mu.Unlock()
+	return slot, s.lastReport != now.Format("2006-01-02")+" "+slot
+}
+
+// Report — отчёт по расписанию. Приходит и когда всё хорошо: тишина иначе
+// неотличима от умершего бота.
+func (s *Service) Report(ctx context.Context, now time.Time, slot string) {
+	s.mu.Lock()
+	s.lastReport = now.Format("2006-01-02") + " " + slot
 	s.mu.Unlock()
-	s.send(ctx, "☀️ <b>Утренний отчёт</b>\n\n"+s.Snapshot(ctx).Format())
+	title := "☀️ <b>Утренний отчёт</b>"
+	if slot >= "15:00" {
+		title = "🌙 <b>Вечерний отчёт</b>"
+	}
+	s.send(ctx, title+"\n\n"+s.Snapshot(ctx).Format())
 }
 
 // Handle отвечает на команду из чата.
@@ -228,7 +258,8 @@ func (s *Service) Handle(ctx context.Context, cmd Command) {
 		s.send(ctx, s.Snapshot(ctx).LLM.Format())
 	case "help":
 		s.send(ctx, "/status — состояние сервера\n/llm — нейросеть: проба сейчас и расход\n\n"+
-			"Сам бот пишет, когда что-то ломается и когда чинится, и присылает утренний отчёт в "+s.opts.DailyAt+".")
+			"Сам бот пишет, когда что-то ломается и когда чинится, и присылает отчёт в "+
+			strings.ReplaceAll(s.opts.ReportAt, ",", " и ")+".")
 	}
 }
 
