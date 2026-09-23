@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	ndom "github.com/zazabag/schedulefu/internal/modules/notes/domain"
 	sched "github.com/zazabag/schedulefu/internal/modules/schedule/domain"
@@ -28,6 +29,21 @@ type startRequest struct {
 	Lesson string `json:"lesson"`
 }
 
+// startSubject собирает владельца расписания из запроса.
+//
+// Пустую группу нельзя отдавать в GroupSubject напрямую: он всегда ставит
+// вид «группа», и «group:» с пустым именем прошёл бы проверку IsZero, а
+// запись завелась бы ничьей. Поэтому пустое имя — это «не выбрано».
+func startSubject(req startRequest) sched.Subject {
+	if req.Lecturer > 0 {
+		return sched.LecturerSubject(req.Lecturer)
+	}
+	if strings.TrimSpace(req.Group) != "" {
+		return sched.GroupSubject(req.Group)
+	}
+	return sched.Subject{}
+}
+
 type recordingResponse struct {
 	ID       int64  `json:"id"`
 	Status   string `json:"status"`
@@ -49,10 +65,7 @@ func (s *Server) notesStart(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	subj := sched.GroupSubject(req.Group)
-	if req.Lecturer > 0 {
-		subj = sched.LecturerSubject(req.Lecturer)
-	}
+	subj := startSubject(req)
 	if subj.IsZero() {
 		writeError(w, http.StatusBadRequest, "не указано, чьё это расписание")
 		return
