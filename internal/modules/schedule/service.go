@@ -2,8 +2,11 @@ package schedule
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -27,6 +30,12 @@ type Options struct {
 	// OnlyStudySpaces — опрашивать только учебные аудитории. Спортзалы и
 	// чужие помещения дают запросы, которые никому не нужны.
 	OnlyStudySpaces bool
+	// GroupLookups — потолок поисковых запросов за проход при пополнении
+	// справочника групп. Обычно новых групп единицы; потолок нужен на
+	// случай первого прохода по неполному справочнику: не больше запросов,
+	// чем в одном обычном обходе аудиторий (~630), чтобы нагрузка на вуз
+	// не выходила за привычную.
+	GroupLookups int
 }
 
 // Service — сервис модуля.
@@ -37,6 +46,66 @@ type Service struct {
 	log      *slog.Logger
 	opts     Options
 	Notifier Notifier
+
+	// missed — группы, которых поиск вуза не нашёл, и когда. Живёт в
+	// памяти процесса сборщика: он крутится сутками, а после перезапуска
+	// один лишний запрос на группу не страшен.
+	missMu sync.Mutex
+	missed map[string]time.Time
+
+	// pausedUntil — до какого момента не ходить к вузу вовсе: он ответил
+	// 429 или 403. Общая для сборщика и ленивой привязки групп.
+	pauseMu     sync.Mutex
+	pausedUntil time.Time
+}
+
+// ErrPaused — вуз недавно попросил сбавить темп, и пауза ещё идёт.
+var ErrPaused = errors.New("источник на паузе после отказа")
+
+// PausedUntil — до какого момента к вузу не ходим; ok — пауза идёт.
+func (s *Service) PausedUntil() (time.Time, bool) {
+	s.pauseMu.Lock()
+	defer s.pauseMu.Unlock()
+	return s.pausedUntil, s.clock.Now().Before(s.pausedUntil)
+}
+
+// checkPause возвращает ErrPaused, пока пауза не кончилась.
+func (s *Service) checkPause() error {
+	if until, ok := s.PausedUntil(); ok {
+		return fmt.Errorf("%w до %s", ErrPaused, until.In(s.clock.Location()).Format("15:04"))
+	}
+	return nil
+}
+
+// noteThrottle ставит паузу, если ошибка — отказ источника, и сообщает об
+// этом. Любая другая ошибка паузы не вызывает.
+func (s *Service) noteThrottle(err error) bool {
+	var th *source.ThrottledError
+	if !errors.As(err, &th) {
+		return false
+	}
+	until := s.clock.Now().Add(pauseFor(th.RetryAfter))
+	s.pauseMu.Lock()
+	if until.After(s.pausedUntil) {
+		s.pausedUntil = until
+	}
+	s.pauseMu.Unlock()
+	s.log.Warn("вуз попросил сбавить темп, пауза", "код", th.Status, "до", until.Format("15:04"))
+	return true
+}
+
+// pauseFor — сколько молчать после отказа. Не меньше получаса, даже если
+// вуз не сказал сколько: отказ — сигнал, что мы уже на краю. Не больше
+// шести часов: дольше расписание протухает сильнее, чем стоит риск.
+func pauseFor(retryAfter time.Duration) time.Duration {
+	const minPause, maxPause = 30 * time.Minute, 6 * time.Hour
+	switch {
+	case retryAfter < minPause:
+		return minPause
+	case retryAfter > maxPause:
+		return maxPause
+	}
+	return retryAfter
 }
 
 // New создаёт сервис.
@@ -52,7 +121,10 @@ func New(src source.Source, repo Repository, clk *clock.Clock, log *slog.Logger,
 		// расписание успевает смениться целиком.
 		opts.KeepChanges = 30 * 24 * time.Hour
 	}
-	return &Service{src: src, repo: repo, clock: clk, log: log, opts: opts}
+	if opts.GroupLookups <= 0 {
+		opts.GroupLookups = 600
+	}
+	return &Service{src: src, repo: repo, clock: clk, log: log, opts: opts, missed: map[string]time.Time{}}
 }
 
 // ─── сбор ────────────────────────────────────────────────────────────────────
@@ -64,6 +136,9 @@ func New(src source.Source, repo Repository, clk *clock.Clock, log *slog.Logger,
 // преподаватель, поэтому один проход даёт полный слепок вуза за период.
 // Период короткий — день или неделя: выкачивать семестр нельзя по праву.
 func (s *Service) Collect(ctx context.Context, from, to time.Time) (domain.ApplyResult, error) {
+	if err := s.checkPause(); err != nil {
+		return domain.ApplyResult{}, err
+	}
 	started := s.clock.Now()
 	runID, err := s.repo.StartRun(ctx, from, to)
 	if err != nil {
@@ -79,6 +154,13 @@ func (s *Service) Collect(ctx context.Context, from, to time.Time) (domain.Apply
 
 	lessons, seen, stats := s.fetchAll(ctx, oids, from, to)
 	total := stats.ok + stats.failed
+
+	// Вуз отказал посреди обхода — проход брошен целиком. Недоопрошенные
+	// аудитории нельзя применять: их пары выглядели бы отменёнными.
+	if stats.throttled != nil {
+		_ = s.repo.FinishRun(ctx, runID, total, stats.failed, 0, 0, stats.throttled)
+		return domain.ApplyResult{}, fmt.Errorf("проход прерван: %w", stats.throttled)
+	}
 
 	// Если источник массово не отвечает, применять слепок опасно: половина
 	// пар «исчезнет» и превратится в лавину ложных отмен. Лучше пропустить.
@@ -100,6 +182,7 @@ func (s *Service) Collect(ctx context.Context, from, to time.Time) (domain.Apply
 	if err := s.repo.UpsertLecturers(ctx, seen.lecturers()); err != nil {
 		s.log.Warn("справочник преподавателей не обновлён", "ошибка", err)
 	}
+	s.discoverGroups(ctx, seen.groupNames())
 	if removed, err := s.repo.CleanupChanges(ctx, s.opts.KeepChanges); err != nil {
 		s.log.Warn("журнал не подчищен", "ошибка", err)
 	} else if removed > 0 {
@@ -121,12 +204,25 @@ func (s *Service) Collect(ctx context.Context, from, to time.Time) (domain.Apply
 	return res, nil
 }
 
-type fetchStats struct{ ok, failed int }
+type fetchStats struct {
+	ok, failed int
+	throttled  error // первый отказ источника; проход после него брошен
+}
 
 // seenRefs копит справочные записи, встреченные в слепке.
 type seenRefs struct {
-	auds map[int64]domain.Auditorium
-	lecs map[int64]string
+	auds   map[int64]domain.Auditorium
+	lecs   map[int64]string
+	groups map[string]bool
+}
+
+func (s seenRefs) groupNames() []string {
+	out := make([]string, 0, len(s.groups))
+	for g := range s.groups {
+		out = append(out, g)
+	}
+	sort.Strings(out)
+	return out
 }
 
 func (s seenRefs) auditoriums() []domain.Auditorium {
@@ -150,20 +246,31 @@ func (s *Service) fetchAll(ctx context.Context, oids []int64, from, to time.Time
 		mu      sync.Mutex
 		lessons []domain.Lesson
 		stats   fetchStats
-		refs    = seenRefs{auds: map[int64]domain.Auditorium{}, lecs: map[int64]string{}}
+		refs    = seenRefs{auds: map[int64]domain.Auditorium{}, lecs: map[int64]string{}, groups: map[string]bool{}}
 		dedup   = map[int64]bool{} // поточная пара приходит из каждой её аудитории
 		jobs    = make(chan int64)
 		wg      sync.WaitGroup
 	)
 	loc := s.clock.Location()
+	// Свой контекст: первый же отказ вуза гасит всех работников сразу, а
+	// не только того, кто его получил.
+	ctx, stop := context.WithCancel(ctx)
+	defer stop()
 	for i := 0; i < s.opts.Workers; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for oid := range jobs {
+				if ctx.Err() != nil {
+					continue
+				}
 				raw, err := s.src.Schedule(ctx, source.KindAuditorium, oid, from, to)
 				mu.Lock()
 				if err != nil {
+					if stats.throttled == nil && s.noteThrottle(err) {
+						stats.throttled = err
+						stop()
+					}
 					stats.failed++
 					mu.Unlock()
 					s.log.Debug("аудитория не опрошена", "oid", oid, "ошибка", err)
@@ -184,6 +291,11 @@ func (s *Service) fetchAll(ctx context.Context, oids []int64, from, to time.Time
 					if l.LecturerOid != nil && l.LecturerName != "" {
 						refs.lecs[*l.LecturerOid] = l.LecturerName
 					}
+					for _, g := range l.GroupNames {
+						if IsGroupName(g) {
+							refs.groups[g] = true
+						}
+					}
 				}
 				mu.Unlock()
 			}
@@ -201,6 +313,123 @@ func (s *Service) fetchAll(ctx context.Context, oids []int64, from, to time.Time
 	close(jobs)
 	wg.Wait()
 	return lessons, refs, stats
+}
+
+// discoverGroups дописывает в справочник группы, которые встретились в
+// парах, но не попали в посев: набор нового года, переименования.
+// Без этого у группы есть расписание, но её не найти поиском — так
+// набор 2026 года остался невидимым после посева 12.09.2026.
+//
+// Числовой id группы пара не несёт, поэтому на каждую новую группу — один
+// поиск у вуза. Новых групп за проход обычно ноль, запросов тоже ноль.
+// Ошибки здесь не ломают проход: слепок уже применён, а справочник
+// догонит на следующем.
+func (s *Service) discoverGroups(ctx context.Context, names []string) {
+	if len(names) == 0 {
+		return
+	}
+	if s.checkPause() != nil {
+		return
+	}
+	missing, err := s.repo.MissingGroups(ctx, names)
+	if err != nil {
+		s.log.Warn("новые группы не проверены", "ошибка", err)
+		return
+	}
+	now := s.clock.Now()
+	known := map[string]bool{}
+	var found []domain.Group
+	asked, lost := 0, 0
+	for _, name := range missing {
+		if known[name] || s.missedRecently(name, now) {
+			continue
+		}
+		if asked >= s.opts.GroupLookups {
+			break
+		}
+		asked++
+		res, err := s.src.Search(ctx, source.SearchGroup, name)
+		if err != nil {
+			if ctx.Err() != nil || s.noteThrottle(err) {
+				break
+			}
+			s.log.Debug("группа не найдена у вуза", "группа", name, "ошибка", err)
+			continue
+		}
+		// Поиск — по подстроке: «УПП26-1» приносит и «УПП26-10». Соседей
+		// по выдаче записываем сразу, за ними второй раз ходить не нужно.
+		for _, r := range res {
+			label := strings.TrimSpace(r.Label)
+			id, ok := parseID(r.ID)
+			if !ok || !IsGroupName(label) || known[label] {
+				continue
+			}
+			known[label] = true
+			found = append(found, domain.Group{ID: id, Name: label,
+				FacultyOid: strings.TrimSpace(r.Description), AdmissionYear: AdmissionYear(label)})
+		}
+		if !known[name] {
+			lost++
+			s.markMissed(name, now)
+		}
+	}
+	if len(found) > 0 {
+		if err := s.repo.UpsertGroups(ctx, found); err != nil {
+			s.log.Warn("новые группы не записаны", "ошибка", err)
+			return
+		}
+	}
+	if asked > 0 {
+		s.log.Info("справочник групп пополнен", "запросов", asked, "добавлено", len(found), "не найдено", lost)
+	}
+}
+
+// missRetry — через сколько снова спрашивать вуз о группе, которую он не
+// нашёл. Сутки: за это время деканат успевает завести группу в поиске.
+const missRetry = 24 * time.Hour
+
+func (s *Service) missedRecently(name string, now time.Time) bool {
+	s.missMu.Lock()
+	defer s.missMu.Unlock()
+	at, ok := s.missed[name]
+	return ok && now.Sub(at) < missRetry
+}
+
+func (s *Service) markMissed(name string, now time.Time) {
+	s.missMu.Lock()
+	defer s.missMu.Unlock()
+	s.missed[name] = now
+}
+
+// groupNameRe — настоящая группа: «ПИ24-1», «Ю24-5в». Имя языкового
+// потока («006073_2 Иностранный язык (КАЯиПК)-10 …») группой не считается:
+// в поиске вуза его нет, и спрашивать о нём бессмысленно.
+var groupNameRe = regexp.MustCompile(`^\p{L}+[0-9]{2}-[0-9]+\p{L}*$`)
+
+// IsGroupName сообщает, что имя — учебная группа, а не поток.
+func IsGroupName(name string) bool { return groupNameRe.MatchString(name) }
+
+// AdmissionYear — год набора из имени группы: «ПИ24-1» → 2024.
+// nil — в имени нет двух цифр подряд.
+func AdmissionYear(name string) *int {
+	n, count := 0, 0
+	for _, r := range name {
+		if r >= '0' && r <= '9' {
+			n, count = n*10+int(r-'0'), count+1
+			if count == 2 {
+				break
+			}
+			continue
+		}
+		if count > 0 {
+			break
+		}
+	}
+	if count != 2 {
+		return nil
+	}
+	y := 2000 + n
+	return &y
 }
 
 // SeedFromSearch наполняет справочник аудиторий через поиск источника: в
@@ -291,6 +520,9 @@ func (s *Service) EnsureGroupLinks(ctx context.Context, group string, from, to t
 	if group == "" {
 		return nil
 	}
+	if err := s.checkPause(); err != nil {
+		return err
+	}
 	today := s.clock.Today()
 	if on, ok, err := s.repo.GroupFetchedOn(ctx, group); err != nil {
 		return err
@@ -305,6 +537,7 @@ func (s *Service) EnsureGroupLinks(ctx context.Context, group string, from, to t
 		// Справочник групп — из посева; новой группы в нём может не быть.
 		found, err := s.src.Search(ctx, source.SearchGroup, group)
 		if err != nil {
+			s.noteThrottle(err)
 			return err
 		}
 		for _, f := range found {
@@ -321,6 +554,7 @@ func (s *Service) EnsureGroupLinks(ctx context.Context, group string, from, to t
 	}
 	lessons, err := s.src.Schedule(ctx, source.KindGroup, id, from, to)
 	if err != nil {
+		s.noteThrottle(err)
 		return err
 	}
 	oids := make([]int64, 0, len(lessons))

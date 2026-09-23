@@ -163,6 +163,24 @@ func (r *Repo) UpsertGroups(ctx context.Context, items []domain.Group) error {
 	})
 }
 
+func (r *Repo) MissingGroups(ctx context.Context, names []string) ([]string, error) {
+	rows, err := r.pool.Query(ctx, `SELECT DISTINCT n FROM unnest($1::text[]) n
+		WHERE NOT EXISTS (SELECT 1 FROM groups g WHERE g.name = n) ORDER BY n`, names)
+	if err != nil {
+		return nil, fmt.Errorf("новые группы: %w", err)
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err != nil {
+			return nil, err
+		}
+		out = append(out, n)
+	}
+	return out, rows.Err()
+}
+
 func (r *Repo) UpsertLecturers(ctx context.Context, items []domain.Lecturer) error {
 	return db.InTx(ctx, r.pool, func(tx pgx.Tx) error {
 		batch := &pgx.Batch{}

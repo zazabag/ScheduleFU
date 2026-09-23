@@ -62,8 +62,13 @@ type Source struct {
 	RPS        float64       `yaml:"rps"`
 	Workers    int           `yaml:"workers"`
 	Interval   time.Duration `yaml:"interval"`
-	Days       int           `yaml:"days"`
-	Timezone   string        `yaml:"timezone"`
+	// Ночью обход реже: с NightFrom до NightTo (ЧЧ:ММ, пояс вуза) — раз в
+	// NightInterval. Нулевой NightInterval выключает ночной темп.
+	NightInterval time.Duration `yaml:"night_interval"`
+	NightFrom     string        `yaml:"night_from"`
+	NightTo       string        `yaml:"night_to"`
+	Days          int           `yaml:"days"`
+	Timezone      string        `yaml:"timezone"`
 }
 
 // Notify — уведомления.
@@ -141,11 +146,16 @@ func Default() Config {
 		Source: Source{
 			University: "fa",
 			BaseURL:    "https://ruz.fa.ru",
-			RPS:        8,
-			Workers:    6,
-			Interval:   time.Hour,
-			Days:       7,
-			Timezone:   "Europe/Moscow",
+			// Четыре запроса в секунду и четыре потока: обход идёт две с
+			// половиной минуты, пик для вуза вдвое ниже прежнего.
+			RPS:           4,
+			Workers:       4,
+			Interval:      time.Hour,
+			NightInterval: 3 * time.Hour,
+			NightFrom:     "23:00",
+			NightTo:       "06:30",
+			Days:          7,
+			Timezone:      "Europe/Moscow",
 		},
 		Notify: Notify{Subject: "mailto:schedulefu@example.org"},
 		Notes: Notes{
@@ -207,6 +217,9 @@ func (c Config) Validate() error {
 		// базы вуза (docs/03-legal-risks.md). Потолок держится здесь, чтобы
 		// его нельзя было обойти флагом.
 		return fmt.Errorf("config: source.days должен быть от 1 до 14, задано %d", c.Source.Days)
+	case !isHHMM(c.Source.NightFrom) || !isHHMM(c.Source.NightTo):
+		return fmt.Errorf("config: source.night_from и night_to — ЧЧ:ММ, задано %q и %q",
+			c.Source.NightFrom, c.Source.NightTo)
 	case (c.Notify.VAPIDPublic == "") != (c.Notify.VAPIDPrivate == ""):
 		return fmt.Errorf("config: ключи уведомлений задаются парой")
 	case c.Notes.Enabled && c.Notes.AudioDir == "":
@@ -215,6 +228,16 @@ func (c Config) Validate() error {
 		return fmt.Errorf("config: notes.max_minutes должен быть положительным")
 	}
 	return nil
+}
+
+// isHHMM — пусто или «ЧЧ:ММ» с ведущими нулями: ночное окно сравнивается
+// строками, и «6:30» без нуля сломало бы порядок молча.
+func isHHMM(v string) bool {
+	if v == "" {
+		return true
+	}
+	t, err := time.Parse("15:04", v)
+	return err == nil && t.Format("15:04") == v
 }
 
 // NotesReady сообщает, настроена ли обработка записей до конца. Раздел без

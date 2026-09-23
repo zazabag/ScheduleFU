@@ -285,3 +285,16 @@ func TestSvyaziGruppyDobavlyayutPary(t *testing.T) {
 		t.Errorf("дата дотягивания: %v %v", on, ok)
 	}
 }
+
+// Сборщик спрашивает вуз только о группах, которых нет в справочнике:
+// каждая лишняя строка здесь — лишний запрос к чужому серверу.
+func TestMissingGroupsTolkoNovye(t *testing.T) {
+	r, ctx := testRepo(t)
+	if err := r.UpsertGroups(ctx, []domain.Group{{ID: 1, Name: "ПИ24-1"}}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := r.MissingGroups(ctx, []string{"УПП26-2", "ПИ24-1", "УПП26-2"})
+	if err != nil || len(got) != 1 || got[0] != "УПП26-2" {
+		t.Errorf("новые группы: %q %v", got, err)
+	}
+}

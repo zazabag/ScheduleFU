@@ -60,3 +60,20 @@ func TestKlyuchiTolkoParoy(t *testing.T) {
 		t.Fatal("один ключ из двух принят — отправка молча не заработает")
 	}
 }
+
+// Ночное окно сравнивается строками, поэтому «6:30» без ведущего нуля
+// обязано валить запуск, а не молча сдвигать ночь.
+func TestNochnoeOknoTolkoChChMM(t *testing.T) {
+	cfg := Default()
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("умолчания: %v", err)
+	}
+	cfg.Source.NightTo = "6:30"
+	if cfg.Validate() == nil {
+		t.Error("«6:30» принято")
+	}
+	cfg.Source.NightFrom, cfg.Source.NightTo = "", ""
+	if err := cfg.Validate(); err != nil {
+		t.Errorf("пустое окно: %v", err)
+	}
+}

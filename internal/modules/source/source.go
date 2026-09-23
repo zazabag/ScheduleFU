@@ -9,6 +9,7 @@ package source
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -90,4 +91,20 @@ type Source interface {
 	// ParseAuditorium разбирает имя и адрес. Kind у результата не
 	// заполняется: тип аудитории приходит только из поиска.
 	ParseAuditorium(name, building string) Auditorium
+}
+
+// ThrottledError — источник попросил сбавить темп (429) или закрыл доступ
+// (403). Это не сбой, который лечится повтором через секунду: повтор здесь
+// и есть путь к бану по адресу. Вызывающий обязан остановиться и выждать.
+type ThrottledError struct {
+	Status int
+	// RetryAfter — сколько просил подождать источник; 0 — не сказал.
+	RetryAfter time.Duration
+}
+
+func (e *ThrottledError) Error() string {
+	if e.RetryAfter > 0 {
+		return fmt.Sprintf("источник отказал с кодом %d, просит подождать %s", e.Status, e.RetryAfter)
+	}
+	return fmt.Sprintf("источник отказал с кодом %d", e.Status)
 }
