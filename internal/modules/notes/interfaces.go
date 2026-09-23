@@ -108,5 +108,5 @@ type SummaryInput struct {
 // Media — порт подготовки звука: что бы браузер ни записал (webm/opus у
 // Chrome, mp4/aac у Safari), распознаванию нужен WAV 16 кГц моно.
 type Media interface {
-	ToWav(ctx context.Context, src, dst string) (durationSec int, err error)
+	ToWav(ctx context.Context, src, dst string) (domain.Sound, error)
 }
