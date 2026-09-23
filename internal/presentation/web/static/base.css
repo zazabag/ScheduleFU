@@ -761,3 +761,11 @@ body { touch-action: pan-y; }
 .disc-label { font-size: 11px; color: var(--text-3); min-width: 48px; }
 .disc-more { font-size: 12px; color: var(--text-3); }
 
+/* «В прошлый раз»: тема и тезисы последнего своего конспекта под парой. */
+.recap { padding: 0 14px; }
+.recap summary { list-style: none; cursor: pointer; font-size: 12px; color: var(--text-2); }
+.recap summary::-webkit-details-marker { display: none; }
+.recap-label { color: var(--accent); font-weight: 600; }
+.recap ul { margin: 6px 0 4px; padding-left: 18px; font-size: 13px; line-height: 1.45; color: var(--text); }
+.recap-link { font-size: 12px; color: var(--accent); text-decoration: none; }
+
