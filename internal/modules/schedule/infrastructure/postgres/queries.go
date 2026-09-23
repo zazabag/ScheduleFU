@@ -341,6 +341,20 @@ func (r *Repo) Auditoriums(ctx context.Context) ([]domain.Auditorium, error) {
 	return out, rows.Err()
 }
 
+func (r *Repo) Auditorium(ctx context.Context, oid int64) (domain.Auditorium, bool, error) {
+	var a domain.Auditorium
+	err := r.pool.QueryRow(ctx, `SELECT oid, name, room, building, site, site_label, site_order, kind, floor, capacity, is_study_space
+		FROM auditoriums WHERE oid = $1`, oid).Scan(&a.Oid, &a.Name, &a.Room, &a.Building, &a.Site.Slug, &a.Site.Label, &a.Site.Order,
+		&a.Kind, &a.Floor, &a.Capacity, &a.IsStudySpace)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return a, false, nil
+	}
+	if err != nil {
+		return a, false, fmt.Errorf("аудитория %d: %w", oid, err)
+	}
+	return a, true, nil
+}
+
 // GroupNames — настоящие группы из пар. Половина значений поля группы у
 // источника — склеенные строки вроде «006886_1 Иностранный язык (КАЯиПК)-1»:
 // у языковых занятий поток пуст и туда попадает код дисциплины. В список

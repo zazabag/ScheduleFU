@@ -77,3 +77,17 @@ func TestNochnoeOknoTolkoChChMM(t *testing.T) {
 		t.Errorf("пустое окно: %v", err)
 	}
 }
+
+func TestGdePrepodavatelVklyuchenIVyklyuchaetsyaOkruzheniem(t *testing.T) {
+	if !Default().Privacy.WhereLecturer {
+		t.Fatal("по умолчанию функция работает, как работала до выключателя")
+	}
+	t.Setenv("SCHEDULEFU_PRIVACY_WHERE_LECTURER", "false")
+	cfg, err := Load("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Privacy.WhereLecturer {
+		t.Error("выключатель из окружения не сработал")
+	}
+}

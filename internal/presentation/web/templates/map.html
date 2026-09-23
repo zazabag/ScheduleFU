@@ -1,0 +1,50 @@
+{{define "content"}}
+<header class="top">
+  <div class="top-row">
+    <div>
+      <span class="top-kicker">{{.Plan.Name}}</span>
+      <h1 class="top-title">{{with .Loc}}Аудитория {{.Number}}{{else}}{{with .Corp}}Корпус {{.Name}}{{else}}План кампуса{{end}}{{end}}</h1>
+      <p class="top-sub">
+        {{with .Loc}}корпус {{.BuildingName}}{{if .Level}} · <b>{{.Level}} этаж</b>{{else}} · этаж по номеру не определить{{end}}
+        {{else}}{{with .Corp}}{{.Levels}} этажей{{else}}Выберите корпус — покажем его этажи и аудитории{{end}}{{end}}
+      </p>
+    </div>
+  </div>
+</header>
+
+{{if .NotFound}}<p class="plan-warn">«{{.NotFound}}» — не на Ленинградском: план пока только этого кампуса.</p>{{end}}
+
+<section class="plan">
+  <div class="plan-box">
+    <svg class="plan-svg" viewBox="{{.ViewBox}}" role="img" aria-label="{{.Plan.Name}}">
+      {{range .Corps}}
+      <a href="{{.Href}}" class="plan-corp{{if .On}} on{{end}}">
+        <path d="{{.Path}}" fill-rule="evenodd"><title>Корпус {{.Name}} · {{.Levels}} этажей</title></path>
+      </a>
+      {{end}}
+      {{range .Corps}}<text class="plan-corp-name{{if .On}} on{{end}}" x="{{.CX}}" y="{{.CY}}" text-anchor="middle" dy="3">{{.Name}}</text>{{end}}
+    </svg>
+    {{with .Corp}}
+    <nav class="plan-levels" aria-label="Этажи корпуса">
+      {{range $.Levels}}<a class="plan-level{{if .On}} on{{end}}" href="{{.Href}}">{{.N}}</a>{{end}}
+    </nav>
+    {{end}}
+  </div>
+  <p class="plan-hint">Корпус выбирается касанием, этаж — справа.</p>
+</section>
+
+{{with .Corp}}
+{{if $.Passages}}<section class="plan-notes">{{range $.Passages}}<p>↔ {{.}}</p>{{end}}</section>{{end}}
+{{if $.Level}}
+<section class="rooms">
+  <h2 class="rooms-floor"><span>{{.Name}} · {{$.Level}} этаж — аудитории из расписания</span><i>{{len $.Rooms}}</i></h2>
+  <div class="plan-rooms">
+    {{range $.Rooms}}<span class="plan-roomchip{{if .Here}} here{{end}}" title="{{.Meta}}">{{.Number}}</span>{{else}}<p class="empty-inline">На этом этаже аудиторий из расписания нет.</p>{{end}}
+  </div>
+  <p class="plan-hint">Где именно на этаже — пока не знаем: внутренних планов в открытом доступе нет. Номер подскажет указатель у лестницы.</p>
+</section>
+{{end}}
+{{end}}
+
+<footer class="foot"><span class="foot-note">Контуры корпусов: {{.Plan.Source}}. Этаж определяется по номеру аудитории.</span></footer>
+{{end}}

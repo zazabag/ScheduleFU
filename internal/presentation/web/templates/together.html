@@ -1,0 +1,55 @@
+{{define "content"}}
+<header class="top">
+  <div class="top-row">
+    <div>
+      <span class="top-kicker">неделя · {{.Range}}</span>
+      <h1 class="top-title">Общие окна</h1>
+      <p class="top-sub">Когда свободны все сразу — другу, команде проекта, клубу. Ссылкой на этот экран можно поделиться.</p>
+    </div>
+  </div>
+  <nav class="weeknav" aria-label="Неделя">
+    <a class="weeknav-btn" href="{{.PrevHref}}" aria-label="Предыдущая неделя">‹</a>
+    <span class="weeknav-label">{{.Range}}</span>
+    <a class="weeknav-btn" href="{{.NextHref}}" aria-label="Следующая неделя">›</a>
+  </nav>
+  <div class="chips together-people">
+    {{range .People}}<a class="chip on" href="{{.Remove}}" title="Убрать">{{.Name}}{{if .Empty}} · пар нет{{end}} ×</a>{{end}}
+  </div>
+  {{if not .Full}}
+  <form class="search" method="get" action="/together">
+    {{range .Names}}<input type="hidden" name="g" value="{{.}}">{{end}}
+    <input type="search" name="g" placeholder="Добавить группу, например ПИ24-2" autocomplete="off" {{if lt (len .Names) 2}}autofocus{{end}}>
+    <button type="submit">Добавить</button>
+  </form>
+  {{end}}
+</header>
+
+{{if .Best}}
+<section class="together-best">
+  <h2 class="rooms-floor"><span>лучше всего собраться</span></h2>
+  <ul>{{range .Best}}<li>{{.}}</li>{{end}}</ul>
+</section>
+{{else if gt (len .Names) 1}}
+<section class="together-best"><p class="empty-sub">На этой неделе нет пары, когда свободны все и все в вузе. Посмотрите соседнюю неделю.</p></section>
+{{end}}
+
+{{if .Names}}
+<section class="together-grid" aria-label="Сетка недели">
+  <div class="tg-row tg-head"><span class="tg-day"></span>{{range .Slots}}<span class="tg-slot">{{.}}</span>{{end}}</div>
+  {{range .Grid}}
+  <div class="tg-row{{if .Today}} today{{end}}">
+    <span class="tg-day">{{.Label}}</span>
+    {{range .Cells}}<span class="tg-cell {{.State}}" title="{{.Title}}">{{if eq .State "busy"}}{{if gt (len $.Names) 1}}{{.Busy}}{{end}}{{end}}</span>{{end}}
+  </div>
+  {{end}}
+</section>
+<div class="legend">
+  <span class="legend-item"><i class="legend-box meet"></i>все свободны и в вузе</span>
+  <span class="legend-item"><i class="legend-box open"></i>свободны, но не у всех пары</span>
+  <span class="legend-item"><i class="legend-box busy"></i>занято (сколько групп)</span>
+</div>
+{{else}}
+<div class="empty"><div class="empty-title">Добавьте группы</div><div class="empty-sub">Свою и группу друга — или всю команду проекта, до шести.</div></div>
+{{end}}
+<footer class="foot"><span class="foot-note">Считается по расписанию вуза: подгруппы английского у разных людей разные, проверьте свою.{{if .Freshness}} Обновлено {{.Freshness}}.{{end}}</span></footer>
+{{end}}

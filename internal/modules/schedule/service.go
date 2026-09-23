@@ -508,6 +508,63 @@ func (s *Service) SiteNow(ctx context.Context, site string, at time.Time) ([]dom
 	return free, domain.BuildSiteSummary(all, now), nil
 }
 
+// Window — ответ «где пересидеть окно»: аудитории площадки, свободные весь
+// интервал, ближние к якорю — первыми.
+type Window struct {
+	Site   domain.Site
+	Anchor *domain.Auditorium // от чего считается «рядом»; nil — ни от чего
+	Rooms  []domain.RoomView
+	Total  int // учебных аудиторий на площадке
+}
+
+// FreeWindow — аудитории, свободные весь интервал [from, to) даты.
+//
+// Площадка задаётся явно или берётся у якоря: в окно между парами человек
+// ищет место там, куда ему идти дальше, а не там, где открыт переключатель.
+// Вместимость minCap отсекает только аудитории, у которых она известна и
+// меньше; неизвестная не отсекается — иначе пропала бы почти половина.
+func (s *Service) FreeWindow(ctx context.Context, site string, date time.Time, from, to string, anchorOid int64, minCap int) (Window, error) {
+	var w Window
+	if anchorOid > 0 {
+		a, ok, err := s.repo.Auditorium(ctx, anchorOid)
+		if err != nil {
+			return w, err
+		}
+		if ok && a.IsStudySpace {
+			w.Anchor = &a
+			site = a.Site.Slug
+		}
+	}
+	days, err := s.repo.SiteDay(ctx, site, date)
+	if err != nil {
+		return w, err
+	}
+	w.Total = len(days)
+	// Полоса занятости нужна и здесь, а «прошло» зависит от дня: сегодня —
+	// от текущего часа, будущий день — ничего не прошло, прошедший — всё.
+	now := "00:00"
+	switch today := s.clock.Today(); {
+	case date.Equal(today):
+		now = s.clock.HHMM()
+	case date.Before(today):
+		now = "24:00"
+	}
+	for _, d := range days {
+		if w.Site.Slug == "" {
+			w.Site = d.Auditorium.Site
+		}
+		if !domain.FreeThrough(d.Lessons, from, to) {
+			continue
+		}
+		if c := d.Auditorium.Capacity; minCap > 0 && c != nil && *c < minCap {
+			continue
+		}
+		w.Rooms = append(w.Rooms, domain.BuildRoomView(d.Auditorium, d.Lessons, now))
+	}
+	domain.SortNear(w.Rooms, w.Anchor)
+	return w, nil
+}
+
 // EnsureGroupLinks дотягивает расписание группы у вуза — не чаще раза в
 // день и только для группы, которую кто-то открыл. Слепок по аудиториям
 // не знает, чьи языковые подгруппы (88 % пар английского шли мимо групп);

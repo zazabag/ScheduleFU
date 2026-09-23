@@ -1,0 +1,50 @@
+{{define "content"}}
+<header class="top">
+  <div class="top-row">
+    <div>
+      <span class="top-kicker">{{.Date.Label}}</span>
+      <h1 class="top-title">{{.Heading}}</h1>
+      <p class="top-sub">{{.Sub}} · свободна всё время: {{.Count}} из {{.Total}}</p>
+    </div>
+    <div class="top-actions"><a class="act" href="{{.NowHref}}">Сейчас</a></div>
+  </div>
+  {{if .Sites}}<div class="tabs">{{range .Sites}}<a class="tab {{if .On}}on{{end}}" href="{{.Href}}">{{.Label}}</a>{{end}}</div>{{end}}
+  <div class="chips"><span class="chips-label">день</span>{{range .Days}}<a class="chip {{if .On}}on{{end}}" href="{{.Href}}">{{.Label}}</a>{{end}}</div>
+  <div class="chips"><span class="chips-label">пара</span>{{range .Slots}}<a class="chip {{if .On}}on{{end}}" href="{{.Href}}">{{.Label}}</a>{{end}}</div>
+  <div class="chips"><span class="chips-label">мест</span>{{range .Caps}}<a class="chip {{if .On}}on{{end}}" href="{{.Href}}">{{.Label}}</a>{{end}}</div>
+</header>
+
+<section class="rooms">
+  {{range .Groups}}
+  <h2 class="rooms-floor"><span>{{.Label}}</span><i>{{len .Rooms}}</i></h2>
+  {{range .Rooms}}
+  <details class="room">
+    <summary>
+      <div class="room-head">
+        <div class="room-id"><span class="room-num">{{.Room}}</span><span class="room-meta">{{.Meta}}</span></div>
+      </div>
+      <div class="rail">
+        {{range .Cells}}
+        <div class="rail-cell {{.State}}"{{if .Title}} title="{{.Title}}"{{end}}><div class="rail-box"></div><div class="rail-time">{{.Label}}</div></div>
+        {{end}}
+      </div>
+    </summary>
+    <div class="room-lessons">
+      {{range .Lessons}}
+      <div class="room-lesson"><span class="room-lesson-time">{{.BeginsAt}}—{{.EndsAt}}</span><span class="room-lesson-what">{{.Discipline}}{{if .LecturerName}} · {{.LecturerName}}{{end}}</span></div>
+      {{else}}<div class="room-empty">В этот день пар нет</div>{{end}}
+    </div>
+  </details>
+  {{end}}
+  {{else}}
+  <div class="empty"><div class="empty-title">Свободных на всё время нет</div><div class="empty-sub">Попробуйте другую пару, день или вместимость</div></div>
+  {{end}}
+</section>
+
+<div class="legend">
+  <span class="legend-item"><i class="legend-box free"></i>свободна</span>
+  <span class="legend-item"><i class="legend-box busy"></i>пара</span>
+  <span class="legend-item"><i class="legend-box past"></i>прошло</span>
+</div>
+<footer class="foot"><span class="foot-note">Брони вне расписания (мероприятия, экзамены) вуз не публикует — аудитория может быть занята. Вместимость известна не у всех аудиторий: неизвестная фильтром не отсекается.{{if .Freshness}} Обновлено {{.Freshness}}.{{end}}</span></footer>
+{{end}}
