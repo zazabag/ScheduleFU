@@ -260,26 +260,43 @@ func collect(ctx context.Context, cfg config.Config, log *slog.Logger, extra any
 	if *o.noNotify {
 		a.schedule.Notifier = nil
 	}
-	run := func() {
+	pace := schedule.Pace{Interval: cfg.Source.Interval, NightInterval: cfg.Source.NightInterval,
+		NightFrom: cfg.Source.NightFrom, NightTo: cfg.Source.NightTo}
+	// run делает проход и отвечает, сколько ждать до следующего.
+	run := func() time.Duration {
 		from := a.clock.Today()
-		if _, err := a.schedule.Collect(ctx, from, from.AddDate(0, 0, cfg.Source.Days-1)); err != nil {
+		_, err := a.schedule.Collect(ctx, from, from.AddDate(0, 0, cfg.Source.Days-1))
+		switch {
+		case errors.Is(err, schedule.ErrPaused):
+			log.Info("проход пропущен", "причина", err)
+		case err != nil:
 			log.Error("проход не удался", "ошибка", err)
 		}
+		wait := pace.Next(a.clock.Now())
+		// Вуз попросил подождать — следующий проход не раньше конца паузы,
+		// но и не позже обычного темпа.
+		if until, ok := a.schedule.PausedUntil(); ok {
+			if d := time.Until(until) + time.Minute; d > wait {
+				wait = d
+			}
+		}
+		return wait
 	}
-	run()
+	wait := run()
 	if *o.once {
 		return nil
 	}
 	// Цикл внутри процесса, а не в планировщике снаружи: переживает ночь
-	// одним процессом и не пересоздаёт соединения.
-	t := time.NewTicker(cfg.Source.Interval)
-	defer t.Stop()
+	// одним процессом и не пересоздаёт соединения. Таймер, а не тикер:
+	// пауза считается от конца прохода, и темп меняется ночью.
 	for {
+		t := time.NewTimer(wait)
 		select {
 		case <-ctx.Done():
+			t.Stop()
 			return nil
 		case <-t.C:
-			run()
+			wait = run()
 		}
 	}
 }
@@ -334,34 +351,13 @@ func seed(ctx context.Context, cfg config.Config, log *slog.Logger, extra any) e
 	}
 	var groups []sched.Group
 	for _, g := range grp.Groups {
-		groups = append(groups, sched.Group{ID: g.ID, Name: g.Name, FacultyOid: g.FacultyOid, AdmissionYear: admissionYear(g.Name)})
+		groups = append(groups, sched.Group{ID: g.ID, Name: g.Name, FacultyOid: g.FacultyOid, AdmissionYear: schedule.AdmissionYear(g.Name)})
 	}
 	if err := a.schedule.Repo().UpsertGroups(ctx, groups); err != nil {
 		return err
 	}
 	log.Info("справочник групп загружен", "всего", len(groups))
 	return nil
-}
-
-func admissionYear(name string) *int {
-	n, count := 0, 0
-	for _, r := range name {
-		if r >= '0' && r <= '9' {
-			n, count = n*10+int(r-'0'), count+1
-			if count == 2 {
-				break
-			}
-			continue
-		}
-		if count > 0 {
-			break
-		}
-	}
-	if count != 2 {
-		return nil
-	}
-	y := 2000 + n
-	return &y
 }
 
 func readJSON(path string, dst any) error {

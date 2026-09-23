@@ -23,6 +23,8 @@ type Repository interface {
 
 	UpsertAuditoriums(ctx context.Context, items []domain.Auditorium) error
 	UpsertGroups(ctx context.Context, items []domain.Group) error
+	// MissingGroups — имена из списка, которых нет в справочнике групп.
+	MissingGroups(ctx context.Context, names []string) ([]string, error)
 	UpsertLecturers(ctx context.Context, items []domain.Lecturer) error
 	AuditoriumOids(ctx context.Context, onlyStudySpaces bool) ([]int64, error)
 	LecturerName(ctx context.Context, oid int64) (string, error)

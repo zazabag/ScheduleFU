@@ -65,7 +65,10 @@ func New(opts Options) *Client {
 		opts.UserAgent = "ScheduleFU/0.1 (+https://github.com/zazabag/ScheduleFU)"
 	}
 	if opts.RPS <= 0 {
-		opts.RPS = 8
+		// Четыре запроса в секунду: обход ~630 аудиторий занимает две с
+		// половиной минуты вместо восьмидесяти секунд. Пользователь этого не
+		// видит — он читает нашу базу, — а вуз видит вдвое меньший пик.
+		opts.RPS = 4
 	}
 	if opts.Timeout <= 0 {
 		opts.Timeout = 30 * time.Second
@@ -263,7 +266,12 @@ func (c *Client) do(ctx context.Context, path string) ([]byte, error) {
 	switch {
 	case resp.StatusCode == http.StatusOK:
 		return body, nil
-	case resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500:
+	case resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusForbidden:
+		// Не повторяем: вуз просит отступить, и каждый следующий запрос
+		// приближает бан. Решение, сколько ждать, — за вызывающим.
+		return nil, &source.ThrottledError{Status: resp.StatusCode,
+			RetryAfter: parseRetryAfter(resp.Header.Get("Retry-After"), time.Now())}
+	case resp.StatusCode >= 500:
 		return nil, retryableError{fmt.Errorf("ruz: %s вернул %s", path, resp.Status)}
 	default:
 		return nil, fmt.Errorf("ruz: %s вернул %s", path, resp.Status)
@@ -272,3 +280,22 @@ func (c *Client) do(ctx context.Context, path string) ([]byte, error) {
 
 // Компилятор держит соответствие порту.
 var _ source.Source = (*Client)(nil)
+
+// parseRetryAfter понимает обе формы заголовка: секунды и HTTP-дату.
+// Непонятное значение и дата в прошлом — 0: пусть решает вызывающий.
+func parseRetryAfter(v string, now time.Time) time.Duration {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return 0
+	}
+	if n, err := strconv.Atoi(v); err == nil {
+		if n < 0 {
+			return 0
+		}
+		return time.Duration(n) * time.Second
+	}
+	if at, err := http.ParseTime(v); err == nil && at.After(now) {
+		return at.Sub(now)
+	}
+	return 0
+}
