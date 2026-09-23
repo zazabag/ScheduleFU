@@ -228,3 +228,26 @@
     recount();
   }
 })();
+
+// «Отправить ссылку» на конспект: системное меню «Поделиться» там, где оно
+// есть (телефоны), иначе — ссылка в буфер обмена. Без скрипта кнопка ничего
+// не делает, а сама страница конспекта открывается по адресу как обычно.
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-share]');
+  if (!b) return;
+  var link = new URL(b.getAttribute('data-share'), location.href).href;
+  var title = b.getAttribute('data-title') || 'Конспект';
+  if (navigator.share) {
+    navigator.share({ title: title, url: link }).catch(function () {});
+    return;
+  }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(link).then(function () {
+      var was = b.textContent;
+      b.textContent = 'Ссылка скопирована';
+      setTimeout(function () { b.textContent = was; }, 2000);
+    });
+  } else {
+    window.prompt('Ссылка на конспект', link);
+  }
+});

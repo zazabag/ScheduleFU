@@ -46,6 +46,14 @@ type Repository interface {
 	DraftNotes(ctx context.Context, owner, subjectKey, discipline string) ([]domain.Note, error)
 	SaveNote(ctx context.Context, owner string, id int64, at time.Time) error
 	DeleteNote(ctx context.Context, owner string, id int64) error
+	// SetShareToken открывает (token != "") или закрывает ссылку на
+	// сохранённый конспект владельца. Черновик ссылки не получает: делятся
+	// тем, что человек сам принял.
+	SetShareToken(ctx context.Context, owner string, id int64, token string, at time.Time) (bool, error)
+	// NoteByShare — конспект по ключу ссылки, чей бы он ни был.
+	NoteByShare(ctx context.Context, token string) (domain.Note, bool, error)
+	// CopyOf — копия, которую владелец уже сохранил из конспекта source.
+	CopyOf(ctx context.Context, owner string, source int64) (domain.Note, bool, error)
 
 	CreateHomework(ctx context.Context, h domain.Homework) (int64, error)
 	Homeworks(ctx context.Context, owner, subjectKey, discipline string, onlySaved bool) ([]domain.Homework, error)

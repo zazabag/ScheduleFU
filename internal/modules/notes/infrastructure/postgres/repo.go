@@ -243,14 +243,14 @@ func (r *Repo) Fail(ctx context.Context, id int64, reason string, retryAt time.T
 
 const noteColumns = `id, owner_key, recording_id, subject_key, discipline, lesson_date,
 	to_char(begins_at,'HH24:MI'), lecturer_name, auditorium, title, body, theses,
-	saved_at, created_at, updated_at`
+	saved_at, created_at, updated_at, COALESCE(share_token, ''), copied_from`
 
 func scanNote(row pgx.Row) (domain.Note, error) {
 	var n domain.Note
 	var begins *string
 	err := row.Scan(&n.ID, &n.OwnerKey, &n.RecordingID, &n.Lesson.SubjectKey, &n.Lesson.Discipline,
 		&n.Lesson.Date, &begins, &n.Lesson.LecturerName, &n.Lesson.Auditorium, &n.Title, &n.Body,
-		&n.Theses, &n.SavedAt, &n.CreatedAt, &n.UpdatedAt)
+		&n.Theses, &n.SavedAt, &n.CreatedAt, &n.UpdatedAt, &n.ShareToken, &n.CopiedFrom)
 	if begins != nil {
 		n.Lesson.BeginsAt = *begins
 	}
@@ -266,11 +266,11 @@ func (r *Repo) CreateNote(ctx context.Context, n domain.Note) (int64, error) {
 	var id int64
 	err := r.pool.QueryRow(ctx, `INSERT INTO notes
 		(owner_key, recording_id, subject_key, discipline, lesson_date, begins_at, lecturer_name,
-		 auditorium, title, body, theses)
-		VALUES ($1,$2,$3,$4,$5,$6::text::time,$7,$8,$9,$10,$11) RETURNING id`,
+		 auditorium, title, body, theses, copied_from)
+		VALUES ($1,$2,$3,$4,$5,$6::text::time,$7,$8,$9,$10,$11,$12) RETURNING id`,
 		n.OwnerKey, n.RecordingID, n.Lesson.SubjectKey, n.Lesson.Discipline, n.Lesson.Date,
 		nullTime(n.Lesson.BeginsAt), n.Lesson.LecturerName, n.Lesson.Auditorium, n.Title, n.Body,
-		n.Theses).Scan(&id)
+		n.Theses, n.CopiedFrom).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("создание конспекта: %w", err)
 	}
@@ -285,6 +285,44 @@ func (r *Repo) Note(ctx context.Context, owner string, id int64) (domain.Note, b
 	}
 	if err != nil {
 		return domain.Note{}, false, fmt.Errorf("чтение конспекта: %w", err)
+	}
+	return n, true, nil
+}
+
+func (r *Repo) SetShareToken(ctx context.Context, owner string, id int64, token string, at time.Time) (bool, error) {
+	var tok *string
+	var when *time.Time
+	if token != "" {
+		tok, when = &token, &at
+	}
+	tag, err := r.pool.Exec(ctx, `UPDATE notes SET share_token=$3, shared_at=$4, updated_at=now()
+		WHERE id=$1 AND owner_key=$2 AND saved_at IS NOT NULL`, id, owner, tok, when)
+	if err != nil {
+		return false, fmt.Errorf("ссылка на конспект: %w", err)
+	}
+	return tag.RowsAffected() == 1, nil
+}
+
+func (r *Repo) NoteByShare(ctx context.Context, token string) (domain.Note, bool, error) {
+	n, err := scanNote(r.pool.QueryRow(ctx,
+		`SELECT `+noteColumns+` FROM notes WHERE share_token=$1 AND saved_at IS NOT NULL`, token))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Note{}, false, nil
+	}
+	if err != nil {
+		return domain.Note{}, false, fmt.Errorf("конспект по ссылке: %w", err)
+	}
+	return n, true, nil
+}
+
+func (r *Repo) CopyOf(ctx context.Context, owner string, source int64) (domain.Note, bool, error) {
+	n, err := scanNote(r.pool.QueryRow(ctx,
+		`SELECT `+noteColumns+` FROM notes WHERE owner_key=$1 AND copied_from=$2 ORDER BY id LIMIT 1`, owner, source))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Note{}, false, nil
+	}
+	if err != nil {
+		return domain.Note{}, false, fmt.Errorf("копия конспекта: %w", err)
 	}
 	return n, true, nil
 }

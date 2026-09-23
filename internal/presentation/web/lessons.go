@@ -61,6 +61,9 @@ type noteView struct {
 	// Куда вернуться после «Сохранить» и «Удалить»; куда после сохранения
 	// задания из конспекта.
 	SaveBack, DeleteBack, HwBack template.URL
+	// ShareHref — ссылка, по которой конспект открывает кто угодно; пусто —
+	// им не делились.
+	ShareHref string
 }
 
 // noteBlock — кусок конспекта. Разметку разбирает сервер, а не браузер:
@@ -447,6 +450,9 @@ func (s *Server) noteView(n ndom.Note, hws []ndom.Homework, base string) noteVie
 		AskHW:      !n.Saved() && len(hws) == 0,
 		SaveBack:   dayHref(base, dayKeyOf(n.Lesson)),
 		DeleteBack: template.URL(base)}
+	if n.ShareToken != "" {
+		v.ShareHref = "/n/" + n.ShareToken
+	}
 	for _, h := range hws {
 		v.Homeworks = append(v.Homeworks, homeworkViewOf(h))
 	}
@@ -530,6 +536,10 @@ func (s *Server) lessonsAction(w http.ResponseWriter, r *http.Request) {
 		err = s.d.Notes.SaveNote(ctx, owner, id, r.FormValue("hw"))
 	case "note-delete":
 		err = s.d.Notes.DeleteNote(ctx, owner, id)
+	case "note-share":
+		_, err = s.d.Notes.Share(ctx, owner, id)
+	case "note-unshare":
+		err = s.d.Notes.Unshare(ctx, owner, id)
 	case "hw-save":
 		err = s.d.Notes.SaveHomework(ctx, owner, id)
 	case "hw-done":
