@@ -566,7 +566,7 @@ body { touch-action: pan-y; }
 .field-label { font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); }
 .card select, .card input[type="text"] { min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); font-size: 14px; max-width: 100%; }
 
-.rec-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.rec-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
 .rec-live { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); animation: rec-pulse 1.4s infinite; }
 @keyframes rec-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
