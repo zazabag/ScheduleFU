@@ -243,14 +243,14 @@ func (r *Repo) Fail(ctx context.Context, id int64, reason string, retryAt time.T
 
 const noteColumns = `id, owner_key, recording_id, subject_key, discipline, lesson_date,
 	to_char(begins_at,'HH24:MI'), lecturer_name, auditorium, title, body, theses,
-	saved_at, created_at, updated_at, COALESCE(share_token, ''), copied_from`
+	saved_at, created_at, updated_at, COALESCE(share_token, ''), copied_from, cards_status, cards_failure`
 
 func scanNote(row pgx.Row) (domain.Note, error) {
 	var n domain.Note
 	var begins *string
 	err := row.Scan(&n.ID, &n.OwnerKey, &n.RecordingID, &n.Lesson.SubjectKey, &n.Lesson.Discipline,
 		&n.Lesson.Date, &begins, &n.Lesson.LecturerName, &n.Lesson.Auditorium, &n.Title, &n.Body,
-		&n.Theses, &n.SavedAt, &n.CreatedAt, &n.UpdatedAt, &n.ShareToken, &n.CopiedFrom)
+		&n.Theses, &n.SavedAt, &n.CreatedAt, &n.UpdatedAt, &n.ShareToken, &n.CopiedFrom, &n.CardsStatus, &n.CardsFailure)
 	if begins != nil {
 		n.Lesson.BeginsAt = *begins
 	}
@@ -396,7 +396,8 @@ func (r *Repo) SearchNotes(ctx context.Context, owner, query string, limit int) 
 		n := &h.Note
 		if err := rows.Scan(&n.ID, &n.OwnerKey, &n.RecordingID, &n.Lesson.SubjectKey, &n.Lesson.Discipline,
 			&n.Lesson.Date, &begins, &n.Lesson.LecturerName, &n.Lesson.Auditorium, &n.Title, &n.Body,
-			&n.Theses, &n.SavedAt, &n.CreatedAt, &n.UpdatedAt, &n.ShareToken, &n.CopiedFrom, &h.Snippet); err != nil {
+			&n.Theses, &n.SavedAt, &n.CreatedAt, &n.UpdatedAt, &n.ShareToken, &n.CopiedFrom,
+			&n.CardsStatus, &n.CardsFailure, &h.Snippet); err != nil {
 			return nil, err
 		}
 		if begins != nil {
@@ -616,4 +617,141 @@ func (r *Repo) CleanupLLMCalls(ctx context.Context, olderThan time.Duration) (in
 		return 0, fmt.Errorf("уборка учёта модели: %w", err)
 	}
 	return tag.RowsAffected(), nil
+}
+
+// ─── карточки ────────────────────────────────────────────────────────────────
+
+func (r *Repo) QueueCards(ctx context.Context, owner string, id int64, now time.Time) (bool, error) {
+	tag, err := r.pool.Exec(ctx, `UPDATE notes SET cards_status='queued', cards_failure='', cards_at=$3
+		WHERE id=$1 AND owner_key=$2 AND saved_at IS NOT NULL AND cards_status NOT IN ('queued','working')`, id, owner, now)
+	if err != nil {
+		return false, fmt.Errorf("очередь карточек: %w", err)
+	}
+	return tag.RowsAffected() == 1, nil
+}
+
+func (r *Repo) ClaimCards(ctx context.Context, now time.Time) (domain.Note, bool, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return domain.Note{}, false, err
+	}
+	defer tx.Rollback(ctx)
+	var id int64
+	err = tx.QueryRow(ctx, `SELECT id FROM notes
+		WHERE cards_status='queued' OR (cards_status='working' AND cards_at < $1)
+		ORDER BY cards_at LIMIT 1 FOR UPDATE SKIP LOCKED`, now.Add(-time.Hour)).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Note{}, false, nil
+	}
+	if err != nil {
+		return domain.Note{}, false, fmt.Errorf("выбор конспекта для карточек: %w", err)
+	}
+	n, err := scanNote(tx.QueryRow(ctx, `UPDATE notes SET cards_status='working', cards_at=$2
+		WHERE id=$1 RETURNING `+noteColumns, id, now))
+	if err != nil {
+		return domain.Note{}, false, fmt.Errorf("взятие конспекта в работу: %w", err)
+	}
+	return n, true, tx.Commit(ctx)
+}
+
+func (r *Repo) FinishCards(ctx context.Context, noteID int64, failure string) error {
+	status := "ready"
+	if failure != "" {
+		status = "failed"
+	}
+	_, err := r.pool.Exec(ctx, `UPDATE notes SET cards_status=$2, cards_failure=$3 WHERE id=$1`, noteID, status, failure)
+	if err != nil {
+		return fmt.Errorf("итог карточек: %w", err)
+	}
+	return nil
+}
+
+func (r *Repo) AddCards(ctx context.Context, cards []domain.Card) (int, error) {
+	added := 0
+	for _, c := range cards {
+		tag, err := r.pool.Exec(ctx, `INSERT INTO cards
+			(owner_key, note_id, subject_key, discipline, lesson_date, kind, front, back, box, due_on)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT DO NOTHING`,
+			c.OwnerKey, c.NoteID, c.Lesson.SubjectKey, c.Lesson.Discipline, c.Lesson.Date, string(c.Kind),
+			c.Front, c.Back, c.Box, c.DueOn)
+		if err != nil {
+			return added, fmt.Errorf("запись карточки: %w", err)
+		}
+		added += int(tag.RowsAffected())
+	}
+	return added, nil
+}
+
+const cardColumns = `id, owner_key, note_id, subject_key, discipline, lesson_date, kind, front, back, box, due_on`
+
+func scanCard(row pgx.Row) (domain.Card, error) {
+	var c domain.Card
+	var kind string
+	err := row.Scan(&c.ID, &c.OwnerKey, &c.NoteID, &c.Lesson.SubjectKey, &c.Lesson.Discipline, &c.Lesson.Date,
+		&kind, &c.Front, &c.Back, &c.Box, &c.DueOn)
+	c.Kind = domain.CardKind(kind)
+	return c, err
+}
+
+func (r *Repo) cards(ctx context.Context, query string, args ...any) ([]domain.Card, error) {
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("карточки: %w", err)
+	}
+	defer rows.Close()
+	var out []domain.Card
+	for rows.Next() {
+		c, err := scanCard(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+// DueCards — карточки к повторению: сначала те, что дольше ждут, внутри —
+// из младших коробок, то есть хуже выученные.
+func (r *Repo) DueCards(ctx context.Context, owner, subjectKey, discipline string, day time.Time, limit int) ([]domain.Card, error) {
+	return r.cards(ctx, `SELECT `+cardColumns+` FROM cards
+		WHERE owner_key=$1 AND subject_key=$2 AND discipline=$3 AND kind='card' AND due_on <= $4
+		ORDER BY due_on, box, reviewed_at NULLS FIRST, id LIMIT $5`, owner, subjectKey, discipline, day, limit)
+}
+
+func (r *Repo) CardStats(ctx context.Context, owner, subjectKey, discipline string, day time.Time) (int, int, *time.Time, error) {
+	var due, total int
+	var next *time.Time
+	err := r.pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE due_on <= $4), count(*), min(due_on) FILTER (WHERE due_on > $4)
+		FROM cards WHERE owner_key=$1 AND subject_key=$2 AND discipline=$3 AND kind='card'`,
+		owner, subjectKey, discipline, day).Scan(&due, &total, &next)
+	if err != nil {
+		return 0, 0, nil, fmt.Errorf("счёт карточек: %w", err)
+	}
+	return due, total, next, nil
+}
+
+func (r *Repo) Terms(ctx context.Context, owner, subjectKey, discipline string) ([]domain.Card, error) {
+	return r.cards(ctx, `SELECT `+cardColumns+` FROM cards
+		WHERE owner_key=$1 AND subject_key=$2 AND discipline=$3 AND kind='term'
+		ORDER BY lower(front)`, owner, subjectKey, discipline)
+}
+
+func (r *Repo) Card(ctx context.Context, owner string, id int64) (domain.Card, bool, error) {
+	c, err := scanCard(r.pool.QueryRow(ctx, `SELECT `+cardColumns+` FROM cards WHERE id=$1 AND owner_key=$2`, id, owner))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Card{}, false, nil
+	}
+	if err != nil {
+		return domain.Card{}, false, fmt.Errorf("карточка: %w", err)
+	}
+	return c, true, nil
+}
+
+func (r *Repo) SaveReview(ctx context.Context, c domain.Card, at time.Time) error {
+	_, err := r.pool.Exec(ctx, `UPDATE cards SET box=$3, due_on=$4, reviewed_at=$5 WHERE id=$1 AND owner_key=$2`,
+		c.ID, c.OwnerKey, c.Box, c.DueOn, at)
+	if err != nil {
+		return fmt.Errorf("повторение карточки: %w", err)
+	}
+	return nil
 }

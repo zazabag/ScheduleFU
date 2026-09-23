@@ -39,6 +39,9 @@ type Options struct {
 
 // Service — записи и конспекты.
 type Service struct {
+	// Carder — модель для карточек; nil — кнопки «Карточки» нет.
+	Carder Carder
+
 	repo  Repository
 	rec   Recognizer
 	sum   Summarizer
@@ -237,11 +240,15 @@ func (s *Service) sweep(ctx context.Context) {
 // Возвращает true, если работа была.
 func (s *Service) ProcessOne(ctx context.Context) (bool, error) {
 	if !s.CanProcess() {
-		return false, nil
+		return s.processCards(ctx)
 	}
 	rec, ok, err := s.repo.Claim(ctx, s.clk.Now())
-	if err != nil || !ok {
+	if err != nil {
 		return false, err
+	}
+	if !ok {
+		// Записи важнее: их ждут с пары. Карточки — когда записей нет.
+		return s.processCards(ctx)
 	}
 	s.log.Info("notes: обработка записи", "запись", rec.ID, "предмет", rec.Lesson.Discipline,
 		"байт", rec.Bytes, "кусков", rec.Chunks, "откуда", rec.Origin)
@@ -532,4 +539,111 @@ func (s *Service) ToggleHomework(ctx context.Context, owner string, id int64, do
 // DeleteHomework убирает задание.
 func (s *Service) DeleteHomework(ctx context.Context, owner string, id int64) error {
 	return s.repo.DeleteHomework(ctx, owner, id)
+}
+
+// ─── карточки ────────────────────────────────────────────────────────────────
+
+// ErrCardsOff — карточки на этом стенде не настроены.
+var ErrCardsOff = errors.New("карточки на этом сервере не настроены")
+
+// CanCards — можно ли просить карточки.
+func (s *Service) CanCards() bool { return s.Carder != nil }
+
+// RequestCards ставит сохранённый конспект в очередь на карточки и словарь.
+func (s *Service) RequestCards(ctx context.Context, owner string, noteID int64) error {
+	if s.Carder == nil {
+		return ErrCardsOff
+	}
+	ok, err := s.repo.QueueCards(ctx, owner, noteID, s.clk.Now())
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("карточки делаются по сохранённому конспекту — или уже готовятся")
+	}
+	return nil
+}
+
+// processCards берёт один конспект из очереди карточек и делает их.
+func (s *Service) processCards(ctx context.Context) (bool, error) {
+	if s.Carder == nil {
+		return false, nil
+	}
+	n, ok, err := s.repo.ClaimCards(ctx, s.clk.Now())
+	if err != nil || !ok {
+		return false, err
+	}
+	set, err := s.Carder.Cards(ctx, CardsInput{Discipline: n.Lesson.Discipline, Title: n.Title, Theses: n.Theses, Body: n.Body})
+	if err == nil {
+		set = set.Clean()
+		if len(set.Cards)+len(set.Terms) == 0 {
+			err = errors.New("в конспекте не нашлось, из чего сделать карточки")
+		}
+	}
+	if err != nil {
+		if ferr := s.repo.FinishCards(ctx, n.ID, "не получилось: "+err.Error()); ferr != nil {
+			s.log.Error("notes: отметка карточек", "конспект", n.ID, "ошибка", ferr)
+		}
+		return true, fmt.Errorf("карточки по конспекту %d: %w", n.ID, err)
+	}
+	today := s.today()
+	var cards []domain.Card
+	add := func(kind domain.CardKind, qs []domain.QA) {
+		for _, q := range qs {
+			cards = append(cards, domain.Card{OwnerKey: n.OwnerKey, NoteID: &n.ID, Lesson: n.Lesson, Kind: kind,
+				Front: q.Front, Back: q.Back, Box: 1, DueOn: today})
+		}
+	}
+	add(domain.CardQuestion, set.Cards)
+	add(domain.CardTerm, set.Terms)
+	added, err := s.repo.AddCards(ctx, cards)
+	if err != nil {
+		_ = s.repo.FinishCards(ctx, n.ID, "не получилось сохранить карточки")
+		return true, err
+	}
+	s.log.Info("notes: карточки готовы", "конспект", n.ID, "новых", added, "вопросов", len(set.Cards), "терминов", len(set.Terms))
+	return true, s.repo.FinishCards(ctx, n.ID, "")
+}
+
+// today — сегодняшняя дата в поясе вуза: срок карточки — день, а не момент.
+func (s *Service) today() time.Time {
+	y, m, d := s.clk.Now().Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+}
+
+// CardDeck — состояние колоды предмета: что повторить сейчас и что дальше.
+type CardDeck struct {
+	Due   []domain.Card
+	Left  int // к повторению сегодня всего
+	Total int
+	Next  *time.Time // когда следующее повторение, если сегодня всё
+}
+
+// Deck — колода предмета на сегодня.
+func (s *Service) Deck(ctx context.Context, owner, subjectKey, discipline string) (CardDeck, error) {
+	var d CardDeck
+	today := s.today()
+	var err error
+	if d.Left, d.Total, d.Next, err = s.repo.CardStats(ctx, owner, subjectKey, discipline, today); err != nil {
+		return d, err
+	}
+	d.Due, err = s.repo.DueCards(ctx, owner, subjectKey, discipline, today, 1)
+	return d, err
+}
+
+// Terms — словарь предмета.
+func (s *Service) Terms(ctx context.Context, owner, subjectKey, discipline string) ([]domain.Card, error) {
+	return s.repo.Terms(ctx, owner, subjectKey, discipline)
+}
+
+// Review — ответ на карточку: помню или нет.
+func (s *Service) Review(ctx context.Context, owner string, id int64, remembered bool) error {
+	c, ok, err := s.repo.Card(ctx, owner, id)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("карточка не найдена")
+	}
+	return s.repo.SaveReview(ctx, c.Review(remembered, s.today()), s.clk.Now())
 }

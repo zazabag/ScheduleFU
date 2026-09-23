@@ -1,0 +1,47 @@
+{{define "content"}}
+<header class="top">
+  <div class="top-row">
+    <div>
+      <span class="top-kicker">карточки и словарь</span>
+      <h1 class="top-title">{{.Discipline}}</h1>
+      <p class="top-sub">{{if .Total}}{{if .Left}}Сегодня к повторению: {{.Left}} из {{.Total}}.{{else}}На сегодня всё повторено{{with .Next}} — следующие {{.}}{{end}}.{{end}}{{else}}Карточек пока нет: откройте сохранённый конспект и нажмите «Сделать карточки и словарь».{{end}}</p>
+    </div>
+    <div class="top-actions"><a class="act" href="{{.Back}}">К предмету</a></div>
+  </div>
+</header>
+
+{{with .Card}}
+<section class="card flash">
+  <p class="flash-front">{{.Front}}</p>
+  <details>
+    <summary class="btn btn-main">Показать ответ</summary>
+    <p class="flash-back">{{.Back}}</p>
+    <div class="flash-answers">
+      <form method="post" action="/lessons">
+        <input type="hidden" name="action" value="card-review">
+        <input type="hidden" name="id" value="{{.ID}}">
+        <input type="hidden" name="remembered" value="0">
+        <input type="hidden" name="back" value="{{$.Here}}">
+        <button class="btn btn-ghost" type="submit">Не помню</button>
+      </form>
+      <form method="post" action="/lessons">
+        <input type="hidden" name="action" value="card-review">
+        <input type="hidden" name="id" value="{{.ID}}">
+        <input type="hidden" name="remembered" value="1">
+        <input type="hidden" name="back" value="{{$.Here}}">
+        <button class="btn btn-main" type="submit">Помню</button>
+      </form>
+    </div>
+  </details>
+  <p class="flash-meta">с пары {{.From}} · коробка {{.Box}} из 5: «помню» — вернётся реже, «не помню» — сегодня же ещё раз</p>
+</section>
+{{end}}
+
+{{if .Terms}}
+<section class="card terms">
+  <div class="card-head"><h2 class="card-title">Словарь</h2><span class="note-date">{{len .Terms}}</span></div>
+  <dl>{{range .Terms}}<dt>{{.Front}}</dt><dd>{{.Back}}</dd>{{end}}</dl>
+</section>
+{{end}}
+<footer class="foot"><span class="foot-note">Карточки и словарь сделаны моделью по вашему конспекту — только из того, что в нём есть. Нашли ошибку в карточке — сверьтесь с конспектом.</span></footer>
+{{end}}
