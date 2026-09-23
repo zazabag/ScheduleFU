@@ -31,12 +31,14 @@ body:has(.hero[data-state="none"]) { --tint: #0F5A48; }
 :root[data-theme="light"] body:has(.hero[data-state="after"]) { --tint: #DDD5FF; }
 :root[data-theme="light"] body:has(.hero[data-state="none"]) { --tint: #C8F3E2; }
 
-/* ─── шапка: только плейлист ──────────────────────────────────────────── */
-/* Дни листаются кнопками плеера и свайпом, поэтому полоса дней и неделя
-   не нужны — остаётся, чей это плейлист. */
-.top-schedule { padding-bottom: 0; gap: 0; }
-.top-schedule .weeknav, .top-schedule .days { display: none; }
+/* ─── шапка: плейлист, неделя и дни ───────────────────────────────────── */
+/* Дни листаются и кнопками плеера, и свайпом, но выбрать день недели
+   напрямую и перелистнуть неделю нужно всё равно: без полосы дней
+   попасть на пятницу из понедельника — четыре касания. */
+.top-schedule { padding-bottom: 6px; gap: 8px; }
 .top-schedule .top-row { align-items: center; }
+.top-schedule .weeknav-btn, .top-schedule .weeknav-today { border-radius: 999px; }
+.top-schedule .day { border-radius: 14px; }
 .top-schedule .top-kicker { font-size: 10px; letter-spacing: 0.14em; margin-bottom: 2px; }
 .top-schedule .top-title { font-size: 17px; letter-spacing: 0; }
 .act { background: var(--surface); color: var(--text); }
@@ -306,5 +308,5 @@ body:has(.hero[data-state="none"]) { --tint: #0F5A48; }
 :root[data-theme="light"] .onb-btn { background: #fff; color: var(--accent); }
 .onb-fold { background: rgba(13,19,48,0.1); }
 
-/* Полоса дней — на экранах, где она осталась (преподаватель). */
+/* Выбранный день — цветом «играет», как кнопка плеера. */
 .day.on { background: var(--play); color: var(--play-ink); }
