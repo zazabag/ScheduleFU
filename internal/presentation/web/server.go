@@ -65,7 +65,7 @@ type Server struct {
 func New(d Deps) (*Server, error) {
 	funcs := template.FuncMap{"asset": AssetURL, "skinCSS": func(id string) string { return AssetURL("skins/" + id + ".css") }, "cover": lessonCover}
 	pages := map[string]*template.Template{}
-	for _, name := range []string{"rooms", "disciplines", "window", "together", "shared", "map", "schedule", "lessons", "lecturers", "settings"} {
+	for _, name := range []string{"rooms", "disciplines", "window", "together", "shared", "map", "schedule", "lessons", "summary", "lecturers", "settings"} {
 		// hero.html — общий верхний блок дня: его рисуют и экран расписания,
 		// и экран «где преподаватель».
 		t, err := template.New("base").Funcs(funcs).ParseFS(templateFS, "templates/base.html", "templates/hero.html", "templates/onboard.html", "templates/manul.html", "templates/"+name+".html")
@@ -97,6 +97,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /n/{token}", s.sharedNote)
 	mux.HandleFunc("POST /n/{token}", s.saveSharedNote)
 	mux.HandleFunc("GET /lessons", s.lessons)
+	mux.HandleFunc("GET /lessons/summary", s.lessonsSummary)
 	mux.HandleFunc("POST /lessons", s.lessonsAction)
 	mux.HandleFunc("POST /lessons/upload", s.lessonsUpload)
 	mux.HandleFunc("GET /groups", s.groups)

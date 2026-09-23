@@ -1,0 +1,47 @@
+{{define "content"}}
+<header class="top">
+  <div class="top-row">
+    <div>
+      <span class="top-kicker">сводка предмета{{with .Range}} · {{.}}{{end}}</span>
+      <h1 class="top-title">{{.Discipline}}</h1>
+      <p class="top-sub">{{with .Entries}}{{len .}} конспектов по порядку курса и все задания — чтобы готовиться целиком, а не по одной паре.{{else}}Сохранённых конспектов по предмету пока нет.{{end}}</p>
+    </div>
+    <div class="top-actions"><a class="act" href="{{.Back}}">К предмету</a></div>
+  </div>
+</header>
+
+{{if .Entries}}
+<nav class="card summary-toc" aria-label="Оглавление">
+  <div class="card-head"><h2 class="card-title">Оглавление</h2></div>
+  <ol>{{range .Entries}}<li><a href="#{{.Anchor}}">{{.When}}{{if .Title}} — {{.Title}}{{end}}</a></li>{{end}}</ol>
+</nav>
+
+{{range .Entries}}
+<section class="card note summary-note" id="{{.Anchor}}">
+  <div class="card-head">
+    <h2 class="card-title">{{if .Title}}{{.Title}}{{else}}Конспект{{end}}</h2>
+    <span class="note-date">{{.When}}{{if .Time}} · {{.Time}}{{end}}</span>
+  </div>
+  {{if .Theses}}
+  <div class="theses"><div class="theses-label">главное</div><ul>{{range .Theses}}<li>{{.}}</li>{{end}}</ul></div>
+  {{end}}
+  <div class="note-body">
+    {{range .Blocks}}
+      {{if eq .Kind "head"}}<h3>{{.Text}}</h3>
+      {{else if eq .Kind "list"}}<ul>{{range .Items}}<li>{{.}}</li>{{end}}</ul>
+      {{else}}<p>{{.Text}}</p>{{end}}
+    {{end}}
+  </div>
+</section>
+{{end}}
+{{end}}
+
+{{if .Homeworks}}
+<section class="card summary-hw">
+  <div class="card-head"><h2 class="card-title">Задания</h2></div>
+  {{range .Homeworks}}
+  <div class="hw {{if .Done}}done{{end}}"><div class="hw-body">{{.Body}} <span class="hw-meta">задали {{.Date}}{{if .Due}} · срок {{.Due}}{{end}}{{if .Done}} · сделано{{end}}</span></div></div>
+  {{end}}
+</section>
+{{end}}
+{{end}}
