@@ -18,7 +18,7 @@ var msk = time.FixedZone("MSK", 3*3600)
 func setup(t *testing.T) (*notify.Service, *Repo, *schedpg.Repo, context.Context) {
 	t.Helper()
 	pool := db.TestPool(t, "TEST_DATABASE_URL_NOTIFY", "schedulefu_test_notify",
-		"lessons", "lesson_changes", "auditoriums", "groups", "lecturers", "collector_runs", "subscriptions", "outbox")
+		"lessons", "lesson_changes", "auditoriums", "groups", "lecturers", "collector_runs", "subscriptions", "outbox", "reminder_days")
 	repo := New(pool)
 	sr := schedpg.New(pool)
 	svc := notify.New(repo, sr, msk, nil, fakeTransport{})
@@ -135,4 +135,35 @@ type deadTransport struct{}
 func (deadTransport) Name() string { return "webpush" }
 func (deadTransport) Send(context.Context, domain.Delivery) (domain.Outcome, error) {
 	return domain.Dead, nil
+}
+
+// Подписка помнит ключ устройства, и подтверждение из вкладки без cookie
+// его не стирает: иначе напоминания пропадали бы после любого визита.
+func TestPodpiskaPomnitKlyuchUstroystva(t *testing.T) {
+	_, repo, _, ctx := setup(t)
+	sub := domain.Subscription{SubjectKey: "group:ПИ24-1", Transport: "webpush", Target: "https://push.example/1",
+		Credentials: map[string]string{"p256dh": "k", "auth": "a"}, OwnerKey: "устройство"}
+	if err := repo.Save(ctx, sub); err != nil {
+		t.Fatal(err)
+	}
+	sub.OwnerKey = ""
+	if err := repo.Save(ctx, sub); err != nil {
+		t.Fatal(err)
+	}
+	got, err := repo.ForOwners(ctx, []string{"устройство"})
+	if err != nil || len(got) != 1 || got[0].OwnerKey != "устройство" || got[0].Credentials["auth"] != "a" {
+		t.Fatalf("подписки владельца: %+v %v", got, err)
+	}
+}
+
+func TestDenNapominaniyOtmechaetsyaOdinRaz(t *testing.T) {
+	_, repo, _, ctx := setup(t)
+	d := time.Date(2026, 9, 24, 0, 0, 0, 0, msk)
+	first, err := repo.ClaimReminderDay(ctx, d)
+	if err != nil || !first {
+		t.Fatalf("первая отметка: %v %v", first, err)
+	}
+	if again, _ := repo.ClaimReminderDay(ctx, d); again {
+		t.Error("день отмечен дважды — напоминание ушло бы дважды")
+	}
 }

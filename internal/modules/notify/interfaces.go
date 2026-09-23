@@ -25,11 +25,29 @@ type Transport interface {
 	Send(ctx context.Context, d domain.Delivery) (domain.Outcome, error)
 }
 
+// Reminder — напоминание одному устройству.
+type Reminder struct {
+	OwnerKey     string
+	Notification domain.Notification
+}
+
+// ReminderSource — кто знает, о чём напомнить на день. Реализует модуль
+// заданий (notes) через переходник в cmd: notify не знает, что такое
+// домашнее задание, а notes — что такое подписка.
+type ReminderSource interface {
+	Reminders(ctx context.Context, day time.Time) ([]Reminder, error)
+}
+
 // Repository — хранилище модуля.
 type Repository interface {
 	Save(ctx context.Context, s domain.Subscription) error
 	Delete(ctx context.Context, transport, target, subjectKey string) error
 	For(ctx context.Context, subjectKeys []string) ([]domain.Subscription, error)
+	// ForOwners — подписки устройств по ключам владельцев.
+	ForOwners(ctx context.Context, owners []string) ([]domain.Subscription, error)
+	// ClaimReminderDay отмечает день напоминаний; false — день уже отмечен
+	// (этим или другим процессом), ставить в очередь не нужно.
+	ClaimReminderDay(ctx context.Context, day time.Time) (bool, error)
 
 	Enqueue(ctx context.Context, subscriptionIDs []int64, n domain.Notification) error
 	// Take забирает пачку писем к отправке с блокировкой строк: два

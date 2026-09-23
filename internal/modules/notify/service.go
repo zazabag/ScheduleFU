@@ -20,6 +20,15 @@ type Service struct {
 
 	Batch       int
 	MaxAttempts int
+
+	// Reminders — источник напоминаний о заданиях; nil — напоминаний нет.
+	Reminders ReminderSource
+	// RemindAt — с какого часа вечера (ЧЧ:ММ, пояс вуза) ставить
+	// напоминания на завтра. Вечер, а не утро: к утру сделать уже поздно.
+	RemindAt string
+	// remindedFor — день, за который напоминания уже поставлены этим
+	// процессом: чтобы не спрашивать базу каждые полминуты.
+	remindedFor string
 }
 
 // New создаёт сервис. Транспорты регистрируются по имени.
@@ -27,7 +36,7 @@ func New(repo Repository, changes ChangeReader, loc *time.Location, log *slog.Lo
 	if log == nil {
 		log = slog.Default()
 	}
-	s := &Service{repo: repo, changes: changes, loc: loc, log: log, transports: map[string]Transport{}, Batch: 50, MaxAttempts: 5}
+	s := &Service{repo: repo, changes: changes, loc: loc, log: log, transports: map[string]Transport{}, Batch: 50, MaxAttempts: 5, RemindAt: "19:00"}
 	for _, t := range transports {
 		s.transports[t.Name()] = t
 	}
@@ -100,6 +109,72 @@ func (s *Service) PlanSince(ctx context.Context, since time.Time) (int, error) {
 	return queued, nil
 }
 
+// PlanReminders ставит в очередь напоминания о заданиях к парам завтрашнего
+// дня — один раз за день и не раньше RemindAt. Одно письмо на устройство,
+// сколько бы у него ни было подписок на разные расписания: иначе человек,
+// следящий за группой и за преподавателем, получил бы одно и то же дважды.
+func (s *Service) PlanReminders(ctx context.Context, now time.Time) (int, error) {
+	if s.Reminders == nil {
+		return 0, nil
+	}
+	now = now.In(s.loc)
+	if now.Format("15:04") < s.RemindAt {
+		return 0, nil
+	}
+	y, m, d := now.Date()
+	tomorrow := time.Date(y, m, d, 0, 0, 0, 0, s.loc).AddDate(0, 0, 1)
+	key := tomorrow.Format("2006-01-02")
+	if s.remindedFor == key {
+		return 0, nil
+	}
+	claimed, err := s.repo.ClaimReminderDay(ctx, tomorrow)
+	if err != nil {
+		return 0, err
+	}
+	s.remindedFor = key
+	if !claimed {
+		return 0, nil
+	}
+	reminders, err := s.Reminders.Reminders(ctx, tomorrow)
+	if err != nil || len(reminders) == 0 {
+		return 0, err
+	}
+	owners := make([]string, 0, len(reminders))
+	for _, r := range reminders {
+		owners = append(owners, r.OwnerKey)
+	}
+	subs, err := s.repo.ForOwners(ctx, owners)
+	if err != nil {
+		return 0, err
+	}
+	byOwner := map[string][]int64{}
+	seen := map[string]bool{}
+	for _, sub := range subs {
+		dst := sub.OwnerKey + "\x1f" + sub.Transport + "\x1f" + sub.Target
+		if seen[dst] {
+			continue
+		}
+		seen[dst] = true
+		byOwner[sub.OwnerKey] = append(byOwner[sub.OwnerKey], sub.ID)
+	}
+	queued := 0
+	for _, r := range reminders {
+		ids := byOwner[r.OwnerKey]
+		if len(ids) == 0 {
+			continue
+		}
+		if err := s.repo.Enqueue(ctx, ids, r.Notification); err != nil {
+			s.log.Warn("напоминание не поставлено в очередь", "ошибка", err)
+			continue
+		}
+		queued += len(ids)
+	}
+	if queued > 0 {
+		s.log.Info("напоминания о заданиях в очереди", "писем", queued, "день", key)
+	}
+	return queued, nil
+}
+
 // Result — итог разбора очереди.
 type Result struct{ Delivered, Dropped, Failed, Retry int }
 
@@ -159,6 +234,9 @@ func (s *Service) Run(ctx context.Context, every time.Duration) {
 				s.log.Info("очередь подчищена", "удалено", n)
 			}
 		case <-tick.C:
+			if _, err := s.PlanReminders(ctx, time.Now()); err != nil {
+				s.log.Warn("напоминания не поставлены", "ошибка", err)
+			}
 			res, err := s.Deliver(ctx)
 			if err != nil {
 				s.log.Warn("очередь не разобрана", "ошибка", err)

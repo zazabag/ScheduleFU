@@ -22,6 +22,7 @@ import (
 	"github.com/zazabag/schedulefu/internal/modules/schedule"
 	sched "github.com/zazabag/schedulefu/internal/modules/schedule/domain"
 	"github.com/zazabag/schedulefu/internal/platform/clock"
+	"github.com/zazabag/schedulefu/internal/platform/httpx"
 )
 
 // Deps — что нужно API.
@@ -243,9 +244,13 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "ключи шифрования отсутствуют или неправдоподобны")
 		return
 	}
+	// Ключ устройства — чтобы напомнить о его домашних заданиях. Заводится
+	// здесь же, если его ещё нет: задания, записанные потом с этого
+	// устройства, получат тот же ключ.
+	owner := httpx.OwnerKey(w, r, httpx.IsSecure(r))
 	err := s.d.Notify.Subscribe(r.Context(), ndomain.Subscription{
 		SubjectKey: strings.TrimSpace(req.SubjectKey), Transport: "webpush", Target: req.Endpoint,
-		Credentials: map[string]string{"p256dh": req.Keys.P256dh, "auth": req.Keys.Auth}})
+		Credentials: map[string]string{"p256dh": req.Keys.P256dh, "auth": req.Keys.Auth}, OwnerKey: owner})
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return

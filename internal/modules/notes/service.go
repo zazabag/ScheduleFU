@@ -49,6 +49,10 @@ type Service struct {
 	clk   *clock.Clock
 	log   *slog.Logger
 	opts  Options
+
+	// Plan — предметы расписания по дням, для напоминаний о заданиях;
+	// nil — напоминаний нет.
+	Plan DayPlan
 }
 
 // New собирает модуль. Распознаватель и конспектирование — порты: без них
@@ -646,4 +650,39 @@ func (s *Service) Review(ctx context.Context, owner string, id int64, remembered
 		return errors.New("карточка не найдена")
 	}
 	return s.repo.SaveReview(ctx, c.Review(remembered, s.today()), s.clk.Now())
+}
+
+// reminderWindow — за сколько дней назад смотреть задания. Заданное
+// месяц назад и так и не отмеченное — скорее забытая отметка, чем долг, и
+// напоминать о нём перед каждой парой до конца семестра незачем.
+const reminderWindow = 30
+
+// Reminders — напоминания на день: не сделанные задания, срок которых —
+// этот день, датой или «к ближайшей паре». Одно на устройство.
+func (s *Service) Reminders(ctx context.Context, day time.Time) ([]domain.Reminder, error) {
+	if s.Plan == nil {
+		return nil, nil
+	}
+	hws, err := s.repo.PendingHomeworks(ctx, day.AddDate(0, 0, -reminderWindow), day)
+	if err != nil {
+		return nil, err
+	}
+	// Расписание — одним запросом на владельца расписания, а не на задание:
+	// у группы заданий десятки, а пар в день — пять.
+	plans := map[string]map[string]bool{}
+	var due []domain.Homework
+	for _, h := range hws {
+		key := h.Lesson.SubjectKey
+		p, ok := plans[key]
+		if !ok && h.DueDate == nil {
+			if p, err = s.Plan.Disciplines(ctx, key, day); err != nil {
+				s.log.Warn("напоминания: расписание не прочитано", "расписание", key, "ошибка", err)
+			}
+			plans[key] = p
+		}
+		if h.DueOn(day, p[h.Lesson.Discipline]) {
+			due = append(due, h)
+		}
+	}
+	return domain.BuildReminders(due), nil
 }

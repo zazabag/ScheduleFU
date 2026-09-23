@@ -130,6 +130,19 @@
       });
   }
 
+  // Подписка, заведённая до напоминаний о заданиях, не знает ключа
+  // устройства. Раз в день тихо подтверждаем её с этого устройства —
+  // разрешение заново не спрашивается, это та же подписка.
+  function relink(sub) {
+    if (!sub || !subjectKey) return;
+    var today = new Date().toISOString().slice(0, 10);
+    try { if (localStorage.getItem('push-linked') === today) return; } catch (e) {}
+    var json = sub.toJSON();
+    post('/api/v1/push/subscribe', { subject_key: subjectKey, endpoint: json.endpoint, keys: json.keys })
+      .then(function () { try { localStorage.setItem('push-linked', today); } catch (e) {} })
+      .catch(function () {});
+  }
+
   fetch('/api/v1/push/key')
     .then(function (r) { return r.json(); })
     .then(function (cfg) {
@@ -145,6 +158,7 @@
       }).then(function (sub) {
         state.subscription = sub;
         refresh();
+        relink(sub);
         boxes.forEach(function (box) {
           var b = button(box);
           if (!b) return;
