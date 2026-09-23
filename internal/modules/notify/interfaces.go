@@ -38,11 +38,26 @@ type ReminderSource interface {
 	Reminders(ctx context.Context, day time.Time) ([]Reminder, error)
 }
 
+// DayLessons — пары расписания в день. Реализует schedule через
+// переходник в cmd; notify уже знает домен schedule (ChangeReader), поэтому
+// пары приходят как есть.
+type DayLessons interface {
+	LessonsOn(ctx context.Context, subjectKey string, day time.Time) ([]sched.Lesson, error)
+}
+
 // Repository — хранилище модуля.
 type Repository interface {
 	Save(ctx context.Context, s domain.Subscription) error
 	Delete(ctx context.Context, transport, target, subjectKey string) error
 	For(ctx context.Context, subjectKeys []string) ([]domain.Subscription, error)
+	// SetMorning включает или выключает утреннюю сводку подписки; false —
+	// такой подписки нет.
+	SetMorning(ctx context.Context, transport, target, subjectKey string, on bool) (bool, error)
+	Morning(ctx context.Context, transport, target, subjectKey string) (bool, error)
+	// MorningSubscriptions — подписки с включённой утренней сводкой.
+	MorningSubscriptions(ctx context.Context) ([]domain.Subscription, error)
+	// ClaimMorningDay отмечает день сводок; false — уже отмечен.
+	ClaimMorningDay(ctx context.Context, day time.Time) (bool, error)
 	// ForOwners — подписки устройств по ключам владельцев.
 	ForOwners(ctx context.Context, owners []string) ([]domain.Subscription, error)
 	// ClaimReminderDay отмечает день напоминаний; false — день уже отмечен

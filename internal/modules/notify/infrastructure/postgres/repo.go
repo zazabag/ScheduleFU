@@ -4,6 +4,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -76,6 +77,56 @@ func (r *Repo) ClaimReminderDay(ctx context.Context, day time.Time) (bool, error
 	tag, err := r.pool.Exec(ctx, `INSERT INTO reminder_days (day) VALUES ($1) ON CONFLICT DO NOTHING`, day.Format("2006-01-02"))
 	if err != nil {
 		return false, fmt.Errorf("день напоминаний: %w", err)
+	}
+	return tag.RowsAffected() == 1, nil
+}
+
+func (r *Repo) SetMorning(ctx context.Context, transport, target, subjectKey string, on bool) (bool, error) {
+	tag, err := r.pool.Exec(ctx, `UPDATE subscriptions SET morning=$4 WHERE transport=$1 AND target=$2 AND subject_key=$3`,
+		transport, target, subjectKey, on)
+	if err != nil {
+		return false, fmt.Errorf("утренняя сводка: %w", err)
+	}
+	return tag.RowsAffected() == 1, nil
+}
+
+func (r *Repo) Morning(ctx context.Context, transport, target, subjectKey string) (bool, error) {
+	var on bool
+	err := r.pool.QueryRow(ctx, `SELECT morning FROM subscriptions WHERE transport=$1 AND target=$2 AND subject_key=$3`,
+		transport, target, subjectKey).Scan(&on)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("утренняя сводка: %w", err)
+	}
+	return on, nil
+}
+
+func (r *Repo) MorningSubscriptions(ctx context.Context) ([]domain.Subscription, error) {
+	rows, err := r.pool.Query(ctx, `SELECT id, subject_key, transport, target, credentials
+		FROM subscriptions WHERE morning ORDER BY subject_key, id`)
+	if err != nil {
+		return nil, fmt.Errorf("подписки на сводку: %w", err)
+	}
+	defer rows.Close()
+	var out []domain.Subscription
+	for rows.Next() {
+		var s domain.Subscription
+		var creds []byte
+		if err := rows.Scan(&s.ID, &s.SubjectKey, &s.Transport, &s.Target, &creds); err != nil {
+			return nil, err
+		}
+		_ = json.Unmarshal(creds, &s.Credentials)
+		out = append(out, s)
+	}
+	return out, rows.Err()
+}
+
+func (r *Repo) ClaimMorningDay(ctx context.Context, day time.Time) (bool, error) {
+	tag, err := r.pool.Exec(ctx, `INSERT INTO morning_days (day) VALUES ($1) ON CONFLICT DO NOTHING`, day.Format("2006-01-02"))
+	if err != nil {
+		return false, fmt.Errorf("день сводок: %w", err)
 	}
 	return tag.RowsAffected() == 1, nil
 }

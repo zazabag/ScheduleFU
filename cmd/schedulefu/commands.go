@@ -78,6 +78,8 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger) (*app, error
 	if cfg.PushEnabled() {
 		a.keys = webpush.Keys{Public: cfg.Notify.VAPIDPublic, Private: cfg.Notify.VAPIDPrivate, Subject: cfg.Notify.Subject}
 		a.notify = notify.New(notifypg.New(pool), schedRepo, clk.Location(), log, webpush.New(a.keys))
+		a.notify.Days = dayLessons{schedSvc}
+		a.notify.Place = buildingLabel
 		schedSvc.Notifier = a.notify
 	}
 	if cfg.Notes.Enabled {
@@ -457,4 +459,15 @@ func migrate(ctx context.Context, cfg config.Config, log *slog.Logger, _ any) er
 	pool.Close()
 	log.Info("миграции применены")
 	return nil
+}
+
+// dayLessons — порт notify.DayLessons поверх расписания.
+type dayLessons struct{ s *schedule.Service }
+
+func (d dayLessons) LessonsOn(ctx context.Context, subjectKey string, day time.Time) ([]sched.Lesson, error) {
+	subj, err := sched.ParseSubjectKey(subjectKey)
+	if err != nil || subj.IsZero() {
+		return nil, err
+	}
+	return d.s.ScheduleFor(ctx, subj, day, day)
 }
