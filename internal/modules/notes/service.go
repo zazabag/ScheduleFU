@@ -420,6 +420,13 @@ func (s *Service) Notes(ctx context.Context, owner, subjectKey, discipline strin
 	return s.repo.Notes(ctx, owner, subjectKey, discipline)
 }
 
+// DraftNotes — готовые конспекты, которые человек ещё не сохранил. Их надо
+// показывать в предмете: иначе черновик виден только на странице записи, и
+// ушедший с неё человек теряет конспект, пока тот не удалится по сроку.
+func (s *Service) DraftNotes(ctx context.Context, owner, subjectKey, discipline string) ([]domain.Note, error) {
+	return s.repo.DraftNotes(ctx, owner, subjectKey, discipline)
+}
+
 // Note — один конспект.
 func (s *Service) Note(ctx context.Context, owner string, id int64) (domain.Note, bool, error) {
 	return s.repo.Note(ctx, owner, id)

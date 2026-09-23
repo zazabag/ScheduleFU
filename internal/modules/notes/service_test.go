@@ -108,6 +108,10 @@ func (f *fakeRepo) NoteByRecording(context.Context, string, int64) (domain.Note,
 	return f.notes[0], true, nil
 }
 
+func (f *fakeRepo) DraftNotes(context.Context, string, string, string) ([]domain.Note, error) {
+	return nil, nil
+}
+
 func (f *fakeRepo) Notes(context.Context, string, string, string) ([]domain.Note, error) {
 	return nil, nil
 }

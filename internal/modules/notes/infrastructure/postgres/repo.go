@@ -258,6 +258,11 @@ func scanNote(row pgx.Row) (domain.Note, error) {
 }
 
 func (r *Repo) CreateNote(ctx context.Context, n domain.Note) (int64, error) {
+	// nil-срез pgx пишет как NULL, а theses — NOT NULL: конспект без тезисов
+	// (модель их не нашла) иначе падал бы на последнем шаге обработки.
+	if n.Theses == nil {
+		n.Theses = []string{}
+	}
 	var id int64
 	err := r.pool.QueryRow(ctx, `INSERT INTO notes
 		(owner_key, recording_id, subject_key, discipline, lesson_date, begins_at, lecturer_name,
@@ -297,8 +302,18 @@ func (r *Repo) NoteByRecording(ctx context.Context, owner string, recordingID in
 }
 
 func (r *Repo) Notes(ctx context.Context, owner, subjectKey, discipline string) ([]domain.Note, error) {
+	return r.notesWhere(ctx, owner, subjectKey, discipline, "saved_at IS NOT NULL")
+}
+
+func (r *Repo) DraftNotes(ctx context.Context, owner, subjectKey, discipline string) ([]domain.Note, error) {
+	return r.notesWhere(ctx, owner, subjectKey, discipline, "saved_at IS NULL")
+}
+
+// notesWhere — конспекты предмета с одним из двух условий на сохранённость.
+// Условие — константа из этого файла, не ввод человека.
+func (r *Repo) notesWhere(ctx context.Context, owner, subjectKey, discipline, saved string) ([]domain.Note, error) {
 	rows, err := r.pool.Query(ctx, `SELECT `+noteColumns+` FROM notes
-		WHERE owner_key=$1 AND subject_key=$2 AND discipline=$3 AND saved_at IS NOT NULL
+		WHERE owner_key=$1 AND subject_key=$2 AND discipline=$3 AND `+saved+`
 		ORDER BY lesson_date DESC, begins_at DESC NULLS LAST`, owner, subjectKey, discipline)
 	if err != nil {
 		return nil, fmt.Errorf("список конспектов: %w", err)
