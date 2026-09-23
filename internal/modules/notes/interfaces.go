@@ -42,6 +42,8 @@ type Repository interface {
 	Note(ctx context.Context, owner string, id int64) (domain.Note, bool, error)
 	NoteByRecording(ctx context.Context, owner string, recordingID int64) (domain.Note, bool, error)
 	Notes(ctx context.Context, owner, subjectKey, discipline string) ([]domain.Note, error)
+	// DraftNotes — готовые, но не сохранённые конспекты предмета.
+	DraftNotes(ctx context.Context, owner, subjectKey, discipline string) ([]domain.Note, error)
 	SaveNote(ctx context.Context, owner string, id int64, at time.Time) error
 	DeleteNote(ctx context.Context, owner string, id int64) error
 

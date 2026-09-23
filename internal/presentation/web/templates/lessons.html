@@ -164,6 +164,22 @@
   {{end}}
 </section>
 
+{{/* Готовые конспекты, которые ещё не сохранили: через две недели они
+     удалятся, и уйти со страницы записи не значит отказаться от них. */}}
+{{if .Drafts}}
+<section class="card">
+  <div class="card-head"><h2 class="card-title">Конспект готов</h2></div>
+  <p class="rec-hint">Он не сохранён: откройте и нажмите «Сохранить», иначе через две недели он удалится.</p>
+  {{range .Drafts}}
+  <a class="rec-row" href="{{.Href}}">
+    <span class="rec-row-date">{{.Title}}</span>
+    <span class="rec-row-dur">{{.Date}}</span>
+    <span class="rec-state ready">не сохранён</span>
+  </a>
+  {{end}}
+</section>
+{{end}}
+
 {{/* Записи в работе. */}}
 {{if .Recordings}}
 <section class="card">

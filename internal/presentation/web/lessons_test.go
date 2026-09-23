@@ -104,6 +104,7 @@ func TestShablonRazdelaParyRisuetsya(t *testing.T) {
 			"Notes":      []noteView{note},
 			"Homeworks":  []homeworkView{{ID: 2, Body: "глава 3", Due: "к четвергу", Date: "22 сентября", Saved: true}},
 			"Recordings": []recordingView{{ID: 3, Date: "22 сентября", Status: "queued", Label: "в очереди"}},
+			"Drafts":     []draftView{{Title: "Создание падл комьюнити", Date: "29 сентября", Href: template.URL("/lessons?group=x&rec=4")}},
 		},
 	}
 	var out strings.Builder
@@ -113,6 +114,20 @@ func TestShablonRazdelaParyRisuetsya(t *testing.T) {
 	for _, want := range []string{"История", "Иванов И.И.", "Сохранить конспект", "глава 3", "Реформы Петра", "record.js"} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("на странице нет %q", want)
+		}
+	}
+
+	// Экран предмета без открытой записи: несохранённый конспект виден и
+	// ведёт к себе — иначе, уйдя со страницы записи, его не найти.
+	delete(data, "Rec")
+	delete(data, "RecNote")
+	out.Reset()
+	if err := s.pages["lessons"].ExecuteTemplate(&out, "base", data); err != nil {
+		t.Fatalf("отрисовка предмета без записи: %v", err)
+	}
+	for _, want := range []string{"Создание падл комьюнити", "не сохранён", `href="/lessons?group=x&amp;rec=4"`} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("на экране предмета нет %q", want)
 		}
 	}
 

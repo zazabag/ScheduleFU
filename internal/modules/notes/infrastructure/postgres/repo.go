@@ -297,8 +297,18 @@ func (r *Repo) NoteByRecording(ctx context.Context, owner string, recordingID in
 }
 
 func (r *Repo) Notes(ctx context.Context, owner, subjectKey, discipline string) ([]domain.Note, error) {
+	return r.notesWhere(ctx, owner, subjectKey, discipline, "saved_at IS NOT NULL")
+}
+
+func (r *Repo) DraftNotes(ctx context.Context, owner, subjectKey, discipline string) ([]domain.Note, error) {
+	return r.notesWhere(ctx, owner, subjectKey, discipline, "saved_at IS NULL")
+}
+
+// notesWhere — конспекты предмета с одним из двух условий на сохранённость.
+// Условие — константа из этого файла, не ввод человека.
+func (r *Repo) notesWhere(ctx context.Context, owner, subjectKey, discipline, saved string) ([]domain.Note, error) {
 	rows, err := r.pool.Query(ctx, `SELECT `+noteColumns+` FROM notes
-		WHERE owner_key=$1 AND subject_key=$2 AND discipline=$3 AND saved_at IS NOT NULL
+		WHERE owner_key=$1 AND subject_key=$2 AND discipline=$3 AND `+saved+`
 		ORDER BY lesson_date DESC, begins_at DESC NULLS LAST`, owner, subjectKey, discipline)
 	if err != nil {
 		return nil, fmt.Errorf("список конспектов: %w", err)

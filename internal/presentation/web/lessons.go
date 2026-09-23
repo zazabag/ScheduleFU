@@ -75,6 +75,14 @@ type homeworkView struct {
 	Manual bool
 }
 
+// draftView — готовый, но не сохранённый конспект: ссылка на его запись,
+// где кнопка «Сохранить».
+type draftView struct {
+	Title string
+	Date  string
+	Href  template.URL
+}
+
 // recordingView — запись и её состояние.
 type recordingView struct {
 	ID       int64
@@ -277,6 +285,10 @@ func (s *Server) subjectCard(ctx context.Context, owner string, subj sched.Subje
 	if err != nil {
 		return err
 	}
+	drafts, err := s.d.Notes.DraftNotes(ctx, owner, subj.Key(), discipline)
+	if err != nil {
+		return err
+	}
 
 	views := make([]noteView, 0, len(notesList))
 	for _, n := range notesList {
@@ -302,8 +314,24 @@ func (s *Server) subjectCard(ctx context.Context, owner string, subj sched.Subje
 		})
 	}
 
+	// Готовая запись прячется из «В обработке», а её конспект до «Сохранить»
+	// — черновик. Без этого списка он не виден нигде, кроме страницы записи.
+	draftViews := make([]draftView, 0, len(drafts))
+	for _, n := range drafts {
+		if n.RecordingID == nil {
+			continue
+		}
+		title := n.Title
+		if title == "" {
+			title = "Конспект"
+		}
+		draftViews = append(draftViews, draftView{Title: title, Date: clock.DateRu(n.Lesson.Date),
+			Href: template.URL(base + "&rec=" + strconv.FormatInt(*n.RecordingID, 10))})
+	}
+
 	data["Title"] = discipline
 	data["One"] = map[string]any{
+		"Drafts":     draftViews,
 		"Name":       discipline,
 		"Lecturer":   joinSet(lecturers, 3),
 		"Kinds":      joinSet(kinds, 3),
