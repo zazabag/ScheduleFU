@@ -19,6 +19,8 @@
     var bar = timer.querySelector('.ring-bar');
     var progress = timer.closest('.hero, .now-card');
     var slider = progress ? progress.querySelector('.hero-progress') : null;
+    var breakFrom = timer.getAttribute('data-break-from');
+    var skipLeft = progress ? progress.querySelector('.hero-skip-left') : null;
 
     // Что считаем: до конца текущей пары, либо до начала следующей.
     var from, to;
@@ -50,7 +52,16 @@
         pct = 0;
       }
       if (bar) bar.style.setProperty('--progress', pct);
-      if (slider) slider.style.setProperty('--progress', pct);
+      // Перемена у «Плеера» — реклама: полоса идёт от конца прошлой пары до
+      // начала следующей, кнопка «пропустить» считает то же время. Кольцо
+      // других оформлений в перерыве по-прежнему пустое.
+      var slide = pct;
+      if (state === 'between' && breakFrom) {
+        var span = (minutes(to) - minutes(breakFrom)) * 60;
+        slide = span > 0 ? Math.min(100, Math.max(0, 100 - left * 100 / span)) : 100;
+      }
+      if (skipLeft) skipLeft.textContent = text;
+      if (slider) slider.style.setProperty('--progress', slide);
       timer.style.setProperty('--progress', pct);
       if (left === 0) { clearInterval(handle); setTimeout(function () { location.reload(); }, 1500); }
     }
@@ -105,6 +116,46 @@
       if (navigator.clipboard) navigator.clipboard.writeText(text).then(done);
     });
   });
+
+  // ─── кто этот кот ────────────────────────────────────────────────────────
+  // Манул виден не во всех оформлениях, поэтому подсказка появляется, только
+  // когда он действительно на экране. Закрыли крестиком или прочитали
+  // карточку — больше не навязываемся; сам манул остаётся кнопкой.
+  var ask = document.getElementById('manul-ask');
+  var card = document.getElementById('manul-card');
+  if (ask && card && typeof card.showModal === 'function') {
+    var seen = false;
+    try { seen = localStorage.getItem('manul-seen') === '1'; } catch (e) {}
+    var markSeen = function () {
+      ask.hidden = true;
+      try { localStorage.setItem('manul-seen', '1'); } catch (e) {}
+    };
+    var openCard = function () {
+      markSeen();
+      if (card.open) return;
+      card.showModal();
+      // Фокус — на заголовок, а не на «Понятно» внизу: иначе карточка
+      // открывалась прокрученной до конца.
+      var title = card.querySelector('.manul-card-title');
+      if (title) title.focus();
+      card.scrollTop = 0;
+    };
+    var visible = [];
+    document.querySelectorAll('[data-manul]').forEach(function (m) {
+      if (!m.getClientRects().length || getComputedStyle(m).visibility === 'hidden') return;
+      visible.push(m);
+      m.classList.add('manul-tap');
+      m.addEventListener('click', openCard);
+    });
+    if (visible.length && !seen) {
+      // Не с порога: сначала человек видит расписание, потом — вопрос.
+      setTimeout(function () { ask.hidden = false; }, 1200);
+    }
+    ask.querySelector('.manul-ask-open').addEventListener('click', openCard);
+    ask.querySelector('.manul-ask-close').addEventListener('click', markSeen);
+    // Касание мимо карточки закрывает её, как любое всплывающее окно.
+    card.addEventListener('click', function (e) { if (e.target === card) card.close(); });
+  }
 
   // ─── без масштабирования ─────────────────────────────────────────────────
   // Щипок и двойной тап гасит CSS (touch-action) и мета-тег. Здесь остался

@@ -27,13 +27,15 @@ var Skins = []Skin{
 	{ID: "night", Name: "Ночной таймер", Note: "Тёмная тема и обратный отсчёт до конца пары", Fonts: []string{"inter"}, Dark: true},
 	{ID: "board", Name: "Табло", Note: "Отправления с вокзала: моноширинный шрифт, статусы рейсов", Fonts: []string{"jetbrains-mono", "inter"}, Dark: true},
 	{ID: "cover", Name: "Обложка", Note: "День как журнал: синяя обложка и антиква", Fonts: []string{"playfair-display", "inter"}},
-	{ID: "player", Name: "Плеер", Note: "Пара как трек: пластинка, полоса, «далее»", Fonts: []string{"inter"}, Dark: true},
+	{ID: "player", Name: "Плеер", Note: "День как плейлист: пара — трек с обложкой, перемена — реклама", Fonts: []string{"unbounded", "inter"}, Dark: true},
 	{ID: "plan", Name: "План корпуса", Note: "Куда идти: схема аудиторий и маршрут между парами", Fonts: []string{"inter"}},
 	{ID: "stickers", Name: "Стикеры", Note: "Коллаж из наклеек — пары как стикеры на оранжевом", Fonts: []string{"rubik"}},
 	{ID: "map", Name: "Карта дня", Note: "Маршрут с остановками: пары как точки на дороге", Fonts: []string{"nunito"}},
 }
 
-const defaultSkin = "night"
+// defaultSkin — «Плеер»: с 24.09.2026 основной вид (решение автора). Кто
+// выбрал другое оформление, остаётся при нём — выбор живёт в cookie.
+const defaultSkin = "player"
 
 // SkinByID возвращает оформление; неизвестное — по умолчанию, потому что
 // значение приходит из cookie и может быть чем угодно.

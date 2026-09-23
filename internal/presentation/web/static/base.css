@@ -167,6 +167,13 @@ body { touch-action: pan-y; }
 .ctl svg { width: 20px; height: 20px; fill: currentColor; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
 .ctl-main { width: 56px; height: 56px; background: var(--accent); color: var(--accent-ink); }
 .ctl-main svg { fill: none; stroke-width: 3; }
+/* В кнопке два значка: пауза (по умолчанию) и треугольник «играть» —
+   какой показать, решает оформление. */
+.ctl-main .ico-play { display: none; }
+/* Обложка «трека», «пропустить рекламу» и мини-обложки в списке — детали
+   «Плеера»; остальные оформления их не показывают. */
+.hero-cover, .hero-skip, .lesson-cover { display: none; }
+.cover { width: 100%; height: 100%; }
 
 .hero-sentence { margin: 0; font-size: 14px; line-height: 1.4; color: var(--hero-text); }
 .hero-mood { display: none; margin: 0; }
@@ -678,3 +685,36 @@ body { touch-action: pan-y; }
 /* Обмен конспектами: страница конспекта по ссылке. */
 .share-actions { display: flex; flex-direction: column; gap: 10px; }
 .share-actions .btn { width: 100%; }
+
+/* ─── кто этот кот: подсказка и карточка ─────────────────────────────────── */
+/* Одна для всех оформлений, поэтому цвета — только из переменных. */
+.manul-tap { cursor: pointer; }
+.manul-ask {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px);
+  width: calc(100% - 2 * var(--pad)); max-width: 420px; z-index: 20;
+  display: flex; align-items: center; gap: 4px; padding: 6px 6px 6px 8px;
+  border-radius: 999px; background: var(--text); color: var(--bg);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3); animation: manul-in 0.35s ease-out;
+}
+@keyframes manul-in { from { opacity: 0; transform: translate(-50%, 16px); } }
+.manul-ask button { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.manul-ask-open { flex: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 10px; text-align: left; font-size: 14px; font-weight: 600; padding: 0; }
+.manul-ask-open img { width: 36px; height: 36px; border-radius: 999px; object-fit: cover; background: var(--surface); flex-shrink: 0; }
+.manul-ask-close { width: 44px; height: 44px; border-radius: 999px; font-size: 22px; line-height: 1; opacity: 0.7; flex-shrink: 0; }
+.manul-card {
+  width: min(92vw, 460px); max-height: 86vh; padding: 0; border: 0; border-radius: var(--radius-lg);
+  background: var(--bg); color: var(--text); overflow-y: auto; overscroll-behavior: contain;
+}
+.manul-card::backdrop { background: rgba(0,0,0,0.55); }
+.manul-card-body { padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 10px; }
+.manul-card-img { width: 132px; height: 132px; align-self: center; object-fit: contain; }
+.manul-card-title { margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 800; letter-spacing: -0.02em; text-align: center; }
+.manul-card-lead { margin: 0; font-size: 14px; line-height: 1.45; color: var(--text-2); text-align: center; }
+.manul-card-h { margin: 8px 0 0; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+.manul-card-p { margin: 0; font-size: 14px; line-height: 1.5; }
+.manul-card-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.45; }
+.manul-card-note { margin: 4px 0 0; font-size: 11px; color: var(--text-3); text-align: center; }
+.manul-card-close { width: 100%; min-height: 46px; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+
+.manul-card-title:focus { outline: none; }

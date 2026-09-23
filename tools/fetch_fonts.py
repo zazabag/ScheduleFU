@@ -29,6 +29,7 @@ FAMILIES = {
     'playfair-display': 'Playfair+Display:ital,wght@0,400..900;1,400..900',
     'rubik': 'Rubik:wght@400..900',
     'nunito': 'Nunito:wght@400..800',
+    'unbounded': 'Unbounded:wght@400..900',
 }
 
 
