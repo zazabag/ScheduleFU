@@ -437,8 +437,20 @@ func (s *Service) NoteByRecording(ctx context.Context, owner string, recordingID
 	return s.repo.NoteByRecording(ctx, owner, recordingID)
 }
 
-// SaveNote переводит конспект из черновика в сохранённые.
-func (s *Service) SaveNote(ctx context.Context, owner string, id int64) error {
+// SaveNote переводит конспект из черновика в сохранённые. hw — задание,
+// которое человек вписал при сохранении: модель его не нашла, а задавали.
+// Ложится к той же паре уже сохранённым, как вписанное руками. Пустое hw —
+// «не задавали».
+func (s *Service) SaveNote(ctx context.Context, owner string, id int64, hw string) error {
+	if strings.TrimSpace(hw) != "" {
+		n, ok, err := s.repo.Note(ctx, owner, id)
+		if err != nil || !ok {
+			return notFound(err)
+		}
+		if err := s.AddHomework(ctx, owner, n.Lesson, hw); err != nil {
+			return err
+		}
+	}
 	return s.repo.SaveNote(ctx, owner, id, s.clk.Now())
 }
 

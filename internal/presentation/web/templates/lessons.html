@@ -24,26 +24,34 @@
 <header class="top">
   <div class="top-row">
     <div>
+      {{if or $.Rec $.Day}}
+      <a class="top-back" href="{{.Base}}">‹ {{.Name}}</a>
+      <h1 class="top-title">{{if $.Day}}{{$.Day.Label}}{{else}}Запись от {{$.Rec.Date}}{{end}}</h1>
+      <p class="top-sub">{{.Name}}</p>
+      {{else}}
       <a class="top-back" href="/lessons?{{$.SubjectQuery}}">‹ предметы</a>
       <h1 class="top-title">{{.Name}}</h1>
       <p class="top-sub">{{if .Lecturer}}{{.Lecturer}}{{else}}преподаватель неизвестен{{end}}</p>
+      {{end}}
     </div>
   </div>
+  {{if not (or $.Rec $.Day)}}
   <div class="sum">
     {{if .Kinds}}<span class="sum-item"><i>вид</i>{{.Kinds}}</span>{{end}}
     {{if .Rooms}}<span class="sum-item"><i>аудитории</i>{{.Rooms}}</span>{{end}}
     {{if .Soon}}<span class="sum-item"><i>ближайшая</i>{{.Soon}}</span>{{end}}
   </div>
+  {{end}}
 </header>
 
 {{if $.Rec}}
-{{/* Экран одной записи: ход обработки, потом конспект и задания. */}}
+{{/* Экран одной записи: ход обработки, потом конспект. */}}
 <section class="card rec" id="rec" data-rec="{{$.Rec.ID}}" data-status="{{$.Rec.Status}}">
   <div class="card-head">
-    <h2 class="card-title">Запись от {{$.Rec.Date}}</h2>
+    <h2 class="card-title">Обработка</h2>
     <span class="rec-state {{$.Rec.Status}}">{{$.Rec.Label}}</span>
   </div>
-  {{if $.Rec.Working}}<p class="rec-hint">Можно закрыть страницу — обработка идёт на сервере. Полуторачасовая пара занимает 5–15 минут.</p>{{end}}
+  {{if $.Rec.Working}}<p class="rec-hint">Можно закрыть страницу — обработка идёт на сервере. Полуторачасовая пара занимает 5–15 минут. Готовый конспект появится в предмете у даты пары.</p>{{end}}
   {{if $.Rec.Failure}}<p class="rec-fail">{{$.Rec.Failure}}</p>{{end}}
   {{with $.Rec.Gaps}}
   <div class="rec-gaps">
@@ -60,71 +68,57 @@
   </form>
   {{end}}
 </section>
+{{with $.RecNote}}{{template "note-card" .}}{{end}}
+
+{{else if $.Day}}
+{{/* Экран пары: записи в работе, конспект, задания. */}}
+{{range $.Day.Recordings}}
+<a class="card rec-row rec-row-card" href="{{.Href}}">
+  <span class="rec-row-date">Запись</span>
+  <span class="rec-state {{.Status}}">{{.Label}}</span>
+  {{if .Failure}}<span class="rec-fail">{{.Failure}}</span>{{end}}
+</a>
 {{end}}
+{{range $.Day.Notes}}{{template "note-card" .}}{{end}}
 
-{{with $.RecNote}}
-{{/* Свежий конспект: сначала он сам, следом задания и кнопки «Сохранить». */}}
-<section class="card note">
-  <div class="card-head">
-    <h2 class="card-title">{{if .Title}}{{.Title}}{{else}}Конспект{{end}}</h2>
-    <span class="note-date">{{.Date}}{{if .Time}} · {{.Time}}{{end}}</span>
-  </div>
-  {{if .Theses}}
-  <div class="theses">
-    <div class="theses-label">главное</div>
-    <ul>{{range .Theses}}<li>{{.}}</li>{{end}}</ul>
-  </div>
-  {{end}}
-  <div class="note-body">
-    {{range .Blocks}}
-      {{if eq .Kind "head"}}<h3>{{.Text}}</h3>
-      {{else if eq .Kind "list"}}<ul>{{range .Items}}<li>{{.}}</li>{{end}}</ul>
-      {{else}}<p>{{.Text}}</p>{{end}}
-    {{end}}
-  </div>
-  <div class="card-actions">
-    {{if .Saved}}
-    <span class="saved-mark">✓ сохранён</span>
-    {{else}}
-    <form method="post" action="/lessons">
-      <input type="hidden" name="action" value="note-save">
-      <input type="hidden" name="id" value="{{.ID}}">
-      <input type="hidden" name="back" value="{{$.One.Base}}&amp;rec={{$.Rec.ID}}">
-      <button class="btn btn-main" type="submit">Сохранить конспект</button>
-    </form>
-    {{end}}
-    <form method="post" action="/lessons">
-      <input type="hidden" name="action" value="note-delete">
-      <input type="hidden" name="id" value="{{.ID}}">
-      <input type="hidden" name="back" value="{{$.One.Base}}">
-      <button class="btn btn-quiet" type="submit">Удалить</button>
-    </form>
-  </div>
-</section>
-
-{{if .Homeworks}}
-<section class="card hw-new">
+<section class="card" id="hw">
   <div class="card-head"><h2 class="card-title">Задали на дом</h2></div>
-  {{range .Homeworks}}
-  <div class="hw {{if .Saved}}saved{{end}}">
-    <div class="hw-body">{{.Body}}{{if .Due}} <span class="hw-due">{{.Due}}</span>{{end}}</div>
-    {{if .Saved}}<span class="saved-mark">✓ в заданиях</span>{{else}}
-    <form method="post" action="/lessons">
-      <input type="hidden" name="action" value="hw-save">
-      <input type="hidden" name="id" value="{{.ID}}">
-      <input type="hidden" name="back" value="{{$.One.Base}}&amp;rec={{$.Rec.ID}}">
-      <button class="btn btn-small" type="submit">Сохранить</button>
-    </form>
-    {{end}}
+  {{range $.Day.Homeworks}}
+  <div class="hw {{if .Done}}done{{end}}">
+    <div class="hw-body">{{.Body}}{{if .Due}} <span class="hw-due">{{.Due}}</span>{{end}}
+      {{if .Manual}}<span class="hw-meta">вписано вручную</span>{{end}}
+    </div>
+    <div class="hw-actions">
+      <form method="post" action="/lessons">
+        <input type="hidden" name="action" value="{{if .Done}}hw-undone{{else}}hw-done{{end}}">
+        <input type="hidden" name="id" value="{{.ID}}">
+        <input type="hidden" name="back" value="{{$.Day.Back}}">
+        <button class="btn btn-small" type="submit">{{if .Done}}Вернуть{{else}}Сделано{{end}}</button>
+      </form>
+      <form method="post" action="/lessons">
+        <input type="hidden" name="action" value="hw-delete">
+        <input type="hidden" name="id" value="{{.ID}}">
+        <input type="hidden" name="back" value="{{$.Day.Back}}">
+        <button class="btn btn-quiet btn-small" type="submit">×</button>
+      </form>
+    </div>
   </div>
+  {{else}}
+  <p class="empty-inline">К этой паре заданий нет.</p>
   {{end}}
-  <p class="hw-hint">Сохранённое попадёт в «Домашние задания» этого предмета с датой пары.</p>
+  <form class="hw-add" method="post" action="/lessons">
+    <input type="hidden" name="action" value="hw-add">
+    <input type="hidden" name="d" value="{{.Name}}">
+    <input type="hidden" name="group" value="{{$.Group}}">
+    <input type="hidden" name="lesson" value="{{$.Day.Key}}">
+    <input type="hidden" name="back" value="{{$.Day.Back}}">
+    <input type="text" name="body" placeholder="Что задали" maxlength="500">
+    <button class="btn btn-small" type="submit">Добавить</button>
+  </form>
 </section>
-{{end}}
-{{end}}
 
-{{if not $.Rec}}
-{{/* Запись новой пары. */}}
+{{else}}
+{{/* Экран предмета: запись, «Не сделано», лента пар. */}}
 <section class="card rec-new">
   <div class="card-head"><h2 class="card-title">Записать пару</h2></div>
   {{if $.CanRecord}}
@@ -164,109 +158,64 @@
   {{end}}
 </section>
 
-{{/* Готовые конспекты, которые ещё не сохранили: через две недели они
-     удалятся, и уйти со страницы записи не значит отказаться от них. */}}
-{{if .Drafts}}
-<section class="card">
-  <div class="card-head"><h2 class="card-title">Конспект готов</h2></div>
-  <p class="rec-hint">Он не сохранён: откройте и нажмите «Сохранить», иначе через две недели он удалится.</p>
-  {{range .Drafts}}
-  <a class="rec-row" href="{{.Href}}">
-    <span class="rec-row-date">{{.Title}}</span>
-    <span class="rec-row-dur">{{.Date}}</span>
-    <span class="rec-state ready">не сохранён</span>
-  </a>
-  {{end}}
-</section>
-{{end}}
-
-{{/* Записи в работе. */}}
-{{if .Recordings}}
-<section class="card">
-  <div class="card-head"><h2 class="card-title">В обработке</h2></div>
-  {{range .Recordings}}
-  <a class="rec-row" href="{{.Href}}">
-    <span class="rec-row-date">{{.Date}}</span>
-    <span class="rec-state {{.Status}}">{{.Label}}</span>
-    {{if .Duration}}<span class="rec-row-dur">{{.Duration}}</span>{{end}}
-  </a>
-  {{end}}
-</section>
-{{end}}
-
-{{/* Домашние задания предмета. */}}
-<section class="card" id="hw">
-  <div class="card-head"><h2 class="card-title">Домашние задания</h2></div>
-  {{range .Homeworks}}
-  <div class="hw {{if .Done}}done{{end}}">
+{{/* Невыполненные задания всех пар: они живут сроком, и открывать каждую
+     дату, чтобы про них вспомнить, никто не станет. */}}
+{{with .Pending}}
+<section class="card" id="todo">
+  <div class="card-head"><h2 class="card-title">Не сделано</h2></div>
+  {{range .}}
+  <div class="hw">
     <div class="hw-body">{{.Body}}{{if .Due}} <span class="hw-due">{{.Due}}</span>{{end}}
-      <span class="hw-meta">пара {{.Date}}{{if .Manual}} · вписано вручную{{end}}</span>
+      <a class="hw-meta" href="{{.DayHref}}">пара {{.DayLabel}} ›</a>
     </div>
     <div class="hw-actions">
       <form method="post" action="/lessons">
-        <input type="hidden" name="action" value="{{if .Done}}hw-undone{{else}}hw-done{{end}}">
+        <input type="hidden" name="action" value="hw-done">
         <input type="hidden" name="id" value="{{.ID}}">
         <input type="hidden" name="back" value="{{$.One.Base}}">
-        <button class="btn btn-small" type="submit">{{if .Done}}Вернуть{{else}}Сделано{{end}}</button>
-      </form>
-      <form method="post" action="/lessons">
-        <input type="hidden" name="action" value="hw-delete">
-        <input type="hidden" name="id" value="{{.ID}}">
-        <input type="hidden" name="back" value="{{$.One.Base}}">
-        <button class="btn btn-quiet btn-small" type="submit">×</button>
+        <button class="btn btn-small" type="submit">Сделано</button>
       </form>
     </div>
   </div>
-  {{else}}
-  <p class="empty-inline">Пока пусто. Задания появятся из конспекта или впишите сами.</p>
   {{end}}
-  <form class="hw-add" method="post" action="/lessons">
-    <input type="hidden" name="action" value="hw-add">
-    <input type="hidden" name="d" value="{{.Name}}">
-    <input type="hidden" name="group" value="{{$.Group}}">
-    <input type="hidden" name="back" value="{{.Base}}">
-    <select name="lesson">
-      {{range .Options}}<option value="{{.Value}}" {{if .On}}selected{{end}}>{{.Label}}</option>{{end}}
-      <option value="{{.Today}}T" {{if not .Options}}selected{{end}}>сегодня</option>
-    </select>
-    <input type="text" name="body" placeholder="Что задали" maxlength="500">
-    <button class="btn btn-small" type="submit">Добавить</button>
-  </form>
 </section>
+{{end}}
 
-{{/* Сохранённые конспекты. */}}
-<section class="card">
-  <div class="card-head"><h2 class="card-title">Конспекты</h2></div>
-  {{range .Notes}}
-  <details class="note-item">
-    <summary>
-      <span class="note-item-date">{{.Date}}</span>
-      <span class="note-item-title">{{if .Title}}{{.Title}}{{else}}Без темы{{end}}</span>
-    </summary>
-    {{if .Theses}}
-    <div class="theses"><div class="theses-label">главное</div><ul>{{range .Theses}}<li>{{.}}</li>{{end}}</ul></div>
-    {{end}}
-    <div class="note-body">
-      {{range .Blocks}}
-        {{if eq .Kind "head"}}<h3>{{.Text}}</h3>
-        {{else if eq .Kind "list"}}<ul>{{range .Items}}<li>{{.}}</li>{{end}}</ul>
-        {{else}}<p>{{.Text}}</p>{{end}}
-      {{end}}
-    </div>
-    <form method="post" action="/lessons">
-      <input type="hidden" name="action" value="note-delete">
-      <input type="hidden" name="id" value="{{.ID}}">
-      <input type="hidden" name="back" value="{{$.One.Base}}">
-      <button class="btn btn-quiet btn-small" type="submit">Удалить конспект</button>
+{{/* Лента пар, по которым что-то есть. */}}
+<section class="card" id="days">
+  <div class="card-head"><h2 class="card-title">Пары</h2></div>
+  {{range .Days}}
+  <a class="day-row" href="{{.Href}}">
+    <span class="day-date">{{.Label}}</span>
+    <span class="day-marks">
+      {{if .Note}}<i class="mark mark-note">конспект</i>{{end}}
+      {{if .Draft}}<i class="mark mark-draft">не сохранён</i>{{end}}
+      {{if .Homework}}<i class="mark mark-hw">{{.Homework}} дз</i>{{end}}
+      {{if .State}}<i class="rec-state {{.StateClass}}">{{.State}}</i>{{end}}
+      <i class="mark-go">›</i>
+    </span>
+  </a>
+  {{else}}
+  <p class="empty-inline">Пока пусто. Запишите пару или впишите задание — пара появится здесь.</p>
+  {{end}}
+  <details class="hw-add-wrap">
+    <summary>Вписать задание к паре</summary>
+    <form class="hw-add" method="post" action="/lessons">
+      <input type="hidden" name="action" value="hw-add">
+      <input type="hidden" name="d" value="{{.Name}}">
+      <input type="hidden" name="group" value="{{$.Group}}">
+      <input type="hidden" name="back" value="{{.Base}}">
+      <select name="lesson">
+        {{range .Options}}<option value="{{.Value}}" {{if .On}}selected{{end}}>{{.Label}}</option>{{end}}
+        <option value="{{.Today}}T" {{if not .Options}}selected{{end}}>сегодня</option>
+      </select>
+      <input type="text" name="body" placeholder="Что задали" maxlength="500">
+      <button class="btn btn-small" type="submit">Добавить</button>
     </form>
   </details>
-  {{else}}
-  <p class="empty-inline">Конспектов пока нет.</p>
-  {{end}}
 </section>
 {{end}}
 {{end}}
-
 {{else}}
 <header class="top">
   <div class="top-row">
@@ -296,5 +245,77 @@
   {{end}}
 </section>
 <footer class="foot"><span class="foot-note">Конспекты хранятся на этом устройстве без регистрации: очистка браузера их удалит.</span></footer>
+{{end}}
+{{end}}
+
+{{/* Карточка конспекта — одна на экран записи и экран пары: сам конспект,
+     «Сохранить» (с вопросом про задание, если модель его не нашла) и
+     задания-черновики из конспекта. */}}
+{{define "note-card"}}
+<section class="card note" id="note-{{.ID}}">
+  <div class="card-head">
+    <h2 class="card-title">{{if .Title}}{{.Title}}{{else}}Конспект{{end}}</h2>
+    {{if not .Saved}}<span class="rec-state ready">не сохранён</span>{{end}}
+  </div>
+  {{if .Theses}}
+  <div class="theses">
+    <div class="theses-label">главное</div>
+    <ul>{{range .Theses}}<li>{{.}}</li>{{end}}</ul>
+  </div>
+  {{end}}
+  <div class="note-body">
+    {{range .Blocks}}
+      {{if eq .Kind "head"}}<h3>{{.Text}}</h3>
+      {{else if eq .Kind "list"}}<ul>{{range .Items}}<li>{{.}}</li>{{end}}</ul>
+      {{else}}<p>{{.Text}}</p>{{end}}
+    {{end}}
+  </div>
+  {{if not .Saved}}
+  <form class="note-save" method="post" action="/lessons">
+    <input type="hidden" name="action" value="note-save">
+    <input type="hidden" name="id" value="{{.ID}}">
+    <input type="hidden" name="back" value="{{.SaveBack}}">
+    {{if .AskHW}}
+    <label class="field">
+      <span class="field-label">в записи задания не прозвучало — что-то задали?</span>
+      <input type="text" name="hw" placeholder="Например: параграф 5, эссе к четвергу" maxlength="500">
+    </label>
+    <p class="rec-note">Не задавали — оставьте пустым.</p>
+    {{end}}
+    <p class="rec-note">Не сохранённый конспект удалится через две недели.</p>
+    <div class="card-actions">
+      <button class="btn btn-main" type="submit">Сохранить конспект</button>
+    </div>
+  </form>
+  {{end}}
+  <div class="card-actions">
+    {{if .Saved}}<span class="saved-mark">✓ сохранён</span>{{end}}
+    <form method="post" action="/lessons">
+      <input type="hidden" name="action" value="note-delete">
+      <input type="hidden" name="id" value="{{.ID}}">
+      <input type="hidden" name="back" value="{{.DeleteBack}}">
+      <button class="btn btn-quiet" type="submit">Удалить конспект</button>
+    </form>
+  </div>
+</section>
+
+{{if .Homeworks}}
+<section class="card hw-new">
+  <div class="card-head"><h2 class="card-title">Нашлось в записи</h2></div>
+  {{range .Homeworks}}
+  <div class="hw {{if .Saved}}saved{{end}}">
+    <div class="hw-body">{{.Body}}{{if .Due}} <span class="hw-due">{{.Due}}</span>{{end}}</div>
+    {{if .Saved}}<span class="saved-mark">✓ в заданиях</span>{{else}}
+    <form method="post" action="/lessons">
+      <input type="hidden" name="action" value="hw-save">
+      <input type="hidden" name="id" value="{{.ID}}">
+      <input type="hidden" name="back" value="{{$.HwBack}}">
+      <button class="btn btn-small" type="submit">Сохранить</button>
+    </form>
+    {{end}}
+  </div>
+  {{end}}
+  <p class="hw-hint">Сохранённое попадёт в задания пары и в «Не сделано».</p>
+</section>
 {{end}}
 {{end}}

@@ -89,53 +89,69 @@ func TestShablonRazdelaParyRisuetsya(t *testing.T) {
 		t.Fatalf("шаблоны не разобрались: %v", err)
 	}
 	r := httptest.NewRequest(http.MethodGet, "/lessons", nil)
+	base := template.URL("/lessons?group=x&d=%D0%98")
 	note := noteView{ID: 1, Date: "22 сентября", Title: "Реформы Петра",
 		Blocks: parseNoteBody("## Армия\nтекст\n\n- рекруты"), Theses: []string{"тезис"},
-		Homeworks: []homeworkView{{ID: 2, Body: "глава 3", Due: "к четвергу"}}}
-	data := map[string]any{
-		"Title": "История", "Tab": "lessons", "Look": lookFrom(r), "Onboard": onboardState{},
-		"Group": "ПИ24-1", "SubjectQuery": template.URL("group=%D0%9F%D0%98241"), "CanRecord": true,
-		"Rec":     recordingView{ID: 3, Date: "22 сентября", Status: "transcribing", Label: "расшифровываем", Working: true},
-		"RecNote": note,
-		"One": map[string]any{
+		AskHW: true, SaveBack: base + "&day=2026-09-22T10%3A10", DeleteBack: base}
+	one := func() map[string]any {
+		return map[string]any{
 			"Name": "История", "Lecturer": "Иванов И.И.", "Kinds": "лекция", "Rooms": "313",
-			"Soon": "сегодня в 10:10", "Today": "2026-09-22", "Base": template.URL("/lessons?group=x&d=%D0%98"),
-			"Options":    []lessonOption{{Value: "2026-09-22T10:10", Label: "вт, 22 сентября, 10:10", On: true}},
-			"Notes":      []noteView{note},
-			"Homeworks":  []homeworkView{{ID: 2, Body: "глава 3", Due: "к четвергу", Date: "22 сентября", Saved: true}},
-			"Recordings": []recordingView{{ID: 3, Date: "22 сентября", Status: "queued", Label: "в очереди"}},
-			"Drafts":     []draftView{{Title: "Создание падл комьюнити", Date: "29 сентября", Href: template.URL("/lessons?group=x&rec=4")}},
-		},
+			"Soon": "сегодня в 10:10", "Today": "2026-09-22", "Base": base,
+			"Options": []lessonOption{{Value: "2026-09-22T10:10", Label: "вт, 22 сентября, 10:10", On: true}},
+			"Days": []dayRow{{Key: "2026-09-22T10:10", Label: "вт, 22 сентября · 10:10", Href: base + "&day=2026-09-22T10%3A10",
+				Draft: true, Homework: 1}},
+			"Pending": []homeworkView{{ID: 2, Body: "глава 3", Due: "к четвергу", DayLabel: "вт, 22 сентября · 10:10",
+				DayHref: base + "&day=2026-09-22T10%3A10"}},
+		}
 	}
-	var out strings.Builder
-	if err := s.pages["lessons"].ExecuteTemplate(&out, "base", data); err != nil {
-		t.Fatalf("отрисовка предмета: %v", err)
+	page := func(extra map[string]any) string {
+		t.Helper()
+		data := map[string]any{"Title": "История", "Tab": "lessons", "Look": lookFrom(r), "Onboard": onboardState{},
+			"Group": "ПИ24-1", "SubjectQuery": template.URL("group=x"), "CanRecord": true, "One": one()}
+		for k, v := range extra {
+			data[k] = v
+		}
+		var out strings.Builder
+		if err := s.pages["lessons"].ExecuteTemplate(&out, "base", data); err != nil {
+			t.Fatalf("отрисовка: %v", err)
+		}
+		return out.String()
 	}
-	for _, want := range []string{"История", "Иванов И.И.", "Сохранить конспект", "глава 3", "Реформы Петра", "record.js"} {
-		if !strings.Contains(out.String(), want) {
-			t.Errorf("на странице нет %q", want)
+	has := func(screen, html string, want ...string) {
+		t.Helper()
+		for _, w := range want {
+			if !strings.Contains(html, w) {
+				t.Errorf("%s: нет %q", screen, w)
+			}
 		}
 	}
 
-	// Экран предмета без открытой записи: несохранённый конспект виден и
-	// ведёт к себе — иначе, уйдя со страницы записи, его не найти.
-	delete(data, "Rec")
-	delete(data, "RecNote")
-	out.Reset()
-	if err := s.pages["lessons"].ExecuteTemplate(&out, "base", data); err != nil {
-		t.Fatalf("отрисовка предмета без записи: %v", err)
-	}
-	for _, want := range []string{"Создание падл комьюнити", "не сохранён", `href="/lessons?group=x&amp;rec=4"`} {
-		if !strings.Contains(out.String(), want) {
-			t.Errorf("на экране предмета нет %q", want)
-		}
+	// Экран предмета: запись, «Не сделано», лента пар.
+	has("предмет", page(nil), "Иванов И.И.", "record.js", "Не сделано", "глава 3",
+		"вт, 22 сентября · 10:10", "не сохранён", "1 дз", `href="/lessons?group=x&amp;d=%D0%98&amp;day=2026-09-22T10%3A10"`)
+
+	// Экран записи: готовый конспект с вопросом про задание.
+	has("запись", page(map[string]any{
+		"Rec":     recordingView{ID: 3, Date: "22 сентября", Status: "ready", Label: "готово", Ready: true},
+		"RecNote": note,
+	}), "Реформы Петра", "Сохранить конспект", "что-то задали", `name="hw"`)
+
+	// Экран пары: конспект, задания пары, форма с этой парой.
+	saved := note
+	saved.Saved, saved.AskHW = true, false
+	day := page(map[string]any{"Day": dayView{Key: "2026-09-22T10:10", Label: "вт, 22 сентября · 10:10",
+		Notes: []noteView{saved}, Homeworks: []homeworkView{{ID: 2, Body: "глава 3", Saved: true}},
+		Back: base + "&day=2026-09-22T10%3A10"}})
+	has("пара", day, "Реформы Петра", "✓ сохранён", "глава 3", "Задали на дом", `value="2026-09-22T10:10"`)
+	if strings.Contains(day, `name="hw"`) {
+		t.Error("пара: сохранённый конспект снова спрашивает про задание")
 	}
 
 	// Список предметов — второй режим того же шаблона.
 	list := map[string]any{"Title": "Пары", "Tab": "lessons", "Look": lookFrom(r), "Onboard": onboardState{},
 		"Group": "ПИ24-1", "SubjectQuery": template.URL("group=x"),
 		"Subjects": []*subjectCard{{Name: "История", Href: "/lessons?group=x&d=%D0%98", Notes: 2, Homework: 1, Soon: "сегодня в 10:10"}}}
-	out.Reset()
+	var out strings.Builder
 	if err := s.pages["lessons"].ExecuteTemplate(&out, "base", list); err != nil {
 		t.Fatalf("отрисовка списка: %v", err)
 	}
