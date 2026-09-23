@@ -60,12 +60,16 @@
   </div>
   {{end}}
   {{if not $.Rec.Ready}}
-  <form method="post" action="/lessons">
-    <input type="hidden" name="action" value="rec-delete">
-    <input type="hidden" name="id" value="{{$.Rec.ID}}">
-    <input type="hidden" name="back" value="{{.Base}}">
-    <button class="btn btn-quiet" type="submit">Удалить запись</button>
-  </form>
+  <details class="confirm">
+    <summary class="btn btn-quiet"><span class="confirm-ask">Удалить запись</span><span class="confirm-cancel">Отмена</span></summary>
+    <form class="confirm-box" method="post" action="/lessons">
+      <input type="hidden" name="action" value="rec-delete">
+      <input type="hidden" name="id" value="{{$.Rec.ID}}">
+      <input type="hidden" name="back" value="{{.Base}}">
+      <p>Удалить запись? Конспекта по ней не будет, вернуть её нельзя.</p>
+      <button class="btn btn-stop btn-small" type="submit">Да, удалить</button>
+    </form>
+  </details>
   {{end}}
 </section>
 {{with $.RecNote}}{{template "note-card" .}}{{end}}
@@ -95,12 +99,16 @@
         <input type="hidden" name="back" value="{{$.Day.Back}}">
         <button class="btn btn-small" type="submit">{{if .Done}}Вернуть{{else}}Сделано{{end}}</button>
       </form>
-      <form method="post" action="/lessons">
-        <input type="hidden" name="action" value="hw-delete">
-        <input type="hidden" name="id" value="{{.ID}}">
-        <input type="hidden" name="back" value="{{$.Day.Back}}">
-        <button class="btn btn-quiet btn-small" type="submit">×</button>
-      </form>
+      <details class="confirm">
+        <summary class="btn btn-quiet btn-small" aria-label="Удалить задание"><span class="confirm-ask">×</span><span class="confirm-cancel">Отмена</span></summary>
+        <form class="confirm-box" method="post" action="/lessons">
+          <input type="hidden" name="action" value="hw-delete">
+          <input type="hidden" name="id" value="{{.ID}}">
+          <input type="hidden" name="back" value="{{$.Day.Back}}">
+          <p>Удалить задание?</p>
+          <button class="btn btn-stop btn-small" type="submit">Да, удалить</button>
+        </form>
+      </details>
     </div>
   </div>
   {{else}}
@@ -307,12 +315,16 @@
     </form>
     {{end}}
     {{end}}
-    <form method="post" action="/lessons">
-      <input type="hidden" name="action" value="note-delete">
-      <input type="hidden" name="id" value="{{.ID}}">
-      <input type="hidden" name="back" value="{{.DeleteBack}}">
-      <button class="btn btn-quiet" type="submit">Удалить конспект</button>
-    </form>
+    <details class="confirm">
+      <summary class="btn btn-quiet"><span class="confirm-ask">Удалить конспект</span><span class="confirm-cancel">Отмена</span></summary>
+      <form class="confirm-box" method="post" action="/lessons">
+        <input type="hidden" name="action" value="note-delete">
+        <input type="hidden" name="id" value="{{.ID}}">
+        <input type="hidden" name="back" value="{{.DeleteBack}}">
+        <p>Удалить конспект? Вернуть его будет нельзя.{{if .ShareHref}} Ссылка, которой вы делились, перестанет открываться; копии, которые уже сохранили себе, останутся у них.{{end}}</p>
+        <button class="btn btn-stop btn-small" type="submit">Да, удалить</button>
+      </form>
+    </details>
   </div>
 </section>
 
