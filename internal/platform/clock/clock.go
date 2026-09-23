@@ -88,3 +88,20 @@ func StartOfWeek(t time.Time) time.Time {
 	d := t.AddDate(0, 0, -offset)
 	return time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, t.Location())
 }
+
+// StudyWeek — номер недели учебного года: неделя, в которую попало
+// 1 сентября, — первая (учебный год по закону начинается 1 сентября).
+// Летом, в июле и августе, — 0: учебных недель нет. Номер календарной
+// недели года (ISO) студенту ни о чём не говорит, а этот — да.
+func StudyWeek(t time.Time) int {
+	if t.Month() == time.July || t.Month() == time.August {
+		return 0
+	}
+	year := t.Year()
+	if t.Month() < time.September {
+		year--
+	}
+	start := StartOfWeek(time.Date(year, time.September, 1, 0, 0, 0, 0, t.Location()))
+	day := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+	return int(day.Sub(start).Hours()/24)/7 + 1
+}

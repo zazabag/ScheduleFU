@@ -5,7 +5,7 @@
     <span class="hero-dow">{{.Date.Dow}}</span>
     <span class="hero-month" data-year="{{.Date.Year}}" data-count="{{.Hero.CountLabel}}">{{.Date.Month}}</span>
     <span class="hero-year">{{.Date.Year}}</span>
-    <span class="hero-week">нед. {{.Date.Week}}</span>
+    <span class="hero-week" title="неделя учебного года — от 1 сентября">{{if .Date.StudyWeek}}{{.Date.StudyWeek}}-я неделя{{else}}лето{{end}}</span>
     <span class="hero-dateline">{{.Date.Label}}</span>
     <img class="hero-mascot" src="{{asset "manul.webp"}}" alt="Манул" width="120" height="120" data-manul>
   </div>
