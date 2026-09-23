@@ -10,10 +10,15 @@ package media
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
+	"io"
+	"math"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/zazabag/schedulefu/internal/modules/notes/domain"
 )
 
 // FFmpeg — декодер на внешнем бинарнике.
@@ -40,8 +45,9 @@ func (f FFmpeg) Available() error {
 	return nil
 }
 
-// ToWav перегоняет запись в WAV 16 кГц моно и возвращает длительность.
-func (f FFmpeg) ToWav(ctx context.Context, src, dst string) (int, error) {
+// ToWav перегоняет запись в WAV 16 кГц моно и возвращает длительность и
+// пик громкости.
+func (f FFmpeg) ToWav(ctx context.Context, src, dst string) (domain.Sound, error) {
 	var stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, f.Bin,
 		"-nostdin", "-hide_banner", "-loglevel", "error", "-y",
@@ -59,11 +65,15 @@ func (f FFmpeg) ToWav(ctx context.Context, src, dst string) (int, error) {
 		}
 		// Обрыв дозагрузки даёт битый контейнер, и это самая частая
 		// причина сюда попасть — сообщение уходит человеку на экран.
-		return 0, fmt.Errorf("не удалось прочитать запись: %s", firstLine(msg))
+		return domain.Sound{}, fmt.Errorf("не удалось прочитать запись: %s", firstLine(msg))
 	}
 	st, err := os.Stat(dst)
 	if err != nil {
-		return 0, fmt.Errorf("media: результат ffmpeg: %w", err)
+		return domain.Sound{}, fmt.Errorf("media: результат ffmpeg: %w", err)
+	}
+	peak, err := wavPeakDB(dst)
+	if err != nil {
+		return domain.Sound{}, err
 	}
 	// Длительность считается из размера, а не спрашивается у ffprobe: формат
 	// фиксирован нами же — 16 000 кадров в секунду по два байта, плюс
@@ -73,7 +83,45 @@ func (f FFmpeg) ToWav(ctx context.Context, src, dst string) (int, error) {
 	if size < 0 {
 		size = 0
 	}
-	return int(size / bytesPerSec), nil
+	return domain.Sound{DurationSec: int(size / bytesPerSec), PeakDB: peak}, nil
+}
+
+// wavPeakDB — пик WAV, записанного ffmpeg (44 байта заголовка, int16 моно),
+// в дБ от полной шкалы. Считается в Go одним проходом по файлу: ffmpeg с
+// volumedetect — ещё один запуск декодера ради одного числа.
+func wavPeakDB(path string) (float64, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, fmt.Errorf("media: чтение WAV: %w", err)
+	}
+	defer f.Close()
+	if _, err := f.Seek(44, io.SeekStart); err != nil {
+		return 0, fmt.Errorf("media: чтение WAV: %w", err)
+	}
+	var peak int32
+	buf := make([]byte, 64<<10)
+	for {
+		n, err := io.ReadFull(f, buf)
+		for i := 0; i+1 < n; i += 2 {
+			v := int32(int16(binary.LittleEndian.Uint16(buf[i:])))
+			if v < 0 {
+				v = -v
+			}
+			if v > peak {
+				peak = v
+			}
+		}
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			break
+		}
+		if err != nil {
+			return 0, fmt.Errorf("media: чтение WAV: %w", err)
+		}
+	}
+	if peak == 0 {
+		return -120, nil // цифровой ноль: логарифма нет, тише некуда
+	}
+	return 20 * math.Log10(float64(peak)/32768), nil
 }
 
 func firstLine(s string) string {

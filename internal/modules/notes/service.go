@@ -239,9 +239,13 @@ func (s *Service) ProcessOne(ctx context.Context) (bool, error) {
 	if err != nil || !ok {
 		return false, err
 	}
-	s.log.Info("notes: обработка записи", "запись", rec.ID, "предмет", rec.Lesson.Discipline, "мегабайт", rec.Bytes>>20)
+	s.log.Info("notes: обработка записи", "запись", rec.ID, "предмет", rec.Lesson.Discipline,
+		"байт", rec.Bytes, "кусков", rec.Chunks, "откуда", rec.Origin)
 	if err := s.process(ctx, rec); err != nil {
-		giveUp := rec.Attempts+1 >= s.opts.Attempts
+		// Тишина от повтора не станет речью: такие ошибки не ждут десять
+		// минут в очереди, а сразу показываются человеку.
+		var perm permanentError
+		giveUp := rec.Attempts+1 >= s.opts.Attempts || errors.As(err, &perm)
 		if giveUp {
 			// Сдались — файл больше не нужен, а держать чужой голос «на
 			// всякий случай» мы не будем.
@@ -263,9 +267,6 @@ func (s *Service) process(ctx context.Context, rec domain.Recording) error {
 		text, dur, err := s.transcribe(ctx, rec)
 		if err != nil {
 			return err
-		}
-		if strings.TrimSpace(text) == "" {
-			return errors.New("в записи не распознано ни слова: проверьте, что микрофон писал звук")
 		}
 		if err := s.repo.SetTranscript(ctx, rec.ID, text, dur); err != nil {
 			return err
@@ -311,11 +312,18 @@ func (s *Service) transcribe(ctx context.Context, rec domain.Recording) (string,
 		return "", 0, err
 	}
 	wav := strings.TrimSuffix(src, ".bin") + ".wav"
-	dur, err := s.media.ToWav(ctx, src, wav)
+	snd, err := s.media.ToWav(ctx, src, wav)
 	if err != nil {
-		return "", 0, fmt.Errorf("подготовка звука: %w", err)
+		// Битый контейнер при повторе битым и останется.
+		return "", 0, permanentError{fmt.Errorf("подготовка звука: %w", err)}
 	}
 	defer os.Remove(wav)
+	dur := snd.DurationSec
+	s.log.Info("notes: звук подготовлен", "запись", rec.ID, "секунд", dur, "пик_дБ", fmt.Sprintf("%.1f", snd.PeakDB))
+	if snd.Silent() {
+		return "", 0, permanentError{fmt.Errorf("микрофон писал тишину: в записи %s звука, но громче шума нет ничего. "+
+			"Проверьте, что браузеру разрешён микрофон и телефон не лежит микрофоном вниз", domain.HumanSeconds(dur))}
+	}
 	if dur > s.opts.MaxMinutes*60 {
 		return "", 0, fmt.Errorf("запись длиной %s: похоже, её забыли выключить", domain.HumanDuration(dur))
 	}
@@ -326,7 +334,11 @@ func (s *Service) transcribe(ctx context.Context, rec domain.Recording) (string,
 	if err != nil {
 		return "", 0, fmt.Errorf("расшифровка: %w", err)
 	}
-	return domain.TranscriptWithGaps(segs, rec.Gaps), dur, nil
+	text := domain.TranscriptWithGaps(segs, rec.Gaps)
+	if strings.TrimSpace(domain.Transcript(segs)) == "" {
+		return "", 0, permanentError{emptyReason(rec, snd)}
+	}
+	return text, dur, nil
 }
 
 // storeRecap кладёт конспект и задания черновиками: сохранит их человек.
@@ -354,6 +366,30 @@ func (s *Service) storeRecap(ctx context.Context, rec domain.Recording, recap do
 		}
 	}
 	return nil
+}
+
+// permanentError — ошибка, которую повтор не исправит.
+type permanentError struct{ err error }
+
+func (e permanentError) Error() string { return e.err.Error() }
+func (e permanentError) Unwrap() error { return e.err }
+
+// chunkSec — длина куска записи из браузера (record.js, recorder.start).
+const chunkSec = 15
+
+// emptyReason объясняет пустую расшифровку громкой записи. Если из файла
+// прочиталось заметно меньше, чем браузер прислал кусков, звук дошёл не
+// целиком — это надо назвать, иначе человек будет чинить микрофон.
+func emptyReason(rec domain.Recording, snd domain.Sound) error {
+	if rec.Origin == domain.OriginRecord && rec.Chunks >= 2 {
+		expected := rec.Chunks * chunkSec
+		if snd.DurationSec < (rec.Chunks-1)*chunkSec/2 {
+			return fmt.Errorf("из записи прочиталось только %s звука из примерно %s: запись дошла не целиком, и речи в этом обрывке нет",
+				domain.HumanSeconds(snd.DurationSec), domain.HumanSeconds(expected))
+		}
+	}
+	return fmt.Errorf("в записи %s звука, но речи в ней не распознано: возможно, говорили слишком далеко от телефона",
+		domain.HumanSeconds(snd.DurationSec))
 }
 
 func (s *Service) dropAudio(id int64) {

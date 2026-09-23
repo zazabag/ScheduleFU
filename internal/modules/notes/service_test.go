@@ -158,13 +158,22 @@ func (f *fakeRepo) StuckAudio(context.Context, time.Duration) ([]domain.Recordin
 	return nil, nil
 }
 
-type fakeMedia struct{ err error }
+// fakeMedia по умолчанию «слышит» полуторачасовую пару нормальной
+// громкости; sound подменяет это для проверок тишины и обрывков.
+type fakeMedia struct {
+	err   error
+	sound *domain.Sound
+}
 
-func (m fakeMedia) ToWav(_ context.Context, _, dst string) (int, error) {
+func (m fakeMedia) ToWav(_ context.Context, _, dst string) (domain.Sound, error) {
 	if m.err != nil {
-		return 0, m.err
+		return domain.Sound{}, m.err
 	}
-	return 5400, os.WriteFile(dst, []byte("wav"), 0o600)
+	snd := domain.Sound{DurationSec: 5400, PeakDB: -6}
+	if m.sound != nil {
+		snd = *m.sound
+	}
+	return snd, os.WriteFile(dst, []byte("wav"), 0o600)
 }
 
 type fakeASR struct {
@@ -369,5 +378,57 @@ func TestPropuskiDoezzhayutDoKonspekta(t *testing.T) {
 	}
 	if len(llm.seen.Gaps) != 1 || !strings.Contains(llm.seen.Transcript, "начало [пропуск в записи ~4 мин] продолжение") {
 		t.Errorf("модели ушло: %+v", llm.seen)
+	}
+}
+
+// processEmpty проводит запись через обработку при заданном звуке и пустой
+// расшифровке и возвращает хранилище.
+func processEmpty(t *testing.T, snd domain.Sound, chunks int) *fakeRepo {
+	t.Helper()
+	repo := &fakeRepo{}
+	clk, _ := clock.New("Europe/Moscow")
+	s := New(repo, fakeASR{}, &fakeLLM{}, fakeMedia{sound: &snd},
+		clk, slog.New(slog.NewTextHandler(io.Discard, nil)), Options{AudioDir: t.TempDir(), Attempts: 3})
+	ctx := context.Background()
+	rec, _ := s.Start(ctx, "owner", lesson(), domain.OriginRecord)
+	for i := 0; i < chunks; i++ {
+		_, _ = s.Append(ctx, "owner", rec.ID, i, strings.NewReader("кусок"))
+	}
+	_, _ = s.Finish(ctx, "owner", rec.ID, nil)
+	if _, err := s.ProcessOne(ctx); err == nil {
+		t.Fatal("пустая расшифровка прошла как успех")
+	}
+	return repo
+}
+
+// Баг 23.09.2026: запись с пустой расшифровкой крутилась в очереди три
+// попытки по десять минут — человек полчаса смотрел на «в очереди» и не
+// получал ничего. Тишина от повтора не станет речью: сдаёмся сразу и
+// говорим почему.
+func TestTishinaNePovtoryaetsyaIObyasnyaetsya(t *testing.T) {
+	repo := processEmpty(t, domain.Sound{DurationSec: 60, PeakDB: -70}, 4)
+	if !repo.gaveUp {
+		t.Error("тишину поставили на повтор")
+	}
+	if !strings.Contains(repo.failed, "тишин") {
+		t.Errorf("причина: %q", repo.failed)
+	}
+}
+
+// Запись шла минуту (четыре куска по 15 с), а из файла прочиталось пять
+// секунд: звук дошёл не целиком. Это другая беда, чем тишина, и человеку
+// надо сказать именно её.
+func TestObryvokZapisiNazyvaetsyaObryvkom(t *testing.T) {
+	repo := processEmpty(t, domain.Sound{DurationSec: 5, PeakDB: -10}, 4)
+	if !repo.gaveUp || !strings.Contains(repo.failed, "5 с") || !strings.Contains(repo.failed, "1 мин") {
+		t.Errorf("сдались=%v, причина: %q", repo.gaveUp, repo.failed)
+	}
+}
+
+// Звук есть и полный, а слов нет — повтор тоже не поможет.
+func TestRechNeRaspoznanaBezPovtora(t *testing.T) {
+	repo := processEmpty(t, domain.Sound{DurationSec: 60, PeakDB: -12}, 4)
+	if !repo.gaveUp || !strings.Contains(repo.failed, "не распознано") {
+		t.Errorf("сдались=%v, причина: %q", repo.gaveUp, repo.failed)
 	}
 }

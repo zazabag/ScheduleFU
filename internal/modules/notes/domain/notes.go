@@ -137,6 +137,35 @@ func (r Recording) HasAudio() bool { return r.AudioPath != "" }
 // Duration — длительность в человеческом виде: «1 ч 32 мин».
 func (r Recording) Duration() string { return HumanDuration(r.DurationSec) }
 
+// Sound — что вышло из подготовки звука: сколько его и насколько громко.
+// Нужен, чтобы пустую расшифровку объяснить человеку, а не развести руками:
+// микрофон писал тишину, запись дошла обрывком или речь не распозналась —
+// три разные беды с разными советами.
+type Sound struct {
+	DurationSec int
+	// PeakDB — пик в децибелах от полной шкалы: 0 — предел, −6 — половина.
+	PeakDB float64
+}
+
+// SilentPeakDB — ниже этого пика запись считается тишиной. Речь в
+// аудитории с телефона даёт −30…−10 дБ, шум пустой комнаты — около −60.
+const SilentPeakDB = -50
+
+// Silent сообщает, что в записи нет ничего громче шума.
+func (s Sound) Silent() bool { return s.PeakDB < SilentPeakDB }
+
+// HumanSeconds — «45 с» для коротких отрезков и HumanDuration для длинных:
+// «прочиталось 1 мин» вместо пяти секунд сбило бы с толку.
+func HumanSeconds(sec int) string {
+	if sec < 60 {
+		if sec < 0 {
+			sec = 0
+		}
+		return strconv.Itoa(sec) + " с"
+	}
+	return HumanDuration(sec)
+}
+
 // HumanDuration переводит секунды в «1 ч 32 мин» или «12 мин».
 func HumanDuration(sec int) string {
 	if sec <= 0 {
