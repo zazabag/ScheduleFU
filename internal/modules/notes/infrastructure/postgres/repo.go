@@ -368,6 +368,45 @@ func (r *Repo) notesWhere(ctx context.Context, owner, subjectKey, discipline, sa
 	return out, rows.Err()
 }
 
+// SearchNotes — русский полнотекстовый поиск: «дюрацию» находит по
+// «дюрация», websearch_to_tsquery понимает кавычки и минус, как поисковик.
+// Индекса нет сознательно: поиск идёт по конспектам одного устройства —
+// десятки строк, и индекс по всей таблице ради них не окупается.
+func (r *Repo) SearchNotes(ctx context.Context, owner, query string, limit int) ([]domain.NoteHit, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 20
+	}
+	rows, err := r.pool.Query(ctx, `
+		WITH q AS (SELECT websearch_to_tsquery('russian', $2) AS tsq),
+		     n AS (SELECT notes.*, to_tsvector('russian', title || ' ' || array_to_string(theses, ' ') || ' ' || body) AS doc
+		             FROM notes WHERE owner_key = $1 AND saved_at IS NOT NULL)
+		SELECT `+noteColumns+`,
+		       ts_headline('russian', n.title || '. ' || array_to_string(n.theses, ' ') || ' ' || n.body, q.tsq,
+		                   'StartSel=`+domain.HitStart+`, StopSel=`+domain.HitEnd+`, MaxWords=30, MinWords=12, MaxFragments=2, FragmentDelimiter=" … "')
+		  FROM n, q WHERE n.doc @@ q.tsq
+		 ORDER BY ts_rank(n.doc, q.tsq) DESC, n.lesson_date DESC LIMIT $3`, owner, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("поиск конспектов: %w", err)
+	}
+	defer rows.Close()
+	var out []domain.NoteHit
+	for rows.Next() {
+		var h domain.NoteHit
+		var begins *string
+		n := &h.Note
+		if err := rows.Scan(&n.ID, &n.OwnerKey, &n.RecordingID, &n.Lesson.SubjectKey, &n.Lesson.Discipline,
+			&n.Lesson.Date, &begins, &n.Lesson.LecturerName, &n.Lesson.Auditorium, &n.Title, &n.Body,
+			&n.Theses, &n.SavedAt, &n.CreatedAt, &n.UpdatedAt, &n.ShareToken, &n.CopiedFrom, &h.Snippet); err != nil {
+			return nil, err
+		}
+		if begins != nil {
+			n.Lesson.BeginsAt = *begins
+		}
+		out = append(out, h)
+	}
+	return out, rows.Err()
+}
+
 func (r *Repo) SaveNote(ctx context.Context, owner string, id int64, at time.Time) error {
 	_, err := r.pool.Exec(ctx, `UPDATE notes SET saved_at=COALESCE(saved_at,$3), updated_at=now()
 		WHERE id=$1 AND owner_key=$2`, id, owner, at)

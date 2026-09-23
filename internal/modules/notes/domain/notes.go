@@ -330,6 +330,21 @@ type Note struct {
 	CopiedFrom *int64
 }
 
+// NoteHit — конспект, найденный поиском, с отрывком вокруг совпадения.
+// В отрывке совпадения обрамлены HitStart и HitEnd — служебными символами,
+// а не тегами: текст пришёл от модели, и превращать его в HTML на стороне
+// базы значило бы доверять ему.
+type NoteHit struct {
+	Note    Note
+	Snippet string
+}
+
+// Границы подсветки в отрывке.
+const (
+	HitStart = ""
+	HitEnd   = ""
+)
+
 // Saved сообщает, нажал ли человек «Сохранить»: до этого конспект — черновик.
 func (n Note) Saved() bool { return n.SavedAt != nil }
 

@@ -432,6 +432,16 @@ func (s *Service) DraftNotes(ctx context.Context, owner, subjectKey, discipline 
 }
 
 // Note — один конспект.
+// SearchNotes — поиск по своим сохранённым конспектам. Меньше двух букв не
+// ищем.
+func (s *Service) SearchNotes(ctx context.Context, owner, query string, limit int) ([]domain.NoteHit, error) {
+	query = strings.TrimSpace(query)
+	if owner == "" || len([]rune(query)) < 2 {
+		return nil, nil
+	}
+	return s.repo.SearchNotes(ctx, owner, query, limit)
+}
+
 func (s *Service) Note(ctx context.Context, owner string, id int64) (domain.Note, bool, error) {
 	return s.repo.Note(ctx, owner, id)
 }

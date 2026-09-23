@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -68,5 +69,29 @@ func TestUchyotVyzovovModeli(t *testing.T) {
 	}
 	if n, err := r.CleanupLLMCalls(ctx, 90*24*time.Hour); err != nil || n != 1 {
 		t.Errorf("убрано %d (%v), ожидалась одна старая строка", n, err)
+	}
+}
+
+// Поиск находит слово в другой форме, ищет только в своих сохранённых и
+// отдаёт отрывок с границами подсветки, а не с HTML.
+func TestPoiskPoSvoimKonspektam(t *testing.T) {
+	r, ctx := testRepo(t)
+	lesson := domain.LessonRef{SubjectKey: "group:ПИ24-1", Discipline: "Финансы", Date: time.Date(2026, 9, 17, 0, 0, 0, 0, time.UTC)}
+	mine, _ := r.CreateNote(ctx, domain.Note{OwnerKey: "я", Lesson: lesson, Title: "Облигации",
+		Body: "Дюрация облигации показывает чувствительность цены к ставке <b>не тег</b>."})
+	_ = r.SaveNote(ctx, "я", mine, time.Now())
+	_, _ = r.CreateNote(ctx, domain.Note{OwnerKey: "я", Lesson: lesson, Title: "Черновик", Body: "дюрация в черновике"})
+	other, _ := r.CreateNote(ctx, domain.Note{OwnerKey: "чужой", Lesson: lesson, Title: "Чужое", Body: "дюрация у соседа"})
+	_ = r.SaveNote(ctx, "чужой", other, time.Now())
+
+	hits, err := r.SearchNotes(ctx, "я", "дюрацию", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(hits) != 1 || hits[0].Note.ID != mine {
+		t.Fatalf("найдено: %+v", hits)
+	}
+	if !strings.Contains(hits[0].Snippet, domain.HitStart+"Дюрация"+domain.HitEnd) {
+		t.Errorf("подсветка: %q", hits[0].Snippet)
 	}
 }
