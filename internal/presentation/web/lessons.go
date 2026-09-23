@@ -20,8 +20,9 @@ import (
 // Раздел «Пары»: предметы закреплённой группы, записи занятий, конспекты и
 // домашние задания.
 //
-// Предмет, а не пара, — единица раздела: студент помнит, что ищет конспект
-// по истории, а не конспект пары от 18 сентября. Список предметов
+// Предмет — единица списка: студент помнит, что ищет конспект по истории.
+// Внутри предмета — лента пар (days.go): конспект и задания одной пары
+// открываются вместе. Список предметов
 // склеивается из двух источников: расписание даёт те, что идут сейчас,
 // наши таблицы — те, по которым уже есть конспекты. Второе обязательно:
 // окно сбора расписания — неделя, а конспект нужен к сессии.
@@ -54,6 +55,12 @@ type noteView struct {
 	Theses    []string
 	Saved     bool
 	Homeworks []homeworkView
+	// AskHW — модель задания не нашла и руками его к паре не вписывали:
+	// при сохранении спрашиваем «что задали?».
+	AskHW bool
+	// Куда вернуться после «Сохранить» и «Удалить»; куда после сохранения
+	// задания из конспекта.
+	SaveBack, DeleteBack, HwBack template.URL
 }
 
 // noteBlock — кусок конспекта. Разметку разбирает сервер, а не браузер:
@@ -73,14 +80,9 @@ type homeworkView struct {
 	Done   bool
 	Saved  bool
 	Manual bool
-}
-
-// draftView — готовый, но не сохранённый конспект: ссылка на его запись,
-// где кнопка «Сохранить».
-type draftView struct {
-	Title string
-	Date  string
-	Href  template.URL
+	// Пара, к которой задание: в «Не сделано» оно ведёт к ней.
+	DayHref  template.URL
+	DayLabel string
 }
 
 // recordingView — запись и её состояние.
@@ -151,6 +153,11 @@ func (s *Server) lessons(w http.ResponseWriter, r *http.Request) {
 		}
 		if err := s.recordingScreen(ctx, owner, id, data); err != nil {
 			http.Error(w, "не удалось открыть запись", http.StatusInternalServerError)
+			return
+		}
+	} else if key := r.URL.Query().Get("day"); key != "" {
+		if err := s.dayScreen(ctx, owner, subj, discipline, key, data); err != nil {
+			http.Error(w, "не удалось открыть пару", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -290,59 +297,22 @@ func (s *Server) subjectCard(ctx context.Context, owner string, subj sched.Subje
 		return err
 	}
 
-	views := make([]noteView, 0, len(notesList))
-	for _, n := range notesList {
-		views = append(views, s.noteView(n, nil))
-	}
-	hws := make([]homeworkView, 0, len(homeworks))
-	for _, h := range homeworks {
-		hws = append(hws, homeworkViewOf(h))
-	}
 	base := "/lessons?" + subj.Query() + "&d=" + url.QueryEscape(discipline)
-	recViews := make([]recordingView, 0, len(recs))
-	for _, rec := range recs {
-		// Готовая запись живёт в разделе конспектом, отдельной строкой её
-		// показывать незачем.
-		if rec.Status == ndom.StatusReady {
-			continue
-		}
-		recViews = append(recViews, recordingView{
-			ID: rec.ID, Date: clock.DateRu(rec.Lesson.Date), Status: string(rec.Status),
-			Label: rec.Status.Label(), Failure: rec.Failure, Duration: rec.Duration(),
-			Working: rec.Status.Working(), Ready: rec.Status == ndom.StatusReady,
-			Href: template.URL(base + "&rec=" + strconv.FormatInt(rec.ID, 10)),
-		})
-	}
-
-	// Готовая запись прячется из «В обработке», а её конспект до «Сохранить»
-	// — черновик. Без этого списка он не виден нигде, кроме страницы записи.
-	draftViews := make([]draftView, 0, len(drafts))
-	for _, n := range drafts {
-		if n.RecordingID == nil {
-			continue
-		}
-		title := n.Title
-		if title == "" {
-			title = "Конспект"
-		}
-		draftViews = append(draftViews, draftView{Title: title, Date: clock.DateRu(n.Lesson.Date),
-			Href: template.URL(base + "&rec=" + strconv.FormatInt(*n.RecordingID, 10))})
-	}
 
 	data["Title"] = discipline
 	data["One"] = map[string]any{
-		"Drafts":     draftViews,
-		"Name":       discipline,
-		"Lecturer":   joinSet(lecturers, 3),
-		"Kinds":      joinSet(kinds, 3),
-		"Rooms":      joinSet(rooms, 3),
-		"Soon":       soon,
-		"Options":    options,
-		"Notes":      views,
-		"Homeworks":  hws,
-		"Recordings": recViews,
-		"Base":       template.URL(base),
-		"Today":      today.Format("2006-01-02"),
+		"Name":     discipline,
+		"Lecturer": joinSet(lecturers, 3),
+		"Kinds":    joinSet(kinds, 3),
+		"Rooms":    joinSet(rooms, 3),
+		"Soon":     soon,
+		"Options":  options,
+		// Черновик — тоже строка ленты, с пометкой «не сохранён»: уйти со
+		// страницы записи не значит потерять конспект.
+		"Days":    buildDays(notesList, drafts, homeworks, recs, base),
+		"Pending": pendingHomework(homeworks, base),
+		"Base":    template.URL(base),
+		"Today":   today.Format("2006-01-02"),
 	}
 	data["Discipline"] = discipline
 	return nil
@@ -370,14 +340,113 @@ func (s *Server) recordingScreen(ctx context.Context, owner string, id int64, da
 		if err != nil {
 			return err
 		}
-		data["RecNote"] = s.noteView(note, hws)
+		base := string(data["One"].(map[string]any)["Base"].(template.URL))
+		v := s.noteView(note, hws, base)
+		v.HwBack = template.URL(base + "&rec=" + strconv.FormatInt(rec.ID, 10))
+		data["RecNote"] = v
 	}
 	return nil
 }
 
-func (s *Server) noteView(n ndom.Note, hws []ndom.Homework) noteView {
+// dayView — экран одной пары.
+type dayView struct {
+	Key        string
+	Label      string
+	Notes      []noteView
+	Homeworks  []homeworkView
+	Recordings []recordingView
+	Back       template.URL
+}
+
+// dayScreen собирает экран пары: конспекты (сохранённые и черновики),
+// задания и записи, которые ещё не стали конспектом.
+func (s *Server) dayScreen(ctx context.Context, owner string, subj sched.Subject, discipline, key string, data map[string]any) error {
+	base := string(data["One"].(map[string]any)["Base"].(template.URL))
+	saved, err := s.d.Notes.Notes(ctx, owner, subj.Key(), discipline)
+	if err != nil {
+		return err
+	}
+	drafts, err := s.d.Notes.DraftNotes(ctx, owner, subj.Key(), discipline)
+	if err != nil {
+		return err
+	}
+	homeworks, err := s.d.Notes.Homeworks(ctx, owner, subj.Key(), discipline, true)
+	if err != nil {
+		return err
+	}
+	recs, err := s.d.Notes.Recordings(ctx, owner, subj.Key(), discipline)
+	if err != nil {
+		return err
+	}
+	here := dayHref(base, key)
+	view := dayView{Key: key, Back: here}
+
+	var dayHws []ndom.Homework
+	for _, h := range homeworks {
+		if dayKeyOf(h.Lesson) == key {
+			dayHws = append(dayHws, h)
+			view.Homeworks = append(view.Homeworks, homeworkViewOf(h))
+		}
+	}
+	for _, n := range append(saved, drafts...) {
+		if dayKeyOf(n.Lesson) != key {
+			continue
+		}
+		view.Label = dayLabel(n.Lesson)
+		var fromNote []ndom.Homework
+		if !n.Saved() {
+			// У черновика задания тоже черновики — их показываем с кнопкой.
+			if fromNote, err = s.d.Notes.HomeworksByNote(ctx, owner, n.ID); err != nil {
+				return err
+			}
+		}
+		v := s.noteView(n, fromNote, base)
+		// Спрашивать про задание, если его уже вписали к паре, — лишнее.
+		v.AskHW = v.AskHW && len(dayHws) == 0
+		v.SaveBack, v.HwBack = here, here
+		view.Notes = append(view.Notes, v)
+	}
+	for _, rec := range recs {
+		if dayKeyOf(rec.Lesson) != key || rec.Status == ndom.StatusReady {
+			continue
+		}
+		view.Label = dayLabel(rec.Lesson)
+		view.Recordings = append(view.Recordings, recordingView{
+			ID: rec.ID, Date: clock.DateRu(rec.Lesson.Date), Status: string(rec.Status),
+			Label: rec.Status.Label(), Failure: rec.Failure, Duration: rec.Duration(),
+			Working: rec.Status.Working(),
+			Href:    template.URL(base + "&rec=" + strconv.FormatInt(rec.ID, 10)),
+		})
+	}
+	if view.Label == "" && len(dayHws) > 0 {
+		view.Label = dayLabel(dayHws[0].Lesson)
+	}
+	if view.Label == "" {
+		// По паре ничего нет — например, всё удалили. Подпись из ключа.
+		view.Label = labelFromKey(key, s.d.Clock.Location())
+	}
+	data["Day"] = view
+	return nil
+}
+
+// labelFromKey — подпись пары по ключу, когда нет ни одной записи о ней.
+func labelFromKey(key string, loc *time.Location) string {
+	day, begins, _ := strings.Cut(key, "T")
+	d, err := time.ParseInLocation("2006-01-02", day, loc)
+	if err != nil {
+		return key
+	}
+	return dayLabel(ndom.LessonRef{Date: d, BeginsAt: begins})
+}
+
+// noteView готовит конспект к показу. base — адрес предмета: после
+// сохранения человек попадает на экран пары, после удаления — в предмет.
+func (s *Server) noteView(n ndom.Note, hws []ndom.Homework, base string) noteView {
 	v := noteView{ID: n.ID, Date: clock.DateRu(n.Lesson.Date), Time: n.Lesson.BeginsAt,
-		Title: n.Title, Blocks: parseNoteBody(n.Body), Theses: n.Theses, Saved: n.Saved()}
+		Title: n.Title, Blocks: parseNoteBody(n.Body), Theses: n.Theses, Saved: n.Saved(),
+		AskHW:      !n.Saved() && len(hws) == 0,
+		SaveBack:   dayHref(base, dayKeyOf(n.Lesson)),
+		DeleteBack: template.URL(base)}
 	for _, h := range hws {
 		v.Homeworks = append(v.Homeworks, homeworkViewOf(h))
 	}
@@ -457,7 +526,8 @@ func (s *Server) lessonsAction(w http.ResponseWriter, r *http.Request) {
 	var err error
 	switch r.FormValue("action") {
 	case "note-save":
-		err = s.d.Notes.SaveNote(ctx, owner, id)
+		// «Что задали?» при сохранении: пустое поле — «не задавали».
+		err = s.d.Notes.SaveNote(ctx, owner, id, r.FormValue("hw"))
 	case "note-delete":
 		err = s.d.Notes.DeleteNote(ctx, owner, id)
 	case "hw-save":

@@ -97,7 +97,12 @@ func (f *fakeRepo) CreateNote(_ context.Context, n domain.Note) (int64, error) {
 	return n.ID, nil
 }
 
-func (f *fakeRepo) Note(context.Context, string, int64) (domain.Note, bool, error) {
+func (f *fakeRepo) Note(_ context.Context, owner string, id int64) (domain.Note, bool, error) {
+	for _, n := range f.notes {
+		if n.ID == id && n.OwnerKey == owner {
+			return n, true, nil
+		}
+	}
 	return domain.Note{}, false, nil
 }
 
@@ -116,7 +121,14 @@ func (f *fakeRepo) Notes(context.Context, string, string, string) ([]domain.Note
 	return nil, nil
 }
 
-func (f *fakeRepo) SaveNote(context.Context, string, int64, time.Time) error { return nil }
+func (f *fakeRepo) SaveNote(_ context.Context, _ string, id int64, at time.Time) error {
+	for i := range f.notes {
+		if f.notes[i].ID == id {
+			f.notes[i].SavedAt = &at
+		}
+	}
+	return nil
+}
 
 func (f *fakeRepo) DeleteNote(_ context.Context, _ string, id int64) error {
 	var kept []domain.Note
@@ -434,5 +446,38 @@ func TestRechNeRaspoznanaBezPovtora(t *testing.T) {
 	repo := processEmpty(t, domain.Sound{DurationSec: 60, PeakDB: -12}, 4)
 	if !repo.gaveUp || !strings.Contains(repo.failed, "не распознано") {
 		t.Errorf("сдались=%v, причина: %q", repo.gaveUp, repo.failed)
+	}
+}
+
+// Модель не нашла задания — человек вписывает его прямо при сохранении
+// конспекта, и оно ложится к той же паре, уже сохранённым.
+func TestZadanieVpisyvaetsyaPriSohraneniiKonspekta(t *testing.T) {
+	repo := &fakeRepo{}
+	s := newService(t, repo, fakeASR{}, &fakeLLM{}, fakeMedia{})
+	ctx := context.Background()
+	id, _ := repo.CreateNote(ctx, domain.Note{OwnerKey: "owner", Lesson: lesson(), Body: "текст"})
+
+	if err := s.SaveNote(ctx, "owner", id, "  параграф 5  "); err != nil {
+		t.Fatal(err)
+	}
+	if !repo.notes[0].Saved() {
+		t.Error("конспект не сохранён")
+	}
+	if len(repo.homeworks) != 1 {
+		t.Fatalf("заданий: %d", len(repo.homeworks))
+	}
+	h := repo.homeworks[0]
+	if h.Body != "параграф 5" || h.Origin != "manual" || h.Lesson.Discipline != "История" || !h.Saved() {
+		t.Errorf("задание: %+v", h)
+	}
+
+	// Пустое поле — «не задавали»: конспект сохраняется, задания нет.
+	id2, _ := repo.CreateNote(ctx, domain.Note{OwnerKey: "owner", Lesson: lesson(), Body: "ещё"})
+	if err := s.SaveNote(ctx, "owner", id2, " "); err != nil || len(repo.homeworks) != 1 {
+		t.Errorf("пустое задание: %v, заданий %d", err, len(repo.homeworks))
+	}
+	// Чужой конспект задание к себе не притянет.
+	if err := s.SaveNote(ctx, "другой", id, "чужое"); err == nil {
+		t.Error("задание вписано к чужому конспекту")
 	}
 }
