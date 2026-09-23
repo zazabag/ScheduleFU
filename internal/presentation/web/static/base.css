@@ -802,3 +802,8 @@ body { touch-action: pan-y; }
 
 /* Ссылки в шапке ленты пар: карточки и сводка — рядом, с переносом. */
 .card-links { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+
+/* Утренняя сводка — переключатель под кнопкой уведомлений. */
+.morning-box { display: flex; gap: 8px; align-items: center; margin: 8px 0 0; font-size: 13px; color: var(--text-2); }
+.morning-box[hidden] { display: none; }
+

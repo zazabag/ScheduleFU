@@ -106,6 +106,7 @@
       }).then(function () {
         state.subscription = sub;
         refresh();
+        morningBox(sub);
       });
     }).catch(function (e) {
       say('Не получилось включить: ' + (e && e.message ? e.message : 'ошибка'), false);
@@ -143,6 +144,27 @@
       .catch(function () {});
   }
 
+  // Утренняя сводка — по желанию, у той же подписки. Переключатель виден,
+  // только когда уведомления включены: без подписки слать некуда.
+  function morningBox(sub) {
+    var box = document.getElementById('morning-box');
+    var input = document.getElementById('morning');
+    if (!box || !input) return;
+    box.hidden = !sub;
+    if (!sub) return;
+    var endpoint = sub.toJSON().endpoint;
+    post('/api/v1/push/morning', { subject_key: subjectKey, endpoint: endpoint })
+      .then(function (r) { input.checked = !!r.on; })
+      .catch(function () { box.hidden = true; });
+    if (input.dataset.bound) return;
+    input.dataset.bound = '1';
+    input.addEventListener('change', function () {
+      var want = input.checked;
+      post('/api/v1/push/morning', { subject_key: subjectKey, endpoint: endpoint, on: want })
+        .catch(function () { input.checked = !want; });
+    });
+  }
+
   fetch('/api/v1/push/key')
     .then(function (r) { return r.json(); })
     .then(function (cfg) {
@@ -158,6 +180,7 @@
       }).then(function (sub) {
         state.subscription = sub;
         refresh();
+        morningBox(sub);
         relink(sub);
         boxes.forEach(function (box) {
           var b = button(box);

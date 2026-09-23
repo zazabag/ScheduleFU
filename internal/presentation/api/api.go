@@ -62,6 +62,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /api/v1/push/key", s.pushKey)
 	mux.HandleFunc("POST /api/v1/push/subscribe", s.subscribe)
 	mux.HandleFunc("POST /api/v1/push/unsubscribe", s.unsubscribe)
+	mux.HandleFunc("POST /api/v1/push/morning", s.morning)
 	if s.d.Notes != nil {
 		mux.HandleFunc("POST /api/v1/notes/recordings", s.notesStart)
 		mux.HandleFunc("GET /api/v1/notes/recordings/{id}", s.notesState)
@@ -256,6 +257,49 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"subscribed": req.SubjectKey})
+}
+
+// morning — утренняя сводка у подписки этого устройства: запрос без on —
+// узнать, с on — включить или выключить. Подписка определяется адресом
+// доставки: его знает только браузер, который подписался.
+func (s *Server) morning(w http.ResponseWriter, r *http.Request) {
+	if s.d.Notify == nil {
+		writeError(w, http.StatusServiceUnavailable, "уведомления не настроены")
+		return
+	}
+	var req struct {
+		SubjectKey string `json:"subject_key"`
+		Endpoint   string `json:"endpoint"`
+		On         *bool  `json:"on"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "не удалось разобрать запрос")
+		return
+	}
+	if err := validEndpoint(req.Endpoint); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	key := strings.TrimSpace(req.SubjectKey)
+	if req.On == nil {
+		on, err := s.d.Notify.Morning(r.Context(), "webpush", req.Endpoint, key)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "не удалось прочитать")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"on": on})
+		return
+	}
+	found, err := s.d.Notify.SetMorning(r.Context(), "webpush", req.Endpoint, key, *req.On)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "не удалось сохранить")
+		return
+	}
+	if !found {
+		writeError(w, http.StatusNotFound, "сначала включите уведомления")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"on": *req.On})
 }
 
 func (s *Server) unsubscribe(w http.ResponseWriter, r *http.Request) {

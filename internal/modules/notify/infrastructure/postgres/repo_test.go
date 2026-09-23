@@ -18,7 +18,7 @@ var msk = time.FixedZone("MSK", 3*3600)
 func setup(t *testing.T) (*notify.Service, *Repo, *schedpg.Repo, context.Context) {
 	t.Helper()
 	pool := db.TestPool(t, "TEST_DATABASE_URL_NOTIFY", "schedulefu_test_notify",
-		"lessons", "lesson_changes", "auditoriums", "groups", "lecturers", "collector_runs", "subscriptions", "outbox", "reminder_days")
+		"lessons", "lesson_changes", "auditoriums", "groups", "lecturers", "collector_runs", "subscriptions", "outbox", "reminder_days", "morning_days")
 	repo := New(pool)
 	sr := schedpg.New(pool)
 	svc := notify.New(repo, sr, msk, nil, fakeTransport{})
@@ -165,5 +165,36 @@ func TestDenNapominaniyOtmechaetsyaOdinRaz(t *testing.T) {
 	}
 	if again, _ := repo.ClaimReminderDay(ctx, d); again {
 		t.Error("день отмечен дважды — напоминание ушло бы дважды")
+	}
+}
+
+// Утренняя сводка — по желанию и у конкретной подписки; день отмечается
+// один раз.
+func TestUtrennyayaSvodkaVBaze(t *testing.T) {
+	_, repo, _, ctx := setup(t)
+	sub := domain.Subscription{SubjectKey: "group:ПИ24-1", Transport: "webpush", Target: "https://push.example/1",
+		Credentials: map[string]string{"p256dh": "k", "auth": "a"}}
+	if err := repo.Save(ctx, sub); err != nil {
+		t.Fatal(err)
+	}
+	if on, _ := repo.Morning(ctx, "webpush", sub.Target, sub.SubjectKey); on {
+		t.Error("по умолчанию сводка выключена")
+	}
+	if found, err := repo.SetMorning(ctx, "webpush", "https://push.example/нет", sub.SubjectKey, true); found || err != nil {
+		t.Errorf("чужая подписка: %v %v", found, err)
+	}
+	if found, _ := repo.SetMorning(ctx, "webpush", sub.Target, sub.SubjectKey, true); !found {
+		t.Fatal("своя подписка не нашлась")
+	}
+	subs, err := repo.MorningSubscriptions(ctx)
+	if err != nil || len(subs) != 1 || subs[0].Credentials["auth"] != "a" {
+		t.Fatalf("подписки на сводку: %+v %v", subs, err)
+	}
+	d := time.Date(2026, 9, 24, 0, 0, 0, 0, msk)
+	if ok, _ := repo.ClaimMorningDay(ctx, d); !ok {
+		t.Fatal("первая отметка дня")
+	}
+	if again, _ := repo.ClaimMorningDay(ctx, d); again {
+		t.Error("день отмечен дважды")
 	}
 }

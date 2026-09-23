@@ -29,6 +29,16 @@ type Service struct {
 	// remindedFor — день, за который напоминания уже поставлены этим
 	// процессом: чтобы не спрашивать базу каждые полминуты.
 	remindedFor string
+
+	// Days — пары расписания по дням для утренней сводки; nil — сводки нет.
+	Days DayLessons
+	// MorningAt — с какого часа (ЧЧ:ММ, пояс вуза) рассылать сводку дня.
+	MorningAt string
+	// Place — короткая подпись корпуса по адресу; её знает адаптер
+	// источника, notify получает готовую функцию.
+	Place func(building string) string
+	// morningFor — день, за который сводки уже поставлены этим процессом.
+	morningFor string
 }
 
 // New создаёт сервис. Транспорты регистрируются по имени.
@@ -36,7 +46,8 @@ func New(repo Repository, changes ChangeReader, loc *time.Location, log *slog.Lo
 	if log == nil {
 		log = slog.Default()
 	}
-	s := &Service{repo: repo, changes: changes, loc: loc, log: log, transports: map[string]Transport{}, Batch: 50, MaxAttempts: 5, RemindAt: "19:00"}
+	s := &Service{repo: repo, changes: changes, loc: loc, log: log, transports: map[string]Transport{}, Batch: 50, MaxAttempts: 5, RemindAt: "19:00", MorningAt: "07:00",
+		Place: func(string) string { return "" }}
 	for _, t := range transports {
 		s.transports[t.Name()] = t
 	}
@@ -175,6 +186,76 @@ func (s *Service) PlanReminders(ctx context.Context, now time.Time) (int, error)
 	return queued, nil
 }
 
+// SetMorning — включить или выключить утреннюю сводку у подписки.
+func (s *Service) SetMorning(ctx context.Context, transport, target, subjectKey string, on bool) (bool, error) {
+	return s.repo.SetMorning(ctx, transport, target, subjectKey, on)
+}
+
+// Morning — включена ли утренняя сводка у подписки.
+func (s *Service) Morning(ctx context.Context, transport, target, subjectKey string) (bool, error) {
+	return s.repo.Morning(ctx, transport, target, subjectKey)
+}
+
+// PlanMorning ставит в очередь утренние сводки — раз в день и не раньше
+// MorningAt. Расписание читается одно на ключ: подписчиков у группы может
+// быть сотня, а пары у неё одни.
+func (s *Service) PlanMorning(ctx context.Context, now time.Time) (int, error) {
+	if s.Days == nil {
+		return 0, nil
+	}
+	now = now.In(s.loc)
+	if now.Format("15:04") < s.MorningAt {
+		return 0, nil
+	}
+	today := domain.Today(now, s.loc)
+	key := today.Format("2006-01-02")
+	if s.morningFor == key {
+		return 0, nil
+	}
+	claimed, err := s.repo.ClaimMorningDay(ctx, today)
+	if err != nil {
+		return 0, err
+	}
+	s.morningFor = key
+	if !claimed {
+		return 0, nil
+	}
+	subs, err := s.repo.MorningSubscriptions(ctx)
+	if err != nil || len(subs) == 0 {
+		return 0, err
+	}
+	bySubject := map[string][]int64{}
+	var keys []string
+	for _, sub := range subs {
+		if _, ok := bySubject[sub.SubjectKey]; !ok {
+			keys = append(keys, sub.SubjectKey)
+		}
+		bySubject[sub.SubjectKey] = append(bySubject[sub.SubjectKey], sub.ID)
+	}
+	queued := 0
+	for _, k := range keys {
+		lessons, err := s.Days.LessonsOn(ctx, k, today)
+		if err != nil {
+			s.log.Warn("сводка: расписание не прочитано", "расписание", k, "ошибка", err)
+			continue
+		}
+		subj, _ := sched.ParseSubjectKey(k)
+		n, ok := domain.BuildMorning(lessons, s.Place, "/schedule?"+subj.Query())
+		if !ok {
+			continue
+		}
+		if err := s.repo.Enqueue(ctx, bySubject[k], n); err != nil {
+			s.log.Warn("сводка не поставлена в очередь", "расписание", k, "ошибка", err)
+			continue
+		}
+		queued += len(bySubject[k])
+	}
+	if queued > 0 {
+		s.log.Info("утренние сводки в очереди", "писем", queued, "день", key)
+	}
+	return queued, nil
+}
+
 // Result — итог разбора очереди.
 type Result struct{ Delivered, Dropped, Failed, Retry int }
 
@@ -236,6 +317,9 @@ func (s *Service) Run(ctx context.Context, every time.Duration) {
 		case <-tick.C:
 			if _, err := s.PlanReminders(ctx, time.Now()); err != nil {
 				s.log.Warn("напоминания не поставлены", "ошибка", err)
+			}
+			if _, err := s.PlanMorning(ctx, time.Now()); err != nil {
+				s.log.Warn("сводки не поставлены", "ошибка", err)
 			}
 			res, err := s.Deliver(ctx)
 			if err != nil {
