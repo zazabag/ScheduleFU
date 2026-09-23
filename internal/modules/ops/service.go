@@ -183,6 +183,14 @@ func (s *Service) Probe(ctx context.Context) {
 // сломано. Названное запоминается: первая проверка не повторит его как
 // новую поломку.
 func (s *Service) Start(ctx context.Context) {
+	// Время последнего отчёта живёт в памяти: наступивший отчёт считаем уже
+	// отправленным, иначе каждая выкатка повторяла бы его в первую проверку.
+	now := s.now()
+	if slot, due := s.reportDue(now); due {
+		s.mu.Lock()
+		s.lastReport = now.Format("2006-01-02") + " " + slot
+		s.mu.Unlock()
+	}
 	s.Probe(ctx)
 	problems := s.Snapshot(ctx).Problems()
 	s.mu.Lock()
