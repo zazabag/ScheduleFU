@@ -14,6 +14,7 @@ import (
 
 	sched "github.com/zazabag/schedulefu/internal/modules/schedule/domain"
 	"github.com/zazabag/schedulefu/internal/platform/clock"
+	"github.com/zazabag/schedulefu/internal/platform/httpx"
 )
 
 // Ссылки в шаблон отдаются типом template.URL: они собраны здесь и уже
@@ -229,6 +230,8 @@ type lessonRow struct {
 	// Move — следующая пара на другой площадке, а между ними перемена, не
 	// окно: об этом надо знать заранее, а не на выходе из аудитории.
 	Move *moveView
+	// Recap — что было на прошлой паре этого предмета: из своих конспектов.
+	Recap *recapView
 	// Variants — пары того же слота: подгруппы английского или несколько
 	// дисциплин на выбор. Карточка одна, раскрывается по касанию.
 	Variants   []lessonRow
@@ -505,6 +508,7 @@ func (s *Server) schedule(w http.ResponseWriter, r *http.Request) {
 	markStatuses(rows, dateKey, todayKey, now)
 	s.markWindows(r.Context(), rows, date, dateKey, todayKey, now)
 	markMoves(rows)
+	s.markRecaps(r, rows, subj, date, dateKey < todayKey)
 	h := s.buildHero(rows, dateKey == todayKey, now, subj.Kind == sched.SubjectLecturer)
 	// Пустой день: куда смотреть дальше — ближайший день с парами.
 	if len(rows) == 0 {
@@ -532,6 +536,78 @@ type gapView struct {
 	Free             string // «14 свободных»; пусто — не считали
 	Near             string // «рядом с 0512»
 	Href             template.URL
+}
+
+// recapView — прошлая пара предмета, как её законспектировали на этом
+// устройстве.
+type recapView struct {
+	When, Title string
+	Theses      []string
+	Href        template.URL
+}
+
+// maxRecapTheses — сколько тезисов показывать под парой: напоминание, а не
+// конспект; целиком он в разделе «Пары».
+const maxRecapTheses = 3
+
+// markRecaps подкладывает под пару «что было в прошлый раз» — тему и
+// главные тезисы последнего сохранённого конспекта по предмету, записанного
+// до этого дня. Только свои конспекты: ключ устройства из cookie, без
+// него — ничего. Прошедшим дням не нужно: вспоминать прошлое перед уже
+// прошедшей парой незачем.
+func (s *Server) markRecaps(r *http.Request, rows []lessonRow, subj sched.Subject, date time.Time, past bool) {
+	if s.d.Notes == nil || past {
+		return
+	}
+	owner := httpx.ExistingOwnerKey(r)
+	if owner == "" {
+		return
+	}
+	cache := map[string]*recapView{}
+	for i := range rows {
+		disc := rows[i].Discipline
+		if disc == "" || len(rows[i].Variants) > 0 && !sameDiscipline(rows[i].Variants) {
+			continue
+		}
+		v, ok := cache[disc]
+		if !ok {
+			v = s.lastRecap(r, owner, subj, disc, date)
+			cache[disc] = v
+		}
+		rows[i].Recap = v
+	}
+}
+
+// sameDiscipline — у стопки одна дисциплина (подгруппы), а не выбор из
+// разных: только тогда «прошлая пара» однозначна.
+func sameDiscipline(v []lessonRow) bool {
+	for _, x := range v {
+		if x.Discipline != v[0].Discipline {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *Server) lastRecap(r *http.Request, owner string, subj sched.Subject, disc string, before time.Time) *recapView {
+	notes, err := s.d.Notes.Notes(r.Context(), owner, subj.Key(), disc)
+	if err != nil {
+		return nil
+	}
+	day := before.Format("2006-01-02")
+	for _, n := range notes { // от новых к старым
+		if n.Lesson.DateKey() >= day {
+			continue
+		}
+		v := &recapView{When: clock.DateRu(n.Lesson.Date), Title: n.Title, Theses: n.Theses}
+		if len(v.Theses) > maxRecapTheses {
+			v.Theses = v.Theses[:maxRecapTheses]
+		}
+		base := "/lessons?" + subj.Query() + "&d=" + url.QueryEscape(disc)
+		v.Href = template.URL(string(dayHref(base, dayKeyOf(n.Lesson))) + "#note-" + strconv.FormatInt(n.ID, 10))
+		return v
+	}
+	return nil
 }
 
 // moveView — переезд между площадками.

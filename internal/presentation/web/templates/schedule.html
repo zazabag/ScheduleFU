@@ -127,6 +127,15 @@
       <div class="lesson-status"><span class="lesson-state">{{.StatusLabel}}</span>{{if .Changed}}<span class="lesson-changed">изменено</span>{{end}}</div>
     </li>
     {{end}}
+    {{with .Recap}}
+    <li class="recap">
+      <details>
+        <summary><span class="recap-label">в прошлый раз, {{.When}}</span> {{if .Title}}{{.Title}}{{else}}конспект{{end}}</summary>
+        {{if .Theses}}<ul>{{range .Theses}}<li>{{.}}</li>{{end}}</ul>{{end}}
+        <a class="recap-link" href="{{.Href}}">Весь конспект ›</a>
+      </details>
+    </li>
+    {{end}}
     {{with .Move}}
     <li class="move"><span class="move-text">Переезд: {{.From}} → {{.To}}</span><span class="move-break">перемена {{.Break}}</span></li>
     {{end}}
