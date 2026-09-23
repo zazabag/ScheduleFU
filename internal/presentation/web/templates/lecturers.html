@@ -71,6 +71,19 @@
     {{end}}
     {{end}}
   </ol>
+  {{if .Catch}}
+  <h2 class="rooms-floor"><span>когда застать на неделе</span><i>{{len .Catch}}</i></h2>
+  <ul class="catch-list">
+    {{range .Catch}}
+    <li><a class="catch-day" href="{{.Href}}">
+      <span class="catch-label">{{.Label}}</span>
+      <span class="catch-span">{{.Span}}</span>
+      <span class="catch-where">{{.Where}}</span>
+      {{if .Windows}}<span class="catch-win">окно {{.Windows}} — проще всего поймать</span>{{end}}
+    </a></li>
+    {{end}}
+  </ul>
+  {{end}}
 {{else}}
 </section>
 

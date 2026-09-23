@@ -1276,7 +1276,71 @@ func (s *Server) lecturers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	data["Lessons"], data["InClass"] = rows, inClass
+	data["Catch"] = s.catchDays(r.Context(), oid, today)
 	s.render(w, r, "lecturers", data)
+}
+
+// catchDay — день, когда преподаватель в вузе: для блока «Когда застать».
+type catchDay struct {
+	Label, Span, Where, Windows string
+	Href                        template.URL
+}
+
+// catchDays — ближайшая неделя преподавателя по дням: с какой пары по
+// какую, где и окна между парами. Это то же расписание недели, что
+// показывает сам вуз, только свёрнутое в ответ «когда его застать» —
+// поэтому выключатель «где сейчас» его не касается.
+func (s *Server) catchDays(ctx context.Context, oid int64, today time.Time) []catchDay {
+	from := today.AddDate(0, 0, 1)
+	lessons, err := s.d.Schedule.ScheduleFor(ctx, sched.LecturerSubject(oid), from, from.AddDate(0, 0, 6))
+	if err != nil || len(lessons) == 0 {
+		return nil
+	}
+	byDay := map[string][]sched.Lesson{}
+	var keys []string
+	for _, l := range lessons {
+		k := l.DateKey()
+		if _, ok := byDay[k]; !ok {
+			keys = append(keys, k)
+		}
+		byDay[k] = append(byDay[k], l)
+	}
+	sort.Strings(keys)
+	var out []catchDay
+	for _, k := range keys {
+		ls := byDay[k]
+		span := sched.BuildDaySpan(ls)
+		var places []string
+		seenPlace, seenRoom := map[string]bool{}, map[string]bool{}
+		var rooms []string
+		for _, l := range ls {
+			if p := s.d.BuildingLabel(l.Building); p != "" && !seenPlace[p] {
+				seenPlace[p] = true
+				places = append(places, p)
+			}
+			if rm := roomShort(l.Auditorium); rm != "" && !seenRoom[rm] {
+				seenRoom[rm] = true
+				rooms = append(rooms, rm)
+			}
+		}
+		sort.Slice(rooms, func(i, j int) bool { return naturalLess(rooms[i], rooms[j]) })
+		where := strings.Join(places, ", ")
+		if len(rooms) > 0 {
+			where += " · " + strings.Join(rooms, ", ")
+		}
+		var wins []string
+		for _, w := range span.Windows {
+			wins = append(wins, w.Begins+"—"+w.Ends)
+		}
+		d := ls[0].Date
+		out = append(out, catchDay{
+			Label: clock.WeekdayRu(d) + ", " + clock.DateRu(d),
+			Span:  span.From + "—" + span.To + " · " + pluralN(span.Pairs, "пара", "пары", "пар"),
+			Where: where, Windows: strings.Join(wins, ", "),
+			Href: template.URL("/schedule?lecturer=" + strconv.FormatInt(oid, 10) + "&date=" + k),
+		})
+	}
+	return out
 }
 
 // lecturerEntryData — входы на экран поиска: преподаватели закреплённой
