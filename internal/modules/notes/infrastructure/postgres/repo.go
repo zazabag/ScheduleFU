@@ -258,6 +258,11 @@ func scanNote(row pgx.Row) (domain.Note, error) {
 }
 
 func (r *Repo) CreateNote(ctx context.Context, n domain.Note) (int64, error) {
+	// nil-срез pgx пишет как NULL, а theses — NOT NULL: конспект без тезисов
+	// (модель их не нашла) иначе падал бы на последнем шаге обработки.
+	if n.Theses == nil {
+		n.Theses = []string{}
+	}
 	var id int64
 	err := r.pool.QueryRow(ctx, `INSERT INTO notes
 		(owner_key, recording_id, subject_key, discipline, lesson_date, begins_at, lecturer_name,

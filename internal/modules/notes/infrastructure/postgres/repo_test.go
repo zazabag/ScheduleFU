@@ -15,6 +15,18 @@ func testRepo(t *testing.T) (*Repo, context.Context) {
 	return New(pool), context.Background()
 }
 
+// Модель вправе не вернуть ни одного тезиса — на минутной записи их и нет.
+// Пустой список не должен уронить запись конспекта на последнем шаге:
+// колонка theses NOT NULL, а nil-срез уходит в базу как NULL.
+func TestKonspektBezTezisovZapisyvaetsya(t *testing.T) {
+	r, ctx := testRepo(t)
+	lesson := domain.LessonRef{SubjectKey: "group:ПИ24-1", Discipline: "История",
+		Date: time.Date(2026, 9, 23, 0, 0, 0, 0, time.UTC)}
+	if _, err := r.CreateNote(ctx, domain.Note{OwnerKey: "я", Lesson: lesson, Body: "текст"}); err != nil {
+		t.Fatalf("конспект без тезисов: %v", err)
+	}
+}
+
 // Баг 23.09.2026: готовый конспект до «Сохранить» был черновиком, а экран
 // предмета показывал только сохранённые — и сам черновик, и его запись
 // пропадали из виду, стоило уйти со страницы записи. Черновики должны
