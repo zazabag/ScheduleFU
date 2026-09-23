@@ -718,3 +718,16 @@ body { touch-action: pan-y; }
 .manul-card-close { width: 100%; min-height: 46px; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
 
 .manul-card-title:focus { outline: none; }
+
+/* Подтверждение удаления без скрипта: «Удалить» раскрывает вопрос и
+   отдельную кнопку «Да, удалить»; повторное касание — «Отмена». Одним
+   нажатием удалить ничего нельзя. */
+.confirm { display: inline-block; }
+.confirm > summary { list-style: none; }
+.confirm > summary::-webkit-details-marker { display: none; }
+.confirm .confirm-cancel { display: none; }
+.confirm[open] .confirm-ask { display: none; }
+.confirm[open] .confirm-cancel { display: inline; }
+.confirm-box { margin-top: 8px; padding: 10px 12px; border-radius: var(--radius); background: var(--surface); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.confirm-box p { margin: 0; font-size: 13px; color: var(--text-2); }
+
