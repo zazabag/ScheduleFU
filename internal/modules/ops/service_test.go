@@ -196,3 +196,20 @@ func TestZapuskMolchitKogdaVsyoVPoryadke(t *testing.T) {
 		t.Errorf("поломка повторена после запуска: %+v", got)
 	}
 }
+
+// Время последнего отчёта живёт в памяти, а бот перезапускается с каждой
+// выкаткой: без этого правила выкатка в 23:40 тут же слала бы «Вечерний
+// отчёт» ещё раз. Наступивший отчёт при запуске считается отправленным.
+func TestPerezapuskNePovtoryaetOtchyot(t *testing.T) {
+	late := time.Date(2026, 9, 24, 23, 40, 0, 0, time.UTC)
+	chat, host, probe := &fakeChat{}, &fakeHost{}, &fakeProbe{}
+	s := New(chat, host, &fakeStore{now: late}, probe, slog.New(slog.NewTextHandler(io.Discard, nil)), Options{
+		ChatID: -100, Services: []string{"serve"}, ReportAt: "09:00,21:00", Now: func() time.Time { return late }})
+	s.Start(context.Background())
+	if _, due := s.reportDue(late.Add(5 * time.Minute)); due {
+		t.Error("после перезапуска вечерний отчёт отправится повторно")
+	}
+	if _, due := s.reportDue(time.Date(2026, 9, 25, 9, 1, 0, 0, time.UTC)); !due {
+		t.Error("утренний отчёт следующего дня потерян")
+	}
+}
