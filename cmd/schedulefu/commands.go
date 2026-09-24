@@ -222,7 +222,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger, _ any) erro
 		return err
 	}
 	site, err := web.New(web.Deps{Schedule: a.schedule, Notify: a.notify, Notes: a.notes, NotesReady: cfg.NotesReady(), Campus: plans,
-		Clock: a.clock, BuildingLabel: buildingLabel, Calendar: calendar, Dev: cfg.Stand.Env == "dev",
+		Clock: a.clock, BuildingLabel: buildingLabel, Calendar: calendar, Dev: cfg.Stand.Env == "dev", Origin: cfg.Stand.Origin,
 		HideWhereLecturer: !cfg.Privacy.WhereLecturer})
 	if err != nil {
 		return err

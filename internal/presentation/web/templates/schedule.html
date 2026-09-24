@@ -153,6 +153,7 @@
 </section>
 
 <footer class="foot">
+  <a class="foot-link" href="/share?{{.SubjectQuery}}">{{if .IsLecturer}}Поделиться расписанием: ссылка и QR{{else}}Поделиться с группой: ссылка и QR{{end}}</a>
   <a class="foot-link" href="/calendar.ics?{{.SubjectQuery}}">Подписаться в календаре</a>
   {{if not .IsLecturer}}<a class="foot-link" href="/together?g={{.Group}}">Общие окна с другой группой</a>{{end}}
   <span class="foot-note">{{if .Freshness}}Обновлено {{.Freshness}} · и{{else}}И{{end}}сточник: расписание вуза</span>

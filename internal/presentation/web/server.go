@@ -48,6 +48,9 @@ type Deps struct {
 	// Dev включает параметр ?now=ЧЧ:ММ на экране дня: иначе состояние «пара
 	// идёт» можно увидеть только дождавшись пары. В бою параметр игнорируется.
 	Dev bool
+	// Origin — адрес сайта для ссылок наружу (QR, «поделиться»):
+	// https://fa.planovo.pro. Пусто — адрес берётся из запроса.
+	Origin string
 	// HideWhereLecturer выключает «где преподаватель сейчас»: карточка
 	// преподавателя уводит на его расписание недели. Нулевое значение —
 	// функция включена, как и было до выключателя.
@@ -65,7 +68,7 @@ type Server struct {
 func New(d Deps) (*Server, error) {
 	funcs := template.FuncMap{"asset": AssetURL, "skinCSS": func(id string) string { return AssetURL("skins/" + id + ".css") }, "cover": lessonCover}
 	pages := map[string]*template.Template{}
-	for _, name := range []string{"rooms", "disciplines", "window", "together", "shared", "map", "schedule", "lessons", "summary", "notesearch", "cards", "lecturers", "settings"} {
+	for _, name := range []string{"rooms", "sharegroup", "disciplines", "window", "together", "shared", "map", "schedule", "lessons", "summary", "notesearch", "cards", "lecturers", "settings"} {
 		// hero.html — общий верхний блок дня: его рисуют и экран расписания,
 		// и экран «где преподаватель».
 		t, err := template.New("base").Funcs(funcs).ParseFS(templateFS, "templates/base.html", "templates/hero.html", "templates/onboard.html", "templates/manul.html", "templates/"+name+".html")
@@ -91,6 +94,9 @@ func (s *Server) Routes() http.Handler {
 		s.schedule(w, r)
 	})
 	mux.HandleFunc("GET /schedule", s.schedule)
+	mux.HandleFunc("GET /g/{name}", s.groupLink)
+	mux.HandleFunc("GET /share", s.shareGroup)
+	mux.HandleFunc("GET /share/qr.png", s.shareQRPNG)
 	mux.HandleFunc("GET /rooms", s.rooms)
 	mux.HandleFunc("GET /together", s.together)
 	mux.HandleFunc("GET /map", s.plan)
