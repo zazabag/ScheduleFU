@@ -197,6 +197,11 @@ func (s *Service) Collect(ctx context.Context, from, to time.Time) (domain.Apply
 			s.log.Info("уведомления запланированы", "писем", n)
 		}
 	}
+	if n, err := s.TallyToday(ctx); err != nil {
+		s.log.Warn("итоги семестра не пополнены", "ошибка", err)
+	} else if n > 0 {
+		s.log.Info("итоги семестра пополнены", "расписаний", n)
+	}
 	_ = s.repo.FinishRun(ctx, runID, total, stats.failed, len(lessons), res.Changes(), nil)
 	s.log.Info("проход завершён", "аудиторий", len(oids), "пар", len(lessons),
 		"добавлено", res.Added, "изменено", res.Changed, "удалено", res.Removed,
@@ -681,3 +686,37 @@ func (s *Service) Freshness(ctx context.Context) (time.Time, bool) {
 
 // Repo даёт транспорту доступ к поиску справочников; логики там нет.
 func (s *Service) Repo() Repository { return s.repo }
+
+// TallyFrom — с какого часа (ЧЧ:ММ, пояс вуза) день считается прошедшим и
+// складывается в итоги семестра. Последняя пара кончается в 22:00; сегодня
+// ещё в окне сбора, а завтрашний проход его уже удалит.
+const TallyFrom = "22:30"
+
+// TallyToday складывает сегодняшний день в итоги семестра — один раз, в
+// вечерний проход. Возвращает, сколько расписаний пополнено; 0 — рано или
+// день уже сложен.
+func (s *Service) TallyToday(ctx context.Context) (int, error) {
+	now := s.clock.Now()
+	if now.Format("15:04") < TallyFrom {
+		return 0, nil
+	}
+	today := s.clock.Today()
+	items, err := s.repo.DayAttributions(ctx, today)
+	if err != nil {
+		return 0, err
+	}
+	tallies := domain.TallyDay(items)
+	if len(tallies) == 0 {
+		return 0, nil
+	}
+	added, err := s.repo.AddDayTally(ctx, today, domain.SemesterOf(today), tallies)
+	if err != nil || !added {
+		return 0, err
+	}
+	return len(tallies), nil
+}
+
+// SemesterTally — итоги текущего семестра расписания.
+func (s *Service) SemesterTally(ctx context.Context, subj domain.Subject) (domain.Tally, bool, error) {
+	return s.repo.SemesterTally(ctx, subj.Key(), domain.SemesterOf(s.clock.Today()))
+}

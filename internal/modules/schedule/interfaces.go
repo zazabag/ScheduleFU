@@ -54,6 +54,14 @@ type Repository interface {
 	ApplyGroupLinks(ctx context.Context, group string, lessonOids []int64, on time.Time) error
 	GroupID(ctx context.Context, name string) (int64, bool, error)
 
+	// DayAttributions — пары дня, отнесённые к расписаниям: группам (по
+	// составу потока и по связям языковых подгрупп) и преподавателям.
+	DayAttributions(ctx context.Context, day time.Time) ([]domain.Attributed, error)
+	// AddDayTally добавляет итог дня к итогам семестра — один раз на день;
+	// false — день уже добавлен.
+	AddDayTally(ctx context.Context, day time.Time, semester string, tallies map[string]domain.Tally) (bool, error)
+	SemesterTally(ctx context.Context, subjectKey, semester string) (domain.Tally, bool, error)
+
 	StartRun(ctx context.Context, from, to time.Time) (int64, error)
 	FinishRun(ctx context.Context, id int64, requests, errs, lessons, changes int, failure error) error
 	LastSuccessfulRun(ctx context.Context) (time.Time, bool, error)

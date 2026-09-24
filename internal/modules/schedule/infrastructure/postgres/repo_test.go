@@ -9,7 +9,7 @@ import (
 	"github.com/zazabag/schedulefu/internal/platform/db"
 )
 
-var tables = []string{"lessons", "lesson_changes", "auditoriums", "groups", "lecturers", "collector_runs", "group_links", "group_fetches"}
+var tables = []string{"lessons", "lesson_changes", "auditoriums", "groups", "lecturers", "collector_runs", "group_links", "group_fetches", "semester_tallies", "tally_days"}
 
 func testRepo(t *testing.T) (*Repo, context.Context) {
 	t.Helper()
@@ -321,5 +321,36 @@ func TestPoiskPoDistsipline(t *testing.T) {
 	hits, _ = r.SearchDisciplines(ctx, "ИНОСТРАН", 10)
 	if len(hits) != 1 || len(hits[0].Groups) != 0 {
 		t.Errorf("имя потока не группа: %+v", hits)
+	}
+}
+
+// Итоги: пары дня раскладываются по группам и преподавателю, день
+// складывается один раз, второй день суммируется с первым.
+func TestItogiSemestraVBaze(t *testing.T) {
+	r, ctx := testRepo(t)
+	fill(t, r, ctx, para(1, 8, "08:30", 2851, "Философия"), para(2, 9, "11:50", 2851, "История"))
+	items, err := r.DayAttributions(ctx, day(8))
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys := map[string]bool{}
+	for _, it := range items {
+		keys[it.SubjectKey] = true
+	}
+	if !keys["group:ПИ24-1"] || !keys["group:ПИ24-2"] || !keys["lecturer:46674"] || len(keys) != 3 {
+		t.Fatalf("расписания дня: %v", keys)
+	}
+	for _, d := range []int{8, 9, 9} {
+		items, _ := r.DayAttributions(ctx, day(d))
+		if _, err := r.AddDayTally(ctx, day(d), "2026-1", domain.TallyDay(items)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tl, ok, err := r.SemesterTally(ctx, "group:ПИ24-1", "2026-1")
+	// para() ставит конец пары в 10:00, поэтому у пары в 11:50 минут ноль —
+	// проверяем, что дисциплина учтена, а не её часы.
+	_, history := tl.Disciplines["История"]
+	if err != nil || !ok || tl.Days != 2 || tl.Lessons != 2 || tl.Minutes != 90 || !history {
+		t.Errorf("итог: %+v %v %v", tl, ok, err)
 	}
 }
