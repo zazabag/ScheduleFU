@@ -46,6 +46,7 @@ var commands = map[string]command{
 	"notes":   {help: "обработка записей пар: расшифровка и конспект", flags: noFlags, do: notesWorker},
 	"migrate": {help: "применить миграции и выйти", flags: noFlags, do: migrate},
 	"ops":     {help: "присмотр за сервером: служебный чат в Telegram", flags: noFlags, do: opsCmd},
+	"bot":     {help: "бот расписания в Telegram: inline-режим в чатах групп", flags: noFlags, do: botCmd},
 }
 
 func noFlags(*flag.FlagSet) any { return nil }

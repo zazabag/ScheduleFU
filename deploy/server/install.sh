@@ -91,7 +91,7 @@ chmod 600 $APP_DIR/env
 
 echo "==> Службы"
 install -d -o $APP_USER -g $APP_USER -m 700 $APP_DIR/audio $APP_DIR/models
-for unit in serve collect notes ops; do
+for unit in serve collect notes ops bot; do
   cat > /etc/systemd/system/schedulefu-$unit.service <<UNIT
 [Unit]
 Description=ScheduleFU $unit
@@ -183,9 +183,14 @@ if grep -q '^SCHEDULEFU_OPS_TELEGRAM_TOKEN=.' $APP_DIR/env; then
   systemctl enable -q schedulefu-ops
   systemctl restart schedulefu-ops
 fi
+# Бот расписания — так же: только с токеном, иначе служба сразу выйдет.
+if grep -q '^SCHEDULEFU_BOT_TELEGRAM_TOKEN=.' $APP_DIR/env; then
+  systemctl enable -q schedulefu-bot
+  systemctl restart schedulefu-bot
+fi
 sleep 3
 systemctl is-active schedulefu-serve schedulefu-collect caddy postgresql | tr '\n' ' '; echo
-for unit in notes ops; do
+for unit in notes ops bot; do
   if systemctl is-enabled -q schedulefu-$unit 2>/dev/null; then
     printf 'schedulefu-%s: ' $unit; systemctl is-active schedulefu-$unit
   fi

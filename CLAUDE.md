@@ -63,9 +63,10 @@ ScheduleFU — собственный сервис расписания Фина
 
 | Путь | Назначение |
 |---|---|
-| `cmd/schedulefu/` | единственный бинарник: `serve · collect · notes · seed · static · vapid · migrate`; composition root |
+| `cmd/schedulefu/` | единственный бинарник: `serve · collect · notes · bot · ops · seed · static · vapid · migrate`; composition root |
 | `internal/presentation/web/` | пять разделов (расписание · аудитории · пары · преподаватели · настройки), шаблоны, каркас `base.css`, оформления `skins/*.css`, cookie закрепления и оформления |
 | `internal/presentation/api/` | JSON `/api/v1` и ручки подписки |
+| `internal/presentation/telegram/` | бот расписания: inline-режим «@бот ПИ24-1» в чатах групп, служба `schedulefu bot` (токен — `SCHEDULEFU_BOT_TELEGRAM_TOKEN`) |
 | `internal/presentation/static/` | сборка версии для GitHub Pages |
 | `internal/modules/source/` | порт `Source`; `ruz/` — адаптер РУЗ ФУ: клиент, разбор аудиторий, площадки |
 | `internal/modules/schedule/` | ядро: `domain/` (пара, аудитория, `Subject`, сетка пар), сервис сбора и запросов, `infrastructure/postgres/` |
