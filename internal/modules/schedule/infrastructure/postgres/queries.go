@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -530,4 +531,97 @@ func (r *Repo) GroupID(ctx context.Context, name string) (int64, bool, error) {
 		return 0, false, fmt.Errorf("groups: %w", err)
 	}
 	return id, true, nil
+}
+
+// ─── итоги семестра ──────────────────────────────────────────────────────────
+
+// DayAttributions — пары дня по расписаниям. Группы — по составу потока
+// (только настоящие имена групп) и по связям языковых подгрупп, как в
+// расписании группы; преподаватели — по oid.
+func (r *Repo) DayAttributions(ctx context.Context, day time.Time) ([]domain.Attributed, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT 'group:' || g, to_char(l.begins_at,'HH24:MI'), to_char(l.ends_at,'HH24:MI'), l.discipline, l.building, l.auditorium
+		  FROM lessons l, unnest(l.group_names) g
+		 WHERE l.lesson_date = $1 AND g ~ '^[[:alpha:]]+[0-9]{2}-[0-9]+[[:alpha:]]*$'
+		UNION
+		SELECT 'group:' || gl.group_name, to_char(l.begins_at,'HH24:MI'), to_char(l.ends_at,'HH24:MI'), l.discipline, l.building, l.auditorium
+		  FROM group_links gl JOIN lessons l USING (lesson_oid)
+		 WHERE l.lesson_date = $1
+		UNION
+		SELECT 'lecturer:' || l.lecturer_oid, to_char(l.begins_at,'HH24:MI'), to_char(l.ends_at,'HH24:MI'), l.discipline, l.building, l.auditorium
+		  FROM lessons l
+		 WHERE l.lesson_date = $1 AND l.lecturer_oid IS NOT NULL`, day.Format("2006-01-02"))
+	if err != nil {
+		return nil, fmt.Errorf("пары дня по расписаниям: %w", err)
+	}
+	defer rows.Close()
+	var out []domain.Attributed
+	for rows.Next() {
+		var a domain.Attributed
+		var bld, aud *string
+		if err := rows.Scan(&a.SubjectKey, &a.Lesson.BeginsAt, &a.Lesson.EndsAt, &a.Lesson.Discipline, &bld, &aud); err != nil {
+			return nil, err
+		}
+		a.Lesson.Building, a.Lesson.Auditorium = deref(bld), deref(aud)
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
+// AddDayTally — одной транзакцией: отметка дня и сложение с итогами. Отметка
+// первая: второй вечерний проход упрётся в неё и не сложит день дважды.
+func (r *Repo) AddDayTally(ctx context.Context, day time.Time, semester string, tallies map[string]domain.Tally) (bool, error) {
+	added := false
+	err := db.InTx(ctx, r.pool, func(tx pgx.Tx) error {
+		tag, err := tx.Exec(ctx, `INSERT INTO tally_days (day, subjects) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+			day.Format("2006-01-02"), len(tallies))
+		if err != nil || tag.RowsAffected() == 0 {
+			return err
+		}
+		added = true
+		for key, t := range tallies {
+			old, ok, err := scanTally(tx.QueryRow(ctx, `SELECT lessons, minutes, days, buildings, rooms, disciplines
+				FROM semester_tallies WHERE subject_key=$1 AND semester=$2 FOR UPDATE`, key, semester))
+			if err != nil {
+				return err
+			}
+			if ok {
+				t = old.Add(t)
+			}
+			b, _ := json.Marshal(t.Buildings)
+			rm, _ := json.Marshal(t.Rooms)
+			d, _ := json.Marshal(t.Disciplines)
+			if _, err := tx.Exec(ctx, `INSERT INTO semester_tallies
+				(subject_key, semester, lessons, minutes, days, buildings, rooms, disciplines, updated_at)
+				VALUES ($1,$2,$3,$4,$5,$6,$7,$8,now())
+				ON CONFLICT (subject_key, semester) DO UPDATE SET lessons=EXCLUDED.lessons, minutes=EXCLUDED.minutes,
+				days=EXCLUDED.days, buildings=EXCLUDED.buildings, rooms=EXCLUDED.rooms, disciplines=EXCLUDED.disciplines,
+				updated_at=now()`, key, semester, t.Lessons, t.Minutes, t.Days, b, rm, d); err != nil {
+				return fmt.Errorf("итог %s: %w", key, err)
+			}
+		}
+		return nil
+	})
+	return added, err
+}
+
+func (r *Repo) SemesterTally(ctx context.Context, subjectKey, semester string) (domain.Tally, bool, error) {
+	return scanTally(r.pool.QueryRow(ctx, `SELECT lessons, minutes, days, buildings, rooms, disciplines
+		FROM semester_tallies WHERE subject_key=$1 AND semester=$2`, subjectKey, semester))
+}
+
+func scanTally(row pgx.Row) (domain.Tally, bool, error) {
+	var t domain.Tally
+	var b, rm, d []byte
+	err := row.Scan(&t.Lessons, &t.Minutes, &t.Days, &b, &rm, &d)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Tally{}, false, nil
+	}
+	if err != nil {
+		return domain.Tally{}, false, fmt.Errorf("итог семестра: %w", err)
+	}
+	_ = json.Unmarshal(b, &t.Buildings)
+	_ = json.Unmarshal(rm, &t.Rooms)
+	_ = json.Unmarshal(d, &t.Disciplines)
+	return t, true, nil
 }

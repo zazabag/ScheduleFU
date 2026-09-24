@@ -250,6 +250,7 @@ type Media      interface { ToWav(ctx, src, dst string) (durationSec int, err er
 | `lesson_changes` | schedule | 30 дней |
 | `auditoriums`, `groups`, `lecturers` | schedule | справочники, живут; `last_seen_at` для чистки исчезнувших |
 | `collector_runs` | schedule | 90 дней |
+| `semester_tallies`, `tally_days` | schedule | суммы по расписанию за семестр, без сырых пар; чистки пока нет — решить до весеннего семестра |
 | `push_subscriptions` | notify | пока живо устройство; мёртвые (404/410) удаляются немедленно |
 | `push_outbox` | notify | 7 дней после доставки или отказа |
 | `recordings` | notes | файл — до конца расшифровки; строка с расшифровкой — пока её не удалят |
