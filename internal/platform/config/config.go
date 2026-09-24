@@ -32,6 +32,15 @@ type Config struct {
 	Static  Static  `yaml:"static"`
 	Privacy Privacy `yaml:"privacy"`
 	Ops     Ops     `yaml:"ops"`
+	Bot     Bot     `yaml:"bot"`
+}
+
+// Bot — бот расписания в Telegram: inline-режим в чатах групп. Отдельный
+// от присмотра: служебный чат о сервере и публичный бот для студентов
+// не должны делить один токен.
+type Bot struct {
+	// TelegramToken живёт только в окружении: SCHEDULEFU_BOT_TELEGRAM_TOKEN.
+	TelegramToken string `yaml:"telegram_token"`
 }
 
 // Privacy — функции, которые обязаны выключаться одной строкой.
