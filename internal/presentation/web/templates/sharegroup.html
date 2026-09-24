@@ -1,0 +1,21 @@
+{{define "content"}}
+<header class="top">
+  <div class="top-row">
+    <div>
+      <span class="top-kicker">поделиться расписанием</span>
+      <h1 class="top-title">{{.Label}}</h1>
+      <p class="top-sub">{{if .IsLecturer}}Покажите студентам QR или отправьте ссылку — у них откроется ваше расписание.{{else}}Покажите QR на проекторе или киньте ссылку в чат группы — у каждого откроется это расписание и сразу закрепится.{{end}}</p>
+    </div>
+    <div class="top-actions"><a class="act" href="{{.Back}}">К расписанию</a></div>
+  </div>
+</header>
+
+<section class="card share-qr">
+  {{.QR}}
+  <p class="share-link">{{.LinkText}}</p>
+  <div class="share-actions">
+    <button class="btn btn-main" type="button" data-share="{{.Link}}" data-title="Расписание {{.Label}}">Отправить ссылку</button>
+    <a class="btn btn-ghost" href="{{.PNG}}" download="schedulefu-qr.png">QR картинкой — для печати</a>
+  </div>
+</section>
+{{end}}

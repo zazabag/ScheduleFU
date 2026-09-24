@@ -807,3 +807,10 @@ body { touch-action: pan-y; }
 .morning-box { display: flex; gap: 8px; align-items: center; margin: 8px 0 0; font-size: 13px; color: var(--text-2); }
 .morning-box[hidden] { display: none; }
 
+/* Поделиться расписанием: QR на всю ширину — его показывают с проектора. */
+.share-qr { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.qr-svg { width: 100%; max-width: 320px; height: auto; border-radius: 12px; }
+.share-link { margin: 0; font-size: 13px; color: var(--text-2); word-break: break-all; text-align: center; }
+.share-qr .share-actions { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.share-qr .share-actions .btn { width: 100%; }
+
